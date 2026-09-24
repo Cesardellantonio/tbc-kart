@@ -1,7 +1,8 @@
-// Race flow: title → countdown → racing ⇄ paused. Drives the start lights and the lap timer.
+// Race flow: title → countdown → racing ⇄ paused → finished (Grand Prix). Drives the start lights
+// and the player's lap timer. mode: 'race' (Grand Prix vs rivals) | 'timeattack' (alone + ghost).
 
 import { LapTimer } from './LapTimer.js';
-import { LIGHT_INTERVAL, LIGHTS_HOLD, GO_SHOW, LIGHT_COUNT } from '../config/race.js';
+import { LIGHT_INTERVAL, LIGHTS_HOLD, GO_SHOW, LIGHT_COUNT, RACE_LAPS } from '../config/race.js';
 
 export class RaceSession {
   constructor(sampleCount, startIndex, bus, record) {
@@ -9,14 +10,16 @@ export class RaceSession {
     this.timer = new LapTimer(sampleCount, startIndex);
     this.timer.best = record.best;
     this.timer.bestSplits = record.splits;
-    this.state = 'title'; // 'title' | 'countdown' | 'racing' | 'paused'
+    this.state = 'title'; // 'title' | 'countdown' | 'racing' | 'paused' | 'finished'
+    this.mode = 'race';
     this.clock = 0; // seconds since GO
     this.lights = 0;
     this.lightsMode = 'off'; // 'off' | 'red' | 'go'
     [this._t, this._hold, this._goAt, this._resumeTo] = [0, 1, 0, null];
   }
 
-  startCountdown() {
+  startCountdown(mode = this.mode) {
+    this.mode = mode;
     this.state = 'countdown';
     this._t = 0;
     this.clock = 0;
@@ -25,6 +28,18 @@ export class RaceSession {
     this._hold = LIGHTS_HOLD[0] + Math.random() * (LIGHTS_HOLD[1] - LIGHTS_HOLD[0]);
     this.timer.reset();
     this.bus.emit('countdown');
+  }
+
+  toTitle() {
+    this.state = 'title';
+    this.lightsMode = 'off';
+    this.lights = 0;
+  }
+
+  // Chequered flag for the player: the clock keeps running so rivals can still finish.
+  finish() {
+    this.state = 'finished';
+    this.bus.emit('finish');
   }
 
   togglePause() {
@@ -58,6 +73,8 @@ export class RaceSession {
       if (this.lightsMode === 'go' && this._t - this._goAt > GO_SHOW) this.lightsMode = 'off';
       const event = this.timer.update(trackIndex, this.clock);
       if (event) this.bus.emit('lap', event);
+    } else if (this.state === 'finished') {
+      this.clock += dt;
     }
   }
 
@@ -66,6 +83,8 @@ export class RaceSession {
     const t = this.timer;
     return {
       state: this.state,
+      mode: this.mode,
+      totalLaps: RACE_LAPS,
       lap: t.lap,
       lapTime: t.lapTime(this.clock),
       last: t.lastLap,

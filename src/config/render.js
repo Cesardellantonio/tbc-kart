@@ -1,7 +1,10 @@
 // Renderer, lighting, shadows, fog and post-processing settings.
 
-export const PIXEL_RATIO_CAP = 2;
-export const MSAA_SAMPLES = 4;
+// Phones and tablets (coarse pointer) get a lighter pipeline to hold the frame rate.
+const LITE = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
+export const PIXEL_RATIO_CAP = LITE ? 1.5 : 2;
+export const MSAA_SAMPLES = LITE ? 2 : 4;
 export const EXPOSURE = 1.0;
 
 export const BG_COLOR = 0x0b0d12;
@@ -17,7 +20,7 @@ export const FILLS = [
   { color: 0xdfe6ff, intensity: 0.95, direction: [-1, 0.75, -0.55] },
   { color: 0xffe9d6, intensity: 0.75, direction: [1, 0.7, 0.8] },
 ];
-export const SHADOW_MAP_SIZE = 4096;
+export const SHADOW_MAP_SIZE = LITE ? 2048 : 4096;
 export const SHADOW_BIAS = -0.0003;
 export const SHADOW_NORMAL_BIAS = 0.035;
 

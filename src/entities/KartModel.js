@@ -12,13 +12,14 @@ import {
 import { clamp, damp } from '../core/math.js';
 
 export class KartModel {
-  constructor() {
-    const mats = kartMaterials();
+  // livery: colour overrides (see config/kart.js LIVERY); ghost: translucent, casts no shadow.
+  constructor({ livery, number, ghost = false } = {}) {
+    const mats = kartMaterials(livery, ghost);
     this.root = new THREE.Group(); // follows position + heading
     this.body = new THREE.Group(); // rolls and pitches with load transfer; wheels stay planted
     this.root.add(this.body);
 
-    const chassis = buildChassis(mats);
+    const chassis = buildChassis(mats, number, ghost);
     this.steeringWheel = chassis.steeringWheel;
     this.driver = buildDriver(mats);
     this.body.add(chassis.group, this.driver.group);
@@ -26,8 +27,11 @@ export class KartModel {
     this.wheels = wheels;
     this.root.add(group);
     this.root.traverse((o) => {
-      if (o.isMesh) o.castShadow = o.receiveShadow = true;
+      if (o.isMesh) o.castShadow = o.receiveShadow = !ghost;
     });
+    this._roll = 0;
+    this._pitch = 0;
+    if (ghost) return; // no contact shadow under a ghost
 
     const shadow = new THREE.Mesh(
       new THREE.PlaneGeometry(1.9, 2.6).rotateX(-Math.PI / 2),
@@ -36,8 +40,6 @@ export class KartModel {
     shadow.position.y = 0.03;
     shadow.renderOrder = 2;
     this.root.add(shadow);
-    this._roll = 0;
-    this._pitch = 0;
   }
 
   // In the cockpit view the camera sits inside the helmet — hide the head.

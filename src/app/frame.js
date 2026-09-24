@@ -1,14 +1,20 @@
-// One simulation frame: input → race flow → kart → FX & audio → camera → HUD.
+// One simulation frame: input → karts (player + field) → race flow → FX & audio → camera → HUD.
 
 import { handleActions } from './actions.js';
+import { stepField } from './field.js';
+import { FINISH_COOLDOWN } from '../config/race.js';
 
 const HOLD = { throttle: 0, brake: 0, steer: 0, handbrake: false };
 const IMPACT_MIN = 1.5; // m/s into a barrier before it counts as a hit
 const IMPACT_COOLDOWN = 0.18; // s between hit events while grinding along a wall
+const OVERTAKE_HOLD = 0.6; // s a gained place must hold before it's announced
 
-// Who drives: the autopilot on the title screen, the player while racing, nobody on the grid.
+// Who drives the player's kart: the autopilot on the title screen and after the flag,
+// the player while racing, nobody on the grid.
 export function controlsFor(game, state) {
-  if (state === 'title') return game.autopilot.controls(game.kart.state, game.kart.telemetry.speed);
+  const speed = game.kart.telemetry.speed;
+  if (state === 'title') return game.autopilot.controls(game.kart.state, speed);
+  if (state === 'finished') return game.autopilot.controls(game.kart.state, speed, FINISH_COOLDOWN.maxSpeed);
   return state === 'racing' ? game.input.controls() : HOLD;
 }
 
@@ -26,16 +32,37 @@ export function runLoop(game) {
   requestAnimationFrame(frame);
 }
 
+// Toast a gained place once it has held for a moment (no flicker when side by side).
+function announceOvertakes(game, dt) {
+  const pos = game.field.position(game.field.player);
+  if (pos !== game.heldPosition) [game.heldPosition, game.positionAge] = [pos, 0];
+  game.positionAge += dt;
+  if (game.positionAge >= OVERTAKE_HOLD && pos !== game.lastPosition) {
+    if (pos < game.lastPosition && game.session.state === 'racing' && game.session.timer.lap >= 1) {
+      game.bus.emit('overtake', pos);
+    }
+    game.lastPosition = pos;
+  }
+}
+
 export function stepGame(game, dt) {
   const { input, session, kart, world, camera } = game;
   input.poll();
   handleActions(game);
   const state = session.state;
   const paused = state === 'paused';
+  const grandPrix = session.mode === 'race' || state === 'title';
   if (!paused) {
     kart.update(game.controlsFor(state), dt);
+    if (grandPrix) stepField(game, dt, state !== 'countdown');
     game.trackIndex = world.path.nearest(kart.state.x, kart.state.z, game.trackIndex);
     session.update(dt, game.trackIndex);
+    if (state === 'racing') game.recorder.update(session.timer.lap, session.timer.lapTime(session.clock), kart.state);
+    if (session.mode === 'race' && (state === 'racing' || state === 'finished')) {
+      const done = game.field.update([game.trackIndex, ...game.rivals.map((r) => r.index)], session.clock);
+      if (state === 'racing' && done.some((e) => e.isPlayer)) session.finish();
+      announceOvertakes(game, dt);
+    }
     game.fx.update(kart, dt, camera.three, game.renderer.three.domElement.height);
     game.impactCooldown -= dt;
     if (kart.telemetry.impact > IMPACT_MIN && game.impactCooldown <= 0) {
@@ -43,6 +70,8 @@ export function stepGame(game, dt) {
       game.impactCooldown = IMPACT_COOLDOWN;
     }
   }
+  const view = session.view;
+  game.ghost.update(view.lapTime, session.mode === 'timeattack' && state === 'racing' && view.lap >= 1, paused ? 0 : dt);
   world.gantry.setLights(session.lights, session.lightsMode);
   camera.update(kart, paused ? 0 : dt);
   kart.model.setFirstPerson(camera.mode === 'follow' && camera.view === 'cockpit');
@@ -50,8 +79,10 @@ export function stepGame(game, dt) {
   const t = kart.telemetry;
   const revs = state === 'countdown' ? input.controls().throttle : t.throttle; // rev on the grid
   game.engine.update(t.speed, revs, dt, !paused);
+  game.pack.update(kart.state, grandPrix ? game.rivals.map((r) => r.kart) : [], dt, !paused);
   game.sfx.screech(t.speed > 3 ? t.slip : 0, !paused);
-  game.hud.update(session.view, kart);
+  game.hud.update(view, kart, game);
+  game.screens.update(game);
   game.debug.update(dt, game);
   input.endFrame();
 }

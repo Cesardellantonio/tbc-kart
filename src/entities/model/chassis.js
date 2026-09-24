@@ -28,7 +28,7 @@ function noseGeometry(width) {
   return g;
 }
 
-export function buildChassis(mats) {
+export function buildChassis(mats, number = KART_NUMBER, ghost = false) {
   const g = new THREE.Group();
   place(g, rbox(0.62, 0.04, 1.55, 0.015, mats.frame), 0, 0.075, 0); // floor pan
   place(g, rbox(0.17, 0.17, 0.66, 0.05, mats.body), -0.43, 0.16, 0.03); // side pods
@@ -40,7 +40,7 @@ export function buildChassis(mats) {
 
   const plate = new THREE.Mesh(
     new THREE.CircleGeometry(0.1, 24),
-    new THREE.MeshStandardMaterial({ map: numberPlateTexture(KART_NUMBER), roughness: 0.4 }),
+    ghost ? mats.body : new THREE.MeshStandardMaterial({ map: numberPlateTexture(number), roughness: 0.4 }),
   );
   plate.position.set(0, 0.235, -0.87);
   plate.lookAt(0, 0.235 + 0.88, -0.87 - 0.46); // face forward-up along the nose slope

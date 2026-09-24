@@ -1,23 +1,29 @@
 # TBC Kart — indoor kart racing in Three.js
 
-A time-attack kart game set in an indoor karting hall, on a layout traced from the **TBC Indoor Racing** track in Vancouver. Vanilla JavaScript + Three.js, no framework, built one session at a time as a learning project.
+A kart racing game set in an indoor karting hall, on a layout traced from the **TBC Indoor Racing** track in Vancouver. Vanilla JavaScript + Three.js, no framework, built one session at a time as a learning project.
 
 - **v0.1–v0.2** — outdoor box car → indoor kart on a painted TBC trace
 - **v0.3–v0.7** — collision, HUD, shadows, spinning wheels, bloom, audio, tests
-- **v1.0** — look & feel overhaul (current): real-scale track with barriers, drift physics, detailed kart + driver, lap timing with live delta, start lights, title attract mode, venue lighting, particles, synthesized sound
+- **v1.0** — look & feel overhaul: real-scale track with barriers, drift physics, detailed kart + driver, lap timing with live delta, start lights, title attract mode, venue lighting, particles, synthesized sound
+- **v2.0** — Grand Prix (current): 5-lap races against five AI rivals, kart-to-kart contact, slipstream, live timing tower, results screen, best-lap ghost in time attack, touch controls for phones
 
 ## Run
 
 ```bash
 npm install
 npm run dev      # open the URL Vite prints (usually http://localhost:5173)
-npm test         # 17 unit tests: physics, track geometry, barriers, lap timing
+npm test         # 25 unit tests: physics, track, barriers, lap timing, contacts, race order, AI line, ghost
 npm run build    # production bundle in dist/
 ```
 
 ## How to play
 
-Press **Enter** on the title screen. Wait for the five red lights to go out, then set the fastest lap you can. Your best lap is saved in the browser and shown in purple.
+Pick a mode on the title screen (`←` `→`, then **Enter** — or click / tap a mode):
+
+- **Grand Prix** — 5 laps against five rivals from 5th on the grid. Tuck in behind a kart to catch its slipstream (the speedo shows **SLIPSTREAM**), then pull out and pass. Rubbing is racing: karts bump and shove each other. The timing tower shows the running order and real time gaps; the results card fills in as the field takes the flag.
+- **Time Attack** — alone on track against the clock. Your best lap is saved in the browser (shown in purple) along with a translucent **ghost** of that lap to chase.
+
+On a phone or tablet, on-screen buttons appear: steer bottom-left, gas / brake / drift bottom-right, camera and pause at the top.
 
 | Key | Action |
 |---|---|
@@ -28,7 +34,7 @@ Press **Enter** on the title screen. Wait for the five red lights to go out, the
 | `C` | Camera: chase → far → cockpit |
 | `R` | Reset kart onto the track (restart when paused) |
 | `M` | Sound on/off |
-| `Esc` / `P` | Pause |
+| `Esc` / `P` | Pause (then `R` restart, `Q` menu) |
 | `` ` `` / `F3` | Developer overlay |
 
 A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbrake, Y camera, Back reset, Start pause.
@@ -42,6 +48,8 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 - **Look**: ACES tone mapping, a custom reflection environment of the hall itself, soft shadows, tight bloom, a colour grade with vignette, and 4× MSAA.
 - **Feel**: speed-driven FOV, a chase camera that swings to show your drift angle, impact shake, tyre smoke, skid marks, and sparks.
 - **Race**: title attract mode with TV-style trackside cameras, F1-style start lights (gantry and HUD), lap timing with sub-frame line crossing, a live delta to your best lap, and a persisted record.
+- **Rivals**: five AI drivers with their own liveries, pace, preferred line and start reactions. They follow a racing line that clips the inside of each corner, brake for corner speed from the track curvature, pull out to pass slower karts, back off when boxed in, and reset themselves if stuck. A light pack pull keeps races close, and a random form factor changes the order from race to race.
+- **Race physics**: equal-mass kart-to-kart contacts (push apart, trade momentum, sparks and shake), and slipstream that cuts up to 55% of aero drag within 9 m behind another kart.
 - **Sound** (all synthesized with WebAudio, no files): engine with throttle and RPM, tyre screech, impacts, start beeps, and lap chimes.
 
 ## Architecture
@@ -56,6 +64,7 @@ src/
     actions.js         one-shot inputs (start, pause, reset, camera, mute)
     wireEvents.js      event bus → sound, shake, saved record, screens
     anchors.js         trackside TV-camera positions for the title screen
+    field.js           rival karts: grid, AI stepping, contacts and slipstream
   config/              every tunable value, grouped by topic (no magic numbers elsewhere)
     trackWaypoints.js  the TBC layout in metres (data only)
     track · physics · kart · camera · render · venue · audio · input · race
@@ -69,13 +78,16 @@ src/
     stripGeometry      flat strips for asphalt, paint and curbs
     bounds             venue size from the barriers + a wall loop collider
   physics/             kartPhysics (pure step) · BarrierCollider (circle vs segments, grid)
-  entities/            Kart (state + substeps) · KartModel (animation) · model/ parts
+                       kartContacts (kart vs kart, slipstream)
+  entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts
   world/               Floor · TrackSurface · Curbs · Barriers · Venue · Rig · Banners
                        Lighting · StartGantry · textures/ (all procedural canvas textures)
   fx/                  Particles (+ shader) · SkidMarks · KartFx
-  audio/               AudioEngine · EngineSound · Sfx
+  audio/               AudioEngine · EngineSound · PackSound (rival engines) · Sfx
   race/                RaceSession (state machine) · LapTimer (pure) · storage · Autopilot
-  ui/                  Hud · LapPanel · Speedo · Minimap · StartLights · Toasts · Screens
+                       RaceField (order, gaps, finish) · AiDriver · racingLine · GhostRecorder
+  ui/                  Hud · LapPanel · Standings · Speedo · Minimap · StartLights · Toasts
+                       Screens · Results · TouchControls
                        DebugOverlay · format · dom · hud.css
   debug/topdown.js     overhead view of the whole hall (dev)
 tests/                 physics · track · race
@@ -92,7 +104,7 @@ Each module has one job and stays at or under 80 lines, so when one grows past t
 7. **HUD**
 8. **render** (post-processing)
 
-Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `impact`, `pause`, `reset`, `camera`, `mute`.
+Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `finish`, `overtake`, `impact`, `pause`, `reset`, `camera`, `mute`.
 
 ## Tuning
 
@@ -106,13 +118,14 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `imp
 | Kart colours / number | `config/kart.js` → `LIVERY`, `KART_NUMBER` |
 | Track shape | `config/trackWaypoints.js` (keep radii ≥ 3.5 m; `npm test` checks the barriers) |
 | Banner texts, neon colours, lights | `config/venue.js` |
+| Race length, grid slot, rival names / colours / pace | `config/race.js` → `RACE_LAPS`, `GRID`, `RIVALS` |
+| AI line, passing, pack pull, slipstream, contact | `config/race.js` → `AI`, `DRAFT`, `CONTACT` |
 
 ## Where to add X
 
 | Want to add… | Touch these files |
 |---|---|
-| AI opponent | new `entities/` kart driven by `race/Autopilot`; add it in `app/Game.js` + `app/frame.js` |
-| Ghost of your best lap | record `kart.state` in `race/`, replay a second `KartModel` |
+| Another rival | add an entry to `RIVALS` in `config/race.js` (and a grid slot in `app/field.js`) |
 | New HUD widget | new file in `ui/`, compose it in `ui/Hud.js` |
 | New sound | method in `audio/Sfx.js`, subscribe in `app/wireEvents.js` |
 | New scenery | new file in `world/`, add it in `app/buildWorld.js` |
@@ -131,4 +144,4 @@ __debug.teleport(x, z);    // move the kart
 
 ## Not yet
 
-No AI opponents, no ghost car, no touch controls, and no track editor. Each would be a good next session.
+No online multiplayer, no championship across several races, and no track editor. Each would be a good next session.

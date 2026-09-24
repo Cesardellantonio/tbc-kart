@@ -2,14 +2,14 @@
 
 import {
   ENGINE_ACCEL, TOP_SPEED, BRAKE_DECEL, REVERSE_ACCEL, REVERSE_MAX,
-  ROLLING_DECEL, AERO_DRAG, HANDBRAKE_DECEL,
+  ROLLING_DECEL, AERO_DRAG, DRAFT_DRAG_CUT, HANDBRAKE_DECEL,
   GRIP, GRIP_SLIDING, GRIP_HANDBRAKE, SLIDE_THRESHOLD,
   STEER_RATE, STEER_FULL_SPEED, STEER_HIGH_SPEED_CUT, DRIFT_YAW_BOOST, STEER_IN, STEER_OUT,
 } from '../config/physics.js';
 import { clamp, forwardFromYaw, rightFromYaw } from '../core/math.js';
 
 // state: { x, z, yaw, vx, vz, steer }
-// input: { throttle 0..1, brake 0..1, steer -1..1 (+ = left), handbrake bool }
+// input: { throttle 0..1, brake 0..1, steer -1..1 (+ = left), handbrake bool, draft 0..1 (slipstream) }
 // Returns the next state, including telemetry used by camera, FX, audio and HUD.
 export function stepKart(s, input, dt) {
   if (!(dt > 0)) return { ...s, forwardSpeed: s.forwardSpeed ?? 0, slip: s.slip ?? 0, sliding: false, longAccel: 0, latAccel: 0 };
@@ -32,7 +32,8 @@ export function stepKart(s, input, dt) {
     if (vf > 0.3) vf = Math.max(0, vf - BRAKE_DECEL * input.brake * dt);
     else if (!input.throttle) vf = Math.max(-REVERSE_MAX, vf - REVERSE_ACCEL * input.brake * dt);
   }
-  const resist = (ROLLING_DECEL + AERO_DRAG * vf * vf + (input.handbrake ? HANDBRAKE_DECEL : 0)) * dt;
+  const drag = AERO_DRAG * (1 - DRAFT_DRAG_CUT * (input.draft || 0));
+  const resist = (ROLLING_DECEL + drag * vf * vf + (input.handbrake ? HANDBRAKE_DECEL : 0)) * dt;
   vf = Math.abs(vf) <= resist ? 0 : vf - Math.sign(vf) * resist;
 
   // Tyres scrub sideways velocity; once sliding (or on the handbrake) they hold far less.

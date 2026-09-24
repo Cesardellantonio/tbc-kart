@@ -14,3 +14,13 @@ export function formatDelta(seconds) {
   if (seconds == null || !Number.isFinite(seconds)) return '';
   return `${seconds < 0 ? '−' : '+'}${Math.abs(seconds).toFixed(3)}`;
 }
+
+// Gap to the leader (RaceField.gap): 1.234 → "+1.234"; { laps: 1 } → "+1 LAP"; null → "—"
+export function formatGap(gap) {
+  if (gap == null) return '—';
+  if (typeof gap === 'object') return `+${gap.laps} LAP${gap.laps > 1 ? 'S' : ''}`;
+  return `+${gap.toFixed(3)}`;
+}
+
+// 1 → "1ST", 2 → "2ND", 3 → "3RD", 4 → "4TH"
+export const ordinal = (n) => `${n}${['TH', 'ST', 'ND', 'RD'][n % 10 > 3 || Math.floor(n / 10) === 1 ? 0 : n % 10]}`;

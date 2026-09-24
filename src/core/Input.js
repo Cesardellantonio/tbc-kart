@@ -8,7 +8,9 @@ export class Input {
     this.pressed = new Set(); // key codes pressed since the last endFrame()
     this._padPressed = new Set();
     this._padPrev = {};
+    this._triggered = new Set();
     this.pad = null;
+    this.touch = null; // TouchControls, when the device has a touch screen
     target.addEventListener('keydown', (e) => {
       if (PREVENT_DEFAULT.has(e.code)) e.preventDefault();
       if (!e.repeat) this.pressed.add(e.code);
@@ -46,15 +48,28 @@ export class Input {
       c.brake = Math.max(c.brake, pad.buttons[GAMEPAD.brake]?.value || 0);
       c.handbrake = c.handbrake || !!pad.buttons[GAMEPAD.handbrake]?.pressed;
     }
+    const t = this.touch?.held;
+    if (t) {
+      c.throttle = Math.max(c.throttle, t.throttle ? 1 : 0);
+      c.brake = Math.max(c.brake, t.brake ? 1 : 0);
+      c.handbrake = c.handbrake || t.handbrake;
+      if (t.left !== t.right) c.steer = t.left ? 1 : -1;
+    }
     return c;
   }
 
-  // True once per press of any key (or pad button) bound to the named action.
+  // True once per press of any key (or pad button / on-screen button) bound to the named action.
   action(name) {
-    return ACTIONS[name].some((code) => this.pressed.has(code)) || this._padPressed.has(name);
+    return ACTIONS[name].some((code) => this.pressed.has(code)) || this._padPressed.has(name) || this._triggered.has(name);
+  }
+
+  // On-screen buttons fire actions directly; held touch controls merge into controls().
+  trigger(name) {
+    this._triggered.add(name);
   }
 
   endFrame() {
     this.pressed.clear();
+    this._triggered.clear();
   }
 }

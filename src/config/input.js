@@ -14,6 +14,9 @@ export const ACTIONS = {
   reset: ['KeyR'],
   camera: ['KeyC'],
   mute: ['KeyM'],
+  quit: ['KeyQ'],
+  left: ['ArrowLeft', 'KeyA', 'ArrowUp', 'KeyW'], // menu selection
+  right: ['ArrowRight', 'KeyD', 'ArrowDown', 'KeyS'],
   debug: ['Backquote', 'F3'],
 };
 

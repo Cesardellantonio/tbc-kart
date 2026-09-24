@@ -11,6 +11,7 @@ export const REVERSE_MAX = 4;
 export const ROLLING_DECEL = 0.6;
 export const AERO_DRAG = 0.008; // × v²
 export const HANDBRAKE_DECEL = 3;
+export const DRAFT_DRAG_CUT = 0.55; // share of aero drag removed in a full slipstream
 
 // Lateral grip: how fast sideways velocity is scrubbed (1/s)
 export const GRIP = 13;

@@ -1,4 +1,5 @@
-// HUD root: lap timing, speedometer, minimap, start lights and toasts, fed by race events.
+// HUD root: lap timing, standings, speedometer, minimap, start lights, toasts and touch controls,
+// fed by race events.
 
 import { el } from './dom.js';
 import { LapPanel } from './LapPanel.js';
@@ -6,13 +7,19 @@ import { Speedo } from './Speedo.js';
 import { Minimap } from './Minimap.js';
 import { StartLights } from './StartLights.js';
 import { Toasts } from './Toasts.js';
-import { formatTime, formatDelta } from './format.js';
+import { Standings } from './Standings.js';
+import { TouchControls, isTouchDevice } from './TouchControls.js';
+import { formatTime, formatDelta, ordinal } from './format.js';
+import { RACE_LAPS } from '../config/race.js';
+
+const hex = (c) => `#${c.toString(16).padStart(6, '0')}`;
 
 export class Hud {
-  constructor(path, startIndex, bus) {
+  constructor(path, startIndex, bus, input) {
     this.root = el('div', 'hud is-hidden');
     document.body.appendChild(this.root);
     this.lap = new LapPanel(this.root);
+    this.standings = new Standings(this.root);
     this.speedo = new Speedo(this.root);
     this.minimap = new Minimap(this.root, path, startIndex);
     this.lights = new StartLights(this.root);
@@ -20,14 +27,24 @@ export class Hud {
     this.root.appendChild(
       el('div', 'hud-hint', '<kbd>SPACE</kbd> drift &nbsp; <kbd>C</kbd> camera &nbsp; <kbd>R</kbd> reset &nbsp; <kbd>ESC</kbd> pause'),
     );
+    if (isTouchDevice()) this.touch = new TouchControls(this.root, input);
+    this.mode = 'race';
+    this._dots = [];
 
     bus.on('go', () => this.toasts.show('GO!', { kind: 'go', time: 1.1 }));
     bus.on('lap', (e) => {
+      if (this.mode === 'race' && e.lap >= RACE_LAPS) return; // the results card takes over
       const sub = e.isBest
         ? e.delta == null ? 'FIRST LAP ON THE BOARD' : `NEW BEST  ${formatDelta(e.delta)}`
         : `LAP ${e.lap}  ${formatDelta(e.delta)}`;
-      this.toasts.show(formatTime(e.time), { sub, kind: e.isBest ? 'best' : '' });
+      const final = this.mode === 'race' && e.lap === RACE_LAPS - 1;
+      this.toasts.show(final ? 'FINAL LAP' : formatTime(e.time), {
+        sub: final ? `${formatTime(e.time)}  ·  ${sub}` : sub,
+        kind: final ? 'go' : e.isBest ? 'best' : '',
+      });
     });
+    bus.on('finish', () => this.toasts.show('CHEQUERED FLAG', { kind: 'go', time: 1.6 }));
+    bus.on('overtake', (p) => this.toasts.show(`P${p}`, { sub: `UP TO ${ordinal(p)}`, kind: 'info', time: 1 }));
     bus.on('reset', () => this.toasts.show('KART RESET', { kind: 'info', time: 1.2 }));
     bus.on('camera', (view) => this.toasts.show(`CAMERA · ${view.toUpperCase()}`, { kind: 'info', time: 1.2 }));
     bus.on('mute', (muted) => this.toasts.show(muted ? 'SOUND OFF' : 'SOUND ON', { kind: 'info', time: 1.2 }));
@@ -37,10 +54,20 @@ export class Hud {
     this.root.classList.toggle('is-hidden', !visible);
   }
 
-  update(view, kart) {
+  setMode(mode) {
+    this.mode = mode;
+    this.standings.setVisible(mode === 'race');
+  }
+
+  update(view, kart, game) {
+    const race = this.mode === 'race';
     this.lap.update(view);
-    this.speedo.update(kart.telemetry.speed);
-    this.minimap.update(kart.state);
+    this.speedo.update(kart.telemetry.speed, kart.draft);
+    if (race) this.standings.update(game.field, game.session.clock);
+    const others = race || view.state === 'title' ? game.rivals : [];
+    this._dots.length = others.length;
+    others.forEach((r, i) => (this._dots[i] = { x: r.kart.state.x, z: r.kart.state.z, color: hex(r.profile.body) }));
+    this.minimap.update(kart.state, this._dots);
     this.lights.update(view);
   }
 }

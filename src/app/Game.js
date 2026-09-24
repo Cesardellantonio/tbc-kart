@@ -6,11 +6,15 @@ import { PostFX } from '../core/PostFX.js';
 import { CameraRig } from '../core/CameraRig.js';
 import { Input } from '../core/Input.js';
 import { Kart } from '../entities/Kart.js';
+import { Ghost } from '../entities/Ghost.js';
 import { KartFx } from '../fx/KartFx.js';
 import { AudioEngine } from '../audio/AudioEngine.js';
 import { EngineSound } from '../audio/EngineSound.js';
+import { PackSound } from '../audio/PackSound.js';
 import { Sfx } from '../audio/Sfx.js';
 import { RaceSession } from '../race/RaceSession.js';
+import { RaceField } from '../race/RaceField.js';
+import { GhostRecorder } from '../race/GhostRecorder.js';
 import { Autopilot } from '../race/Autopilot.js';
 import { loadRecord } from '../race/storage.js';
 import { Hud } from '../ui/Hud.js';
@@ -18,7 +22,10 @@ import { Screens } from '../ui/Screens.js';
 import { DebugOverlay } from '../ui/DebugOverlay.js';
 import { buildWorld } from './buildWorld.js';
 import { wireEvents } from './wireEvents.js';
+import { createRivals, placeField } from './field.js';
 import { stepGame, controlsFor, runLoop } from './frame.js';
+import { RACE_LAPS, RIVALS, PLAYER } from '../config/race.js';
+import { LIVERY } from '../config/kart.js';
 
 export class Game {
   constructor() {
@@ -27,32 +34,36 @@ export class Game {
     this.camera = new CameraRig(window.innerWidth / window.innerHeight);
     this.world = buildWorld(this.renderer.scene, this.renderer.maxAnisotropy);
     const { path, startIndex, anchors, collider } = this.world;
+    const scene = this.renderer.scene;
     this.camera.anchors = anchors;
     this.kart = new Kart(collider);
-    this.renderer.scene.add(this.kart.object3d);
-    this.fx = new KartFx(this.renderer.scene);
-    this.post = new PostFX(this.renderer, this.renderer.scene, this.camera.three);
+    this.ghost = new Ghost();
+    this.rivals = createRivals(scene, path, collider);
+    scene.add(this.kart.object3d, this.ghost.object3d);
+    this.fx = new KartFx(scene);
+    this.post = new PostFX(this.renderer, scene, this.camera.three);
     this.audio = new AudioEngine();
     this.engine = new EngineSound(this.audio);
+    this.pack = new PackSound(this.audio);
     this.sfx = new Sfx(this.audio);
     this.signature = `${path.count}:${path.length.toFixed(1)}`; // invalidates records if the track changes
-    this.session = new RaceSession(path.count, startIndex, this.bus, loadRecord(this.signature));
-    this.hud = new Hud(path, startIndex, this.bus);
-    this.screens = new Screens(path.length, this.session.timer.best);
+    this.record = loadRecord(this.signature);
+    this.session = new RaceSession(path.count, startIndex, this.bus, this.record);
+    this.field = new RaceField(path.count, startIndex, RACE_LAPS, [
+      { ...PLAYER, color: LIVERY.body, isPlayer: true },
+      ...RIVALS.map((p) => ({ code: p.code, name: p.name, color: p.body, profile: p, isPlayer: false })),
+    ]);
+    this.recorder = new GhostRecorder();
+    this.input = new Input();
+    this.hud = new Hud(path, startIndex, this.bus, this.input);
+    this.screens = new Screens(path.length, this.session.timer.best, (name) => this.input.trigger(name));
     this.debug = new DebugOverlay();
     this.autopilot = new Autopilot(path);
-    this.input = new Input();
     this.impactCooldown = 0;
+    [this.lastPosition, this.heldPosition, this.positionAge] = [0, 0, 0]; // overtake announcements
     wireEvents(this);
-    this.placeOnGrid();
+    placeField(this, true);
     window.addEventListener('resize', () => this.resize());
-  }
-
-  placeOnGrid() {
-    const { path, gridIndex } = this.world;
-    this.kart.place(path.x[gridIndex], path.z[gridIndex], path.heading(gridIndex));
-    this.trackIndex = gridIndex;
-    this.fx.reset();
   }
 
   resize() {

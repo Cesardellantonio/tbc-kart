@@ -9,7 +9,8 @@ export class Autopilot {
     this.index = -1;
   }
 
-  controls(state, speed) {
+  // maxSpeed caps the pace (the cool-down lap after the flag).
+  controls(state, speed, maxSpeed = AUTOPILOT.maxSpeed) {
     const p = this.path;
     this.index = p.nearest(state.x, state.z, this.index);
     const target = p.wrap(this.index + Math.round((AUTOPILOT.lookAhead + speed * 0.3) / p.spacing));
@@ -21,7 +22,7 @@ export class Autopilot {
     const span = Math.round((8 + speed * 1.4) / p.spacing);
     for (let d = 0; d < span; d += 3) k = Math.max(k, Math.abs(p.curvature[p.wrap(this.index + d)]));
     const cornerSpeed = Math.sqrt(AUTOPILOT.latAccel / Math.max(k, 1e-4));
-    const want = clamp(cornerSpeed, AUTOPILOT.minSpeed, AUTOPILOT.maxSpeed);
+    const want = clamp(cornerSpeed, Math.min(AUTOPILOT.minSpeed, maxSpeed), maxSpeed);
     return {
       throttle: speed < want ? 1 : 0,
       brake: speed > want + 1.2 ? 1 : 0,

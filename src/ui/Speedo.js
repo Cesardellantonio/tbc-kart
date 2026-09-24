@@ -21,14 +21,21 @@ export class Speedo {
                stroke-dashoffset="100"/>
        </svg>
        <div class="speed-num" data-ref="num">0</div>
-       <div class="speed-unit">KM/H</div>`,
+       <div class="speed-unit">KM/H</div>
+       <div class="speed-draft">SLIPSTREAM</div>`,
     );
     parent.appendChild(this.el);
     this.r = refs(this.el);
     this._shown = -1;
   }
 
-  update(speedMs) {
+  // draft 0..1: slipstream strength, lights the SLIPSTREAM tag.
+  update(speedMs, draft = 0) {
+    const drafting = draft > 0.15;
+    if (drafting !== this._drafting) {
+      this._drafting = drafting;
+      this.el.classList.toggle('is-drafting', drafting);
+    }
     const kmh = Math.round(speedMs * 3.6);
     if (kmh === this._shown) return;
     this._shown = kmh;

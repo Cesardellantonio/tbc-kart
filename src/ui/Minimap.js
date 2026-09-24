@@ -45,10 +45,18 @@ export class Minimap {
     g.fillRect(sx - 1.5, sy - 5, 3, 10);
   }
 
-  update(state) {
+  // others: [{ x, z, color }] rival karts, drawn as dots under your arrow.
+  update(state, others = []) {
     const c = this.ctx;
     c.clearRect(0, 0, W, H);
     c.drawImage(this.bg, 0, 0, W, H);
+    for (const o of others) {
+      const [ox, oy] = this.map(o.x, o.z);
+      c.fillStyle = o.color;
+      c.beginPath();
+      c.arc(ox, oy, 3.6, 0, Math.PI * 2);
+      c.fill();
+    }
     const [x, y] = this.map(state.x, state.z);
     const f = forwardFromYaw(state.yaw);
     const a = Math.atan2(f.z, f.x);

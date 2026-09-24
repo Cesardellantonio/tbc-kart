@@ -4,8 +4,10 @@ import { ENGINE } from '../config/audio.js';
 import { clamp, damp, lerp } from '../core/math.js';
 
 export class EngineSound {
-  constructor(audio) {
+  // pitch: frequency multiplier so several engines don't phase into one tone.
+  constructor(audio, pitch = 1) {
     this.n = null;
+    this.pitch = pitch;
     this._throttle = 0;
     audio.onReady((ctx, out) => this._build(ctx, out));
   }
@@ -35,22 +37,23 @@ export class EngineSound {
     this.n = { ctx, saw, square, sub, filter, amp, lfo, lfoDepth };
   }
 
-  // speed m/s, throttle 0..1, active=false fades the engine out (paused / title before gesture)
-  update(speed, throttle, dt, active = true) {
+  // speed m/s, throttle 0..1, active=false fades the engine out (paused / title before gesture),
+  // volume 0..1 scales the level (distant rival karts).
+  update(speed, throttle, dt, active = true, volume = 1) {
     if (!this.n) return;
     const { ctx, saw, square, sub, filter, amp, lfo, lfoDepth } = this.n;
     const t = ctx.currentTime;
     this._throttle = damp(this._throttle, throttle, 9, dt);
     const load = clamp(speed / 16, 0, 1);
     const rev = clamp(0.1 + 0.85 * load + 0.25 * this._throttle * (1 - load), 0, 1.05);
-    const hz = lerp(ENGINE.idleHz, ENGINE.topHz, rev);
+    const hz = lerp(ENGINE.idleHz, ENGINE.topHz, rev) * this.pitch;
     saw.frequency.setTargetAtTime(hz, t, 0.04);
     square.frequency.setTargetAtTime(hz * 0.502, t, 0.04);
     sub.frequency.setTargetAtTime(hz * 0.5, t, 0.04);
     lfo.frequency.setTargetAtTime(hz / 4, t, 0.04);
     const openness = 0.35 * rev + 0.65 * this._throttle;
     filter.frequency.setTargetAtTime(lerp(ENGINE.cutoffIdle, ENGINE.cutoffTop, openness), t, 0.05);
-    const level = active ? ENGINE.idleGain + ENGINE.throttleGain * openness : 0;
+    const level = active ? (ENGINE.idleGain + ENGINE.throttleGain * openness) * volume : 0;
     amp.gain.setTargetAtTime(level, t, 0.08);
     lfoDepth.gain.setTargetAtTime(level * ENGINE.rumbleDepth, t, 0.08);
   }

@@ -22,7 +22,8 @@ export class LapPanel {
 
   update(view) {
     const r = this.r;
-    setText(r.lap, view.lap >= 1 ? String(view.lap) : '–');
+    const total = view.mode === 'race' ? `/${view.totalLaps}` : '';
+    setText(r.lap, `${view.lap >= 1 ? Math.min(view.lap, view.totalLaps ?? Infinity) : '–'}${total}`);
     setText(r.time, formatTime(view.lapTime));
     setText(r.last, formatTime(view.last));
     setText(r.best, formatTime(view.best));
