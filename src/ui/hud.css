@@ -1,0 +1,409 @@
+/* HUD, title card and pause overlay. Racing look: angled glass panels, italic tabular numerals. */
+
+:root {
+  --hud-bg: rgba(9, 11, 16, 0.62);
+  --hud-edge: rgba(255, 255, 255, 0.09);
+  --hud-text: #f4f6fb;
+  --hud-dim: #9aa3b2;
+  --hud-accent: #ffc21a;
+  --hud-red: #ff3b4e;
+  --hud-green: #2bd97c;
+  --hud-best: #b388ff; /* purple = fastest lap, as in F1 timing */
+  --hud-font: 'Chakra Petch', 'Arial Narrow', system-ui, sans-serif;
+}
+
+.hud,
+.screen,
+.debug {
+  font-family: var(--hud-font);
+  color: var(--hud-text);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.hud.is-hidden {
+  opacity: 0;
+}
+
+.hud-panel {
+  position: absolute;
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-edge);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+}
+
+/* ---- lap panel (top left) ---- */
+.hud-lap {
+  top: 20px;
+  left: 22px;
+  min-width: 250px;
+  padding: 12px 34px 14px 18px;
+  border-left: 3px solid var(--hud-accent);
+}
+.hud-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: var(--hud-dim);
+}
+.hud-label b {
+  color: var(--hud-accent);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  margin-left: 6px;
+}
+.hud-time {
+  font-size: 46px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.hud-delta {
+  height: 22px;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+}
+.hud-delta.is-faster {
+  color: var(--hud-green);
+}
+.hud-delta.is-slower {
+  color: var(--hud-red);
+}
+.hud-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 14px;
+  margin-top: 8px;
+  align-items: baseline;
+}
+.hud-rows span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: var(--hud-dim);
+}
+.hud-rows b {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.hud-rows b.is-best {
+  color: var(--hud-best);
+}
+
+/* ---- speedometer (bottom right) ---- */
+.hud-speedo {
+  position: absolute;
+  right: 26px;
+  bottom: 18px;
+  width: 210px;
+  height: 180px;
+}
+.hud-speedo svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.hud-speedo .arc-bg {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+.hud-speedo .arc-fg {
+  transition: stroke-dashoffset 0.08s linear;
+  filter: drop-shadow(0 0 6px rgba(255, 194, 26, 0.55));
+}
+.speed-num {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 56px;
+  text-align: center;
+  font-size: 66px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.speed-unit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 126px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  color: var(--hud-dim);
+}
+
+/* ---- minimap (top right) ---- */
+.hud-minimap {
+  top: 18px;
+  right: 20px;
+  width: 240px;
+  height: 172px;
+  clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* ---- start lights ---- */
+.hud-lights {
+  position: absolute;
+  top: 11%;
+  left: 50%;
+  display: flex;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: rgba(6, 7, 10, 0.82);
+  border: 1px solid var(--hud-edge);
+  transform: translate(-50%, -12px);
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.hud-lights.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.hud-lights i {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #1a1c21;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.85);
+  transition: background 0.08s, box-shadow 0.08s;
+}
+.hud-lights i.is-red {
+  background: radial-gradient(circle at 38% 34%, #ffb3b3, #ff1f2d 42%, #9c0010);
+  box-shadow: 0 0 24px 5px rgba(255, 31, 45, 0.6);
+}
+.hud-lights i.is-go {
+  background: radial-gradient(circle at 38% 34%, #c8ffd9, #2bff6a 42%, #0a8f33);
+  box-shadow: 0 0 24px 5px rgba(43, 255, 106, 0.55);
+}
+
+/* ---- toasts ---- */
+.hud-toasts {
+  position: absolute;
+  top: 27%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+}
+.toast {
+  font-size: 44px;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0.03em;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.7);
+  font-variant-numeric: tabular-nums;
+  animation: toast-in 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.toast small {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  color: var(--hud-dim);
+}
+.toast.is-go {
+  font-size: 110px;
+  color: var(--hud-green);
+  text-shadow: 0 0 40px rgba(43, 217, 124, 0.6);
+}
+.toast.is-best {
+  color: var(--hud-best);
+}
+.toast.is-best small {
+  color: var(--hud-best);
+}
+.toast.is-info {
+  font-size: 22px;
+  letter-spacing: 0.25em;
+  font-style: normal;
+}
+.toast.is-out {
+  animation: toast-out 0.45s ease forwards;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6) translateY(10px);
+  }
+}
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+
+/* ---- key hint (bottom left) ---- */
+.hud-hint {
+  position: absolute;
+  left: 24px;
+  bottom: 20px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--hud-dim);
+  opacity: 0.85;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 14px;
+  margin: 0 2px;
+  padding: 2px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-family: var(--hud-font);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* ---- title + pause screens ---- */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 7vh 6vw;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.screen.is-visible {
+  opacity: 1;
+}
+.screen-title {
+  background:
+    linear-gradient(90deg, rgba(5, 6, 10, 0.9) 0%, rgba(5, 6, 10, 0.45) 45%, rgba(5, 6, 10, 0) 75%),
+    linear-gradient(0deg, rgba(5, 6, 10, 0.85) 0%, rgba(5, 6, 10, 0) 38%);
+}
+.title-kicker {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.55em;
+  color: var(--hud-accent);
+}
+.title-logo {
+  margin: 12px 0 14px;
+  font-size: clamp(72px, 12vw, 168px);
+  font-weight: 700;
+  font-style: italic;
+  line-height: 0.82;
+  letter-spacing: -0.01em;
+  text-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+}
+.title-logo span {
+  display: block;
+  color: var(--hud-accent);
+}
+.title-meta {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  color: var(--hud-dim);
+}
+.title-press {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.title-press kbd {
+  font-size: 18px;
+  padding: 3px 12px;
+  border-color: var(--hud-accent);
+  color: var(--hud-accent);
+}
+.title-best {
+  margin: 14px 0 26px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--hud-best);
+}
+.title-controls {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  gap: 10px 34px;
+  font-size: 13px;
+  color: var(--hud-dim);
+  letter-spacing: 0.06em;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.screen-pause {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: rgba(5, 6, 10, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.screen-pause h2 {
+  margin: 0 0 18px;
+  font-size: 84px;
+  font-style: italic;
+  letter-spacing: 0.06em;
+}
+.screen-pause p {
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  color: var(--hud-dim);
+}
+
+/* ---- developer overlay ---- */
+.debug {
+  position: fixed;
+  left: 10px;
+  bottom: 60px;
+  margin: 0;
+  padding: 8px 10px;
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 4px;
+  pointer-events: none;
+  display: none;
+}
+.debug.is-visible {
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .hud-lap {
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
+  .hud-minimap,
+  .title-controls {
+    display: none;
+  }
+  .hud-speedo {
+    transform: scale(0.75);
+    transform-origin: bottom right;
+  }
+}
