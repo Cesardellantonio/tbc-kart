@@ -8,9 +8,20 @@ export const LIGHT_COUNT = 5;
 export const TOAST_TIME = 2.4;
 export const STORAGE_KEY = 'tbc-kart.v1';
 
-// Attract mode on the title screen: pure-pursuit lookahead (m), speed limits (m/s),
-// and the lateral acceleration it allows itself in corners (m/s²).
-export const AUTOPILOT = { lookAhead: 7, minSpeed: 6, maxSpeed: 15.5, latAccel: 13 };
+// Computer drivers (attract mode, your kart after the flag, and the rivals' base pace).
+export const AUTOPILOT = {
+  lookAhead: 5, // m, pure-pursuit aim distance at rest…
+  lookSpeed: 0.25, // s, …plus this many seconds of travel
+  steerGain: 2.4, // steering input per rad of heading error
+  yawDamp: 0.2, // steering input per rad/s of yaw rate beyond what the aim asks for
+  minSpeed: 6, // m/s
+  maxSpeed: 15.5, // m/s
+  latAccel: 13, // m/s², lateral acceleration allowed in corners
+  throttleBase: 0.5, // throttle share at the target speed (holds pace against drag)
+  throttleGain: 0.8, // extra throttle per m/s below the target
+  brakeMargin: 0.6, // m/s over the target before braking
+  brakeGain: 0.5, // brake pressure per m/s beyond that margin
+};
 
 // Grand Prix: laps, grid layout and the rival field.
 export const RACE_LAPS = 5;

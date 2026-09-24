@@ -33,7 +33,7 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
     return {
       profile,
       driver: new AiDriver(path, line, profile),
-      state: { x: g.x, z: g.z, yaw: g.yaw, vx: 0, vz: 0, steer: 0 },
+      state: { x: g.x, z: g.z, yaw: g.yaw, vx: 0, vz: 0, steer: 0, yawRate: 0 },
       index: g.i,
       draft: 0,
       resets: 0,
@@ -54,7 +54,7 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
       if (c.reset) {
         const i = path.nearest(k.state.x, k.state.z, k.index);
         const p = path.offset(i, line[i]);
-        k.state = { x: p.x, z: p.z, yaw: path.heading(i), vx: 0, vz: 0, steer: 0 };
+        k.state = { x: p.x, z: p.z, yaw: path.heading(i), vx: 0, vz: 0, steer: 0, yawRate: 0 };
         k.driver.stuck = 0;
         k.resets++;
       } else {
