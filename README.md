@@ -1,5 +1,7 @@
 # TBC Kart — indoor kart racing in Three.js
 
+**▶ Play online: https://cesardellantonio.github.io/tbc-kart-play/**
+
 A kart racing game set in an indoor karting hall, on a layout traced from the **TBC Indoor Racing** track in Vancouver. Vanilla JavaScript + Three.js, no framework, built one session at a time as a learning project.
 
 - **v0.1–v0.2** — outdoor box car → indoor kart on a painted TBC trace
@@ -15,6 +17,8 @@ npm run dev      # open the URL Vite prints (usually http://localhost:5173)
 npm test         # 25 unit tests: physics, track, barriers, lap timing, contacts, race order, AI line, ghost
 npm run build    # production bundle in dist/
 ```
+
+**Publishing:** this repo is private, so the playable build lives in the public repo `Cesardellantonio/tbc-kart-play` (GitHub Pages, `main` branch root). To update it, run `npm run build`, copy `dist/` over that repo's contents (keep its `README.md` and `.nojekyll`), commit and push.
 
 ## How to play
 
