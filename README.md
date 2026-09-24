@@ -54,7 +54,10 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 - **Race**: title attract mode with TV-style trackside cameras, F1-style start lights (gantry and HUD), lap timing with sub-frame line crossing, a live delta to your best lap, and a persisted record.
 - **Rivals**: five AI drivers with their own liveries, pace, preferred line and start reactions. They follow a racing line that clips the inside of each corner, brake for corner speed from the track curvature, pull out to pass slower karts, back off when boxed in, and reset themselves if stuck. A light pack pull keeps races close, and a random form factor changes the order from race to race.
 - **Race physics**: equal-mass kart-to-kart contacts (push apart, trade momentum, sparks and shake), and slipstream that cuts up to 55% of aero drag within 9 m behind another kart.
-- **Sound** (all synthesized with WebAudio, no files): engine with throttle and RPM, tyre screech, impacts, start beeps, and lap chimes.
+- **Sound** (all synthesized with WebAudio, no files): a single-cylinder rental-kart engine behind a centrifugal clutch (lumpy idle, revs hang at the bite point on launch then climb with road speed, flare when the rear steps out, pops and crackles on a high-rev lift), tyre squeal that grows with cornering load and slip, a juddering scrub under hard braking, a scrape when grinding a barrier, a kerb rumble, impacts, start beeps, and lap chimes.
+- **Kerbs you can feel**: ride a kerb and the kart hops and tilts over the ribs, the camera judders and the rumble plays at the rib rate. A per-sample kerb table (`track/curbTable.js`) keeps the check O(1) per frame.
+- **Cockpit head**: in the cockpit view the driver's head sways and tilts against lateral g, surges and nods under braking, and looks into the corner with the steering. Chase views get a fine speed-dependent engine buzz.
+- **Rubbered-in line**: a soft, streaky darker band follows the AI racing line (darker where it's loaded hardest), with faint rear-tyre marks in the main braking zones.
 
 ## Architecture
 
@@ -74,20 +77,23 @@ src/
     track · physics · kart · camera · render · venue · audio · input · race
   core/                engine-level pieces, no game rules
     Renderer · PostFX · GradeShader · venueEnvironment
-    CameraRig → FollowCam · BroadcastCam · CameraShake (+ pure cameraModes)
+    CameraRig → FollowCam (+ HeadMotion) · BroadcastCam · CameraShake · CameraVibe (+ pure cameraModes)
     Input · events (EventBus) · math
   track/               centreline geometry shared by everything
     TrackPath          sampled spline: nearest(), offset(), lateral(), curvature
     offsetChain        clean barrier lines (cuts corner loops, keeps off the asphalt)
-    stripGeometry      flat strips for asphalt, paint and curbs
+    stripGeometry      flat strips for asphalt, paint, curbs and the rubbered line (optional vertex alpha)
+    curbRuns · curbTable  where the curbs are, and a per-sample lookup for "which wheels are on a kerb"
+    brakingZones       lap speed profile → where karts brake hard (tyre marks)
     bounds             venue size from the barriers + a wall loop collider
   physics/             kartPhysics (pure step) · BarrierCollider (circle vs segments, grid)
                        kartContacts (kart vs kart, slipstream)
   entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts
-  world/               Floor · TrackSurface · Curbs · Barriers · Venue · Rig · Banners
+  world/               Floor · TrackSurface · RubberLine (+ BrakeMarks) · Curbs · Barriers · Venue · Rig · Banners
                        Lighting · StartGantry · textures/ (all procedural canvas textures)
-  fx/                  Particles (+ shader) · SkidMarks · KartFx
-  audio/               AudioEngine · EngineSound · PackSound (rival engines) · Sfx
+  fx/                  Particles (+ shader) · SkidMarks · KartFx · KerbFeel (kerb contact + kart ride)
+  audio/               AudioEngine · EngineSound (engineRpm clutch model + engineVoice graph + Backfire)
+                       PackSound (rival engines) · TyreSound · KerbRumble · Sfx (one-shots) · nodes
   race/                RaceSession (state machine) · LapTimer (pure) · storage · Autopilot
                        RaceField (order, gaps, finish) · AiDriver · racingLine · GhostRecorder
   ui/                  Hud · LapPanel · Standings · Speedo · Minimap · StartLights · Toasts
@@ -118,6 +124,10 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `fin
 | How grippy / drifty it feels | `config/physics.js` → `GRIP*`, `SLIDE_THRESHOLD`, `DRIFT_YAW_BOOST` |
 | Steering speed | `config/physics.js` → `STEER_RATE`, `STEER_IN`, `STEER_OUT` |
 | Camera distance, FOV kick, shake | `config/camera.js` |
+| Cockpit head motion, engine / kerb vibration | `config/camera.js` → `HEAD`, `VIBE` |
+| Engine revs, clutch, pops; tyre / kerb sounds | `config/audio.js` → `ENGINE`, `BACKFIRE`, `TYRES`, `KERB_RUMBLE` |
+| Kerb hop and tilt | `config/kart.js` → `KERB_RIDE` |
+| Rubbered line and brake marks | `config/track.js` → `RUBBER_LINE`, `BRAKE_MARKS` |
 | Brightness, bloom, colour grade | `config/render.js` |
 | Kart colours / number | `config/kart.js` → `LIVERY`, `KART_NUMBER` |
 | Track shape | `config/trackWaypoints.js` (keep radii ≥ 3.5 m; `npm test` checks the barriers) |

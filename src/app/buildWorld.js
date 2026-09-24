@@ -9,6 +9,9 @@ import { BarrierCollider } from '../physics/BarrierCollider.js';
 import { createFloor, createFloorLogo } from '../world/Floor.js';
 import { createTrackSurface } from '../world/TrackSurface.js';
 import { createCurbs } from '../world/Curbs.js';
+import { createRubberLine } from '../world/RubberLine.js';
+import { curbTable } from '../track/curbTable.js';
+import { racingLine } from '../race/racingLine.js';
 import { createBarriers } from '../world/Barriers.js';
 import { createVenue } from '../world/Venue.js';
 import { createRig } from '../world/Rig.js';
@@ -19,6 +22,7 @@ import { broadcastAnchors } from './anchors.js';
 import { GRID_BACK, BARRIER_THICKNESS } from '../config/track.js';
 import { VENUE_MARGIN } from '../config/venue.js';
 import { COLLISION_CELL } from '../config/physics.js';
+import { AI } from '../config/race.js';
 
 const LOGO_WIDTH = 34;
 
@@ -63,12 +67,14 @@ export function buildWorld(track, anisotropy) {
   const rig = createRig(bounds);
 
   const logo = clearSpot(path, bounds, LOGO_WIDTH, LOGO_WIDTH / 4);
+  const line = racingLine(path, AI); // shared with the rival AI (app/field.js)
 
   const group = new THREE.Group();
   group.add(
     createFloor(bounds, anisotropy),
     ...(logo ? [createFloorLogo(logo.x, logo.z, LOGO_WIDTH)] : []),
     createTrackSurface(path, startIndex, gridIndex, anisotropy),
+    createRubberLine(path, line),
     createCurbs(path),
     barriers.mesh,
     createVenue(bounds, anisotropy),
@@ -80,5 +86,6 @@ export function buildWorld(track, anisotropy) {
   rig.group.userData.ceiling = true;
 
   const collider = new BarrierCollider([...barrierFaces(path), wallLoop(bounds)], COLLISION_CELL);
-  return { track, group, path, startIndex, gridIndex, bounds, collider, gantry, rig, anchors: broadcastAnchors(path) };
+  const curbs = curbTable(path); // per-sample kerb lookup for the kerb feel
+  return { track, group, path, line, curbs, startIndex, gridIndex, bounds, collider, gantry, rig, anchors: broadcastAnchors(path) };
 }

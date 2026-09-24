@@ -2,6 +2,7 @@
 
 import { handleActions } from './actions.js';
 import { stepField } from './field.js';
+import { updateSound } from './sound.js';
 import { FINISH_COOLDOWN } from '../config/race.js';
 
 const HOLD = { throttle: 0, brake: 0, steer: 0, handbrake: false };
@@ -52,10 +53,13 @@ export function stepGame(game, dt) {
   const state = session.state;
   const paused = state === 'paused';
   const grandPrix = session.mode === 'race' || state === 'title';
+  let wallHit = 0;
   if (!paused) {
     kart.update(game.controlsFor(state), dt);
+    wallHit = kart.telemetry.impact; // barrier only: kart-to-kart contacts are added by the field below
     if (grandPrix) stepField(game, dt, state !== 'countdown');
     game.trackIndex = world.path.nearest(kart.state.x, kart.state.z, game.trackIndex);
+    game.kerb.update(kart, world.path, world.curbs, game.trackIndex, dt);
     session.update(dt, game.trackIndex);
     if (state === 'racing') game.recorder.update(session.timer.lap, session.timer.lapTime(session.clock), kart.state);
     if (session.mode === 'race' && (state === 'racing' || state === 'finished')) {
@@ -73,14 +77,10 @@ export function stepGame(game, dt) {
   const view = session.view;
   game.ghost.update(view.lapTime, session.mode === 'timeattack' && state === 'racing' && view.lap >= 1, paused ? 0 : dt);
   world.gantry.setLights(session.lights, session.lightsMode);
-  camera.update(kart, paused ? 0 : dt);
+  camera.update(kart, paused ? 0 : dt, game.kerb);
   kart.model.setFirstPerson(camera.mode === 'follow' && camera.view === 'cockpit');
 
-  const t = kart.telemetry;
-  const revs = state === 'countdown' ? input.controls().throttle : t.throttle; // rev on the grid
-  game.engine.update(t.speed, revs, dt, !paused);
-  game.pack.update(kart.state, grandPrix ? game.rivals.map((r) => r.kart) : [], dt, !paused);
-  game.sfx.screech(t.speed > 3 ? t.slip : 0, !paused);
+  updateSound(game, dt, { paused, state, grandPrix, wallHit });
   game.hud.update(view, kart, game);
   game.screens.update(game);
   game.debug.update(dt, game);

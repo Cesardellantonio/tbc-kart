@@ -1,26 +1,11 @@
-// Effects: looping tyre screech, barrier impacts, start-light beeps and lap chimes.
+// One-shot effects: barrier impacts, start-light beeps and lap chimes.
 
-import { SCREECH, IMPACT, BEEP, CHIME } from '../config/audio.js';
+import { IMPACT, BEEP, CHIME } from '../config/audio.js';
 import { clamp } from '../core/math.js';
 
 export class Sfx {
   constructor(audio) {
     this.audio = audio;
-    this.screechGain = null;
-    audio.onReady((ctx, out) => {
-      const src = new AudioBufferSourceNode(ctx, { buffer: audio.noise(), loop: true });
-      const band = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: SCREECH.freq, Q: 1.4 });
-      this.screechGain = new GainNode(ctx, { gain: 0 });
-      src.connect(band).connect(this.screechGain).connect(out);
-      src.start();
-    });
-  }
-
-  // Continuous: slip in m/s sideways.
-  screech(slip, active = true) {
-    if (!this.screechGain) return;
-    const amount = active ? clamp((slip - SCREECH.threshold) / (SCREECH.full - SCREECH.threshold), 0, 1) : 0;
-    this.screechGain.gain.setTargetAtTime(amount * SCREECH.gain, this.audio.ctx.currentTime, 0.06);
   }
 
   // Envelope helper: node → gain with attack/decay → master.

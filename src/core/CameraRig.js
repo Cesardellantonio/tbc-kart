@@ -1,11 +1,12 @@
-// Owns the camera and picks who drives it: broadcast cams (title), follow views (racing) or a
-// debug tool ('manual'). Blends between them with a short swoop and adds impact shake.
+// Owns the camera and picks who drives it: broadcast cams (title), follow views (racing) or a debug
+// tool ('manual'). Blends between them with a short swoop; adds impact shake, vibration and head roll.
 
 import * as THREE from 'three';
 import { NEAR, FAR, FOV_BASE } from '../config/camera.js';
 import { FollowCam } from './FollowCam.js';
 import { BroadcastCam } from './BroadcastCam.js';
 import { CameraShake } from './CameraShake.js';
+import { CameraVibe } from './CameraVibe.js';
 
 const SWOOP_TIME = 1.3;
 const ease = (t) => t * t * (3 - 2 * t);
@@ -17,7 +18,8 @@ export class CameraRig {
     this.followCam = new FollowCam();
     this.broadcastCam = new BroadcastCam();
     this.shaker = new CameraShake();
-    this._out = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
+    this.vibe = new CameraVibe();
+    this._out = { pos: new THREE.Vector3(), look: new THREE.Vector3(), roll: 0 };
     this._from = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
     this._look = new THREE.Vector3();
     this._swoop = 1;
@@ -58,9 +60,9 @@ export class CameraRig {
     this.three.updateProjectionMatrix();
   }
 
-  update(kart, dt) {
+  update(kart, dt, kerb = null) { // kerb: fx/KerbFeel of the followed kart (kerb judder)
     if (this.mode === 'manual') return; // a debug view owns the camera
-    const out = this._out;
+    const out = Object.assign(this._out, { roll: 0 });
     const source = this.mode === 'broadcast' ? this.broadcastCam : this.followCam;
     const fov = source.update(kart, dt, out);
     this._swoop = Math.min(1, this._swoop + dt / SWOOP_TIME);
@@ -69,7 +71,9 @@ export class CameraRig {
     cam.position.lerpVectors(this._from.pos, out.pos, e);
     this._look.lerpVectors(this._from.look, out.look, e);
     this.shaker.apply(cam.position, dt);
-    cam.lookAt(this._look);
+    const aim = this.mode === 'follow' ? this.vibe.shake(cam.position, this._look, dt, this.view, kart.telemetry, kerb) : this._look;
+    cam.lookAt(aim.x, aim.y, aim.z);
+    if (out.roll) cam.rotateZ(out.roll * e);
     if (Math.abs(cam.fov - fov) > 0.01) {
       cam.fov = fov;
       cam.updateProjectionMatrix();

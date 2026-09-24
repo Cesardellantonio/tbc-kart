@@ -4,6 +4,7 @@ import { EngineSound } from './EngineSound.js';
 
 const HEAR = 34; // metres at which a rival engine fades out
 const PITCHES = [1.08, 0.93];
+const SILENT = { speed: 0, forwardSpeed: 0, slip: 0, sliding: false };
 
 export class PackSound {
   constructor(audio) {
@@ -17,9 +18,9 @@ export class PackSound {
       .sort((a, b) => a.d - b.d);
     this.voices.forEach((voice, i) => {
       const n = near[i];
-      if (!n) return voice.update(0, 0, dt, false);
+      if (!n) return voice.update(SILENT, 0, dt, false);
       const volume = Math.max(0, 1 - n.d / HEAR) ** 1.6 * 0.75;
-      voice.update(n.k.telemetry.speed, n.k.telemetry.throttle, dt, active && volume > 0, volume);
+      voice.update(n.k.telemetry, n.k.telemetry.throttle, dt, active && volume > 0, volume);
     });
   }
 }

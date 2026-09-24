@@ -1,60 +1,53 @@
-// Kart engine voice: saw + square + sub through a resonant low-pass, with a firing "rumble" LFO.
+// One kart engine: the rpm model (audio/engineRpm) drives a synthesised voice (audio/engineVoice)
+// — idle burble, clutch bite, revs rising with road speed, wheelspin flare — plus overrun pops.
 
 import { ENGINE } from '../config/audio.js';
-import { clamp, damp, lerp } from '../core/math.js';
+import { clamp, lerp } from '../core/math.js';
+import { EngineRpm } from './engineRpm.js';
+import { buildEngineVoice } from './engineVoice.js';
+import { Backfire } from './Backfire.js';
 
 export class EngineSound {
   // pitch: frequency multiplier so several engines don't phase into one tone.
   constructor(audio, pitch = 1) {
     this.n = null;
     this.pitch = pitch;
-    this._throttle = 0;
-    audio.onReady((ctx, out) => this._build(ctx, out));
+    this.model = new EngineRpm();
+    this.pops = new Backfire(audio);
+    this._wander = 0;
+    audio.onReady((ctx, out) => (this.n = buildEngineVoice(ctx, out, audio.noise())));
   }
 
-  _build(ctx, out) {
-    const osc = (type) => Object.assign(ctx.createOscillator(), { type });
-    const mix = (v) => {
-      const g = ctx.createGain();
-      g.gain.value = v;
-      return g;
-    };
-    const saw = osc('sawtooth');
-    const square = osc('square');
-    const sub = osc('sine');
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.Q.value = 3;
-    const amp = mix(0);
-    const lfo = osc('sine');
-    const lfoDepth = mix(0);
-    saw.connect(mix(0.45)).connect(filter);
-    square.connect(mix(0.18)).connect(filter);
-    sub.connect(mix(0.7)).connect(filter);
-    filter.connect(amp).connect(out);
-    lfo.connect(lfoDepth).connect(amp.gain);
-    for (const o of [saw, square, sub, lfo]) o.start();
-    this.n = { ctx, saw, square, sub, filter, amp, lfo, lfoDepth };
+  get rpm() {
+    return this.model.rpm;
   }
 
-  // speed m/s, throttle 0..1, active=false fades the engine out (paused / title before gesture),
-  // volume 0..1 scales the level (distant rival karts).
-  update(speed, throttle, dt, active = true, volume = 1) {
+  // tel: kart telemetry (speed, forwardSpeed, slip, sliding); throttle 0..1; active=false fades the
+  // engine out (paused / title before gesture); volume 0..1 scales the level (distant rival karts).
+  update(tel, throttle, dt, active = true, volume = 1) {
+    const rpm = this.model.step(tel, throttle, dt);
+    if (this.model.liftOff && active) this.pops.trigger(this.model.liftOff);
+    this.pops.update(dt, active ? volume : 0);
     if (!this.n) return;
-    const { ctx, saw, square, sub, filter, amp, lfo, lfoDepth } = this.n;
+    const { ctx, main, sub, noiseBand, drive, filter, amp, pulse, pulseDepth, wobble, wobbleDepth } = this.n;
     const t = ctx.currentTime;
-    this._throttle = damp(this._throttle, throttle, 9, dt);
-    const load = clamp(speed / 16, 0, 1);
-    const rev = clamp(0.1 + 0.85 * load + 0.25 * this._throttle * (1 - load), 0, 1.05);
-    const hz = lerp(ENGINE.idleHz, ENGINE.topHz, rev) * this.pitch;
-    saw.frequency.setTargetAtTime(hz, t, 0.04);
-    square.frequency.setTargetAtTime(hz * 0.502, t, 0.04);
-    sub.frequency.setTargetAtTime(hz * 0.5, t, 0.04);
-    lfo.frequency.setTargetAtTime(hz / 4, t, 0.04);
-    const openness = 0.35 * rev + 0.65 * this._throttle;
-    filter.frequency.setTargetAtTime(lerp(ENGINE.cutoffIdle, ENGINE.cutoffTop, openness), t, 0.05);
-    const level = active ? (ENGINE.idleGain + ENGINE.throttleGain * openness) * volume : 0;
+    const rev = this.model.rev;
+    const load = this.model.load;
+    const idle = 1 - clamp(rev * 3, 0, 1); // 1 at idle, gone by a third of the range
+    const hz = (rpm / 60) * ENGINE.hzPerRev * this.pitch;
+    const glide = 0.03;
+    main.frequency.setTargetAtTime(hz, t, glide);
+    sub.frequency.setTargetAtTime(hz * 0.5, t, glide);
+    pulse.frequency.setTargetAtTime(hz / 4, t, glide);
+    noiseBand.frequency.setTargetAtTime(hz * 5.5, t, 0.05);
+    this._wander = (this._wander + dt * (0.7 + Math.random())) % 1; // irregular idle beat
+    wobble.frequency.setTargetAtTime(3 + 2.5 * this._wander, t, 0.2);
+    wobbleDepth.gain.setTargetAtTime(ENGINE.idleWobble * idle, t, 0.1);
+    const openness = 0.35 * rev + 0.65 * load;
+    filter.frequency.setTargetAtTime(lerp(ENGINE.cutoffIdle, ENGINE.cutoffTop, clamp(openness, 0, 1)), t, 0.05);
+    drive.gain.setTargetAtTime(0.7 + 1.8 * load * (0.4 + 0.6 * rev), t, 0.05);
+    const level = active ? (ENGINE.idleGain + ENGINE.loadGain * openness) * volume : 0;
     amp.gain.setTargetAtTime(level, t, 0.08);
-    lfoDepth.gain.setTargetAtTime(level * ENGINE.rumbleDepth, t, 0.08);
+    pulseDepth.gain.setTargetAtTime(level * ENGINE.rumbleDepth * (1 + 0.8 * idle), t, 0.08);
   }
 }
