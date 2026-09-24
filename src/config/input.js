@@ -15,8 +15,10 @@ export const ACTIONS = {
   camera: ['KeyC'],
   mute: ['KeyM'],
   quit: ['KeyQ'],
-  left: ['ArrowLeft', 'KeyA', 'ArrowUp', 'KeyW'], // menu selection
-  right: ['ArrowRight', 'KeyD', 'ArrowDown', 'KeyS'],
+  left: ['ArrowLeft', 'KeyA'], // menu: game mode
+  right: ['ArrowRight', 'KeyD'],
+  prevTrack: ['ArrowUp', 'KeyW'], // menu: track
+  nextTrack: ['ArrowDown', 'KeyS', 'KeyN'],
   debug: ['Backquote', 'F3'],
 };
 

@@ -3,12 +3,13 @@
 import * as THREE from 'three';
 
 export class TrackPath {
-  constructor(waypoints, { samples, width, spline = 'centripetal' }) {
+  // samples: fixed count, or spacing: target metres between samples (count follows the lap length).
+  constructor(waypoints, { samples, spacing = 0.25, width, spline = 'centripetal' }) {
     const points = waypoints.map(([x, z]) => new THREE.Vector3(x, 0, z));
     const curve = new THREE.CatmullRomCurve3(points, true, spline);
-    const n = samples;
-    this.count = n;
     this.length = curve.getLength();
+    const n = samples ?? Math.max(200, Math.round(this.length / spacing));
+    this.count = n;
     this.spacing = this.length / n;
     this.halfWidth = width / 2;
     [this.x, this.z] = [new Float32Array(n), new Float32Array(n)];

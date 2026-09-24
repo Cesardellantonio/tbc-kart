@@ -5,6 +5,10 @@ import { clamp, wrapAngle, yawFromDirection } from '../core/math.js';
 
 export class Autopilot {
   constructor(path) {
+    this.setPath(path);
+  }
+
+  setPath(path) {
     this.path = path;
     this.index = -1;
   }

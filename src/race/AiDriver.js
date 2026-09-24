@@ -9,7 +9,13 @@ const IDLE = { throttle: 0, brake: 0, steer: 0, handbrake: false };
 export class AiDriver {
   // profile: { skill, line, react } (see config/race.js RIVALS)
   constructor(path, line, profile) {
-    Object.assign(this, { path, line, profile });
+    this.profile = profile;
+    this.setTrack(path, line);
+  }
+
+  // path: TrackPath; line: racing-line offsets for it (race/racingLine.js).
+  setTrack(path, line) {
+    Object.assign(this, { path, line });
     this.reset();
   }
 

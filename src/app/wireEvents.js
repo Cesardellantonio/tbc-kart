@@ -3,15 +3,16 @@
 import { saveRecord } from '../race/storage.js';
 
 export function wireEvents(game) {
-  const { bus, sfx, camera, screens, session } = game;
+  const { bus, sfx, camera, screens } = game; // session / field / record change with the track
   bus.on('light', () => sfx.beep('red'));
   bus.on('go', () => sfx.beep('go'));
   bus.on('lap', (e) => {
     sfx.chime(e.isBest);
     if (e.isBest) {
+      const { session } = game;
       const ghost = game.recorder.take() ?? game.record.ghost;
       game.record = { best: e.time, splits: session.timer.bestSplits, ghost };
-      saveRecord(game.signature, e.time, session.timer.bestSplits, ghost);
+      saveRecord(game.signature, e.time, session.timer.bestSplits, ghost, game.recordKey);
       if (session.mode === 'timeattack') game.ghost.set(ghost); // chase the new benchmark next lap
       screens.setBest(e.time);
     }

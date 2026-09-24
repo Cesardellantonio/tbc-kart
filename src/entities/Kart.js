@@ -1,8 +1,7 @@
 // A kart (player or rival): physics state stepped in fixed substeps, barrier collisions, visual model.
 
-import { stepKart } from '../physics/kartPhysics.js';
+import { advanceKart } from '../physics/advanceKart.js';
 import { KartModel } from './KartModel.js';
-import { FIXED_STEP, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE } from '../config/physics.js';
 
 const IDLE = { throttle: 0, brake: 0, steer: 0, handbrake: false };
 
@@ -36,22 +35,12 @@ export class Kart {
     this.model.update(this.state, this.telemetry, 0, true);
   }
 
-  // Advance by dt in equal substeps no longer than FIXED_STEP.
+  // Advance by dt (fixed substeps + barrier collisions, see physics/advanceKart).
   update(controls = IDLE, dt) {
-    const steps = Math.max(1, Math.ceil(dt / FIXED_STEP - 1e-6));
-    const h = dt / steps;
-    let impact = 0;
-    const input = { ...controls, draft: this.draft };
-    for (let k = 0; k < steps; k++) {
-      const next = stepKart(this.state, input, h);
-      const hit = this.collider.resolve(next, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE);
-      if (hit > impact) {
-        impact = hit;
-        Object.assign(this.contact, this.collider.contact);
-      }
-      this.state = next;
-    }
-    const s = this.state;
+    const { state, impact, contact } = advanceKart(this.state, { ...controls, draft: this.draft }, dt, this.collider);
+    if (contact) Object.assign(this.contact, contact);
+    this.state = state;
+    const s = state;
     Object.assign(this.telemetry, {
       speed: Math.hypot(s.vx, s.vz),
       forwardSpeed: s.forwardSpeed,

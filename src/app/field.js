@@ -6,28 +6,32 @@ import { KartFx } from '../fx/KartFx.js';
 import { AiDriver } from '../race/AiDriver.js';
 import { racingLine } from '../race/racingLine.js';
 import { resolveContacts, drafts } from '../physics/kartContacts.js';
+import { gridSpot } from '../race/grid.js';
+import { trafficFor } from '../race/traffic.js';
 import { RIVALS, GRID, AI, DRAFT, CONTACT } from '../config/race.js';
-import { GRID_BACK } from '../config/track.js';
 import { clamp } from '../core/math.js';
 
-export function createRivals(scene, path, collider) {
-  const line = racingLine(path, AI);
+export function createRivals(scene) {
   return RIVALS.map((profile) => {
-    const kart = new Kart(collider, {
+    const kart = new Kart(null, {
       number: profile.number,
       livery: { body: profile.body, suit: profile.suit, helmet: profile.body, helmetStripe: profile.stripe },
     });
     scene.add(kart.object3d);
-    return { profile, kart, driver: new AiDriver(path, line, profile), fx: new KartFx(scene), index: -1 };
+    return { profile, kart, driver: new AiDriver(null, null, profile), fx: new KartFx(scene), index: -1 };
   });
 }
 
-// Grid slot s (0 = pole): staggered two-wide rows behind the start line.
-function gridSpot(path, startIndex, s) {
-  const back = GRID_BACK + Math.floor(s / 2) * GRID.rowGap + (s % 2) * (GRID.rowGap / 2);
-  const i = path.wrap(startIndex - Math.round(back / path.spacing));
-  const p = path.offset(i, (s % 2 ? 1 : -1) * GRID.lateral);
-  return { x: p.x, z: p.z, yaw: path.heading(i), i };
+// Point every kart and driver at a newly built world.
+export function setFieldTrack(game) {
+  const { path, collider } = game.world;
+  const line = racingLine(path, AI);
+  game.kart.collider = collider;
+  for (const r of game.rivals) {
+    r.kart.collider = collider;
+    r.driver.setTrack(path, line);
+  }
+  game.autopilot.setPath(path);
 }
 
 // race = true lines up the whole field; false (time attack) puts the player alone on the grid box.
@@ -52,15 +56,11 @@ export function placeField(game, race) {
 export function stepField(game, dt, go) {
   const { path } = game.world;
   const all = [{ kart: game.kart, index: game.trackIndex }, ...game.rivals];
-  const n = path.count;
+  const view = (o) => ({ state: o.kart.state, index: o.index, speed: o.kart.telemetry.speed });
   const lead = game.field.player.progress;
   for (const r of game.rivals) {
     const s = r.kart.state;
-    const traffic = all.filter((o) => o !== r).map((o) => {
-      let d = o.index - r.index;
-      d = d > n / 2 ? d - n : d < -n / 2 ? d + n : d;
-      return { ahead: d * path.spacing, lateral: path.lateral(o.kart.state.x, o.kart.state.z, o.index), speed: o.kart.telemetry.speed };
-    });
+    const traffic = trafficFor(path, r, all.filter((o) => o !== r).map(view));
     const gap = (lead - (game.field.entries.find((e) => e.profile === r.profile)?.progress ?? lead)) * path.spacing;
     const pace = 1 + clamp(gap / 60, -1, 1) * AI.catchUp; // behind the player → a touch quicker
     const c = r.driver.controls(s, r.kart.telemetry.speed, traffic, pace, dt, go);

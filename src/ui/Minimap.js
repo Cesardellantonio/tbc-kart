@@ -2,6 +2,7 @@
 
 import { el } from './dom.js';
 import { forwardFromYaw } from '../core/math.js';
+import { drawTrackMap } from './trackMap.js';
 
 const W = 240;
 const H = 172;
@@ -9,40 +10,24 @@ const PAD = 16;
 
 export class Minimap {
   constructor(parent, path, startIndex) {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.canvas = el('canvas', 'hud-panel hud-minimap');
-    this.canvas.width = W * dpr;
-    this.canvas.height = H * dpr;
+    this.canvas.width = W * this.dpr;
+    this.canvas.height = H * this.dpr;
     parent.appendChild(this.canvas);
     this.ctx = this.canvas.getContext('2d');
-    this.ctx.scale(dpr, dpr);
-
-    const xs = Array.from(path.x);
-    const zs = Array.from(path.z);
-    const [minX, maxX, minZ, maxZ] = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
-    const scale = Math.min((W - 2 * PAD) / (maxX - minX), (H - 2 * PAD) / (maxZ - minZ));
-    const ox = (W - (maxX - minX) * scale) / 2;
-    const oy = (H - (maxZ - minZ) * scale) / 2;
-    this.map = (x, z) => [ox + (x - minX) * scale, oy + (z - minZ) * scale];
-
+    this.ctx.scale(this.dpr, this.dpr);
     this.bg = document.createElement('canvas');
+    this.setPath(path, startIndex);
+  }
+
+  // Pre-render the track outline once per track.
+  setPath(path, startIndex) {
     this.bg.width = this.canvas.width;
     this.bg.height = this.canvas.height;
     const g = this.bg.getContext('2d');
-    g.scale(dpr, dpr);
-    g.lineJoin = g.lineCap = 'round';
-    g.beginPath();
-    for (let i = 0; i < path.count; i += 2) g.lineTo(...this.map(path.x[i], path.z[i]));
-    g.closePath();
-    g.strokeStyle = 'rgba(255,255,255,0.16)';
-    g.lineWidth = Math.max(4, path.halfWidth * 2 * scale);
-    g.stroke();
-    g.strokeStyle = 'rgba(255,255,255,0.7)';
-    g.lineWidth = 1.4;
-    g.stroke();
-    const [sx, sy] = this.map(path.x[startIndex], path.z[startIndex]);
-    g.fillStyle = '#ffffff';
-    g.fillRect(sx - 1.5, sy - 5, 3, 10);
+    g.scale(this.dpr, this.dpr);
+    this.map = drawTrackMap(g, path, startIndex, W, H, PAD);
   }
 
   // others: [{ x, z, color }] rival karts, drawn as dots under your arrow.

@@ -10,18 +10,17 @@ import { Toasts } from './Toasts.js';
 import { Standings } from './Standings.js';
 import { TouchControls, isTouchDevice } from './TouchControls.js';
 import { formatTime, formatDelta, ordinal } from './format.js';
-import { RACE_LAPS } from '../config/race.js';
 
 const hex = (c) => `#${c.toString(16).padStart(6, '0')}`;
 
 export class Hud {
-  constructor(path, startIndex, bus, input) {
+  constructor(bus, input) {
     this.root = el('div', 'hud is-hidden');
     document.body.appendChild(this.root);
     this.lap = new LapPanel(this.root);
     this.standings = new Standings(this.root);
     this.speedo = new Speedo(this.root);
-    this.minimap = new Minimap(this.root, path, startIndex);
+    this.minimap = null; // built by setTrack
     this.lights = new StartLights(this.root);
     this.toasts = new Toasts(this.root);
     this.root.appendChild(
@@ -29,15 +28,16 @@ export class Hud {
     );
     if (isTouchDevice()) this.touch = new TouchControls(this.root, input);
     this.mode = 'race';
+    this.laps = 5;
     this._dots = [];
 
     bus.on('go', () => this.toasts.show('GO!', { kind: 'go', time: 1.1 }));
     bus.on('lap', (e) => {
-      if (this.mode === 'race' && e.lap >= RACE_LAPS) return; // the results card takes over
+      if (this.mode === 'race' && e.lap >= this.laps) return; // the results card takes over
       const sub = e.isBest
         ? e.delta == null ? 'FIRST LAP ON THE BOARD' : `NEW BEST  ${formatDelta(e.delta)}`
         : `LAP ${e.lap}  ${formatDelta(e.delta)}`;
-      const final = this.mode === 'race' && e.lap === RACE_LAPS - 1;
+      const final = this.mode === 'race' && e.lap === this.laps - 1;
       this.toasts.show(final ? 'FINAL LAP' : formatTime(e.time), {
         sub: final ? `${formatTime(e.time)}  ·  ${sub}` : sub,
         kind: final ? 'go' : e.isBest ? 'best' : '',
@@ -52,6 +52,13 @@ export class Hud {
 
   setVisible(visible) {
     this.root.classList.toggle('is-hidden', !visible);
+  }
+
+  // New track: redraw the minimap and take its race distance.
+  setTrack(path, startIndex, laps) {
+    this.laps = laps;
+    if (this.minimap) this.minimap.setPath(path, startIndex);
+    else this.minimap = new Minimap(this.root, path, startIndex);
   }
 
   setMode(mode) {

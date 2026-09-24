@@ -6,9 +6,8 @@ import { stepKart } from '../src/physics/kartPhysics.js';
 import { RaceField } from '../src/race/RaceField.js';
 import { racingLine } from '../src/race/racingLine.js';
 import { GhostRecorder } from '../src/race/GhostRecorder.js';
-import { TrackPath } from '../src/track/TrackPath.js';
-import { WAYPOINTS } from '../src/config/trackWaypoints.js';
-import { TRACK_SAMPLES, TRACK_WIDTH, TRACK_SPLINE } from '../src/config/track.js';
+import tbc from '../src/tracks/tbc.js';
+import { pathOf } from '../src/track/validate.js';
 import { AI } from '../src/config/race.js';
 import { formatGap, ordinal } from '../src/ui/format.js';
 
@@ -81,7 +80,7 @@ describe('RaceField', () => {
 });
 
 describe('racing line', () => {
-  const path = new TrackPath(WAYPOINTS, { samples: TRACK_SAMPLES, width: TRACK_WIDTH, spline: TRACK_SPLINE });
+  const path = pathOf(tbc);
   const line = racingLine(path, AI);
 
   it('stays on the asphalt and leans to the inside of corners', () => {

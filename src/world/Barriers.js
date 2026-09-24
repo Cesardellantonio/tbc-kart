@@ -2,10 +2,8 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { offsetChain } from '../track/offsetChain.js';
-import {
-  BARRIER_GAP, BARRIER_LENGTH, BARRIER_HEIGHT, BARRIER_THICKNESS, BARRIER_COLORS,
-} from '../config/track.js';
+import { barrierFaces, barrierCentres } from '../track/barrierLines.js';
+import { BARRIER_LENGTH, BARRIER_HEIGHT, BARRIER_THICKNESS, BARRIER_COLORS } from '../config/track.js';
 
 // Evenly spaced block centres + directions along a polyline run.
 function placeBlocks(run, out) {
@@ -29,14 +27,9 @@ function placeBlocks(run, out) {
 }
 
 export function createBarriers(path) {
-  const hw = path.halfWidth;
-  const clearance = hw + 0.35; // nothing may sit this close to any part of the centreline
-  const centre = hw + BARRIER_GAP + BARRIER_THICKNESS / 2;
   const blocks = [];
-  for (const side of [-1, 1]) {
-    for (const run of offsetChain(path, side * centre, clearance)) placeBlocks(run, blocks);
-  }
-  const faces = [-1, 1].flatMap((side) => offsetChain(path, side * (hw + BARRIER_GAP), clearance));
+  for (const run of barrierCentres(path)) placeBlocks(run, blocks);
+  const faces = barrierFaces(path);
 
   const geometry = new RoundedBoxGeometry(BARRIER_LENGTH * 0.97, BARRIER_HEIGHT, BARRIER_THICKNESS, 1, 0.06);
   const material = new THREE.MeshStandardMaterial({ roughness: 0.38, metalness: 0 });

@@ -1,8 +1,8 @@
 // Track dimensions, painted markings, curbs, barriers and sampling resolution. Metres.
 
-export const TRACK_SAMPLES = 1000; // centreline samples (~0.25 m apart)
+export const TRACK_SAMPLE_SPACING = 0.25; // metres between centreline samples
 export const TRACK_SPLINE = 'centripetal';
-export const TRACK_WIDTH = 6.0;
+export const TRACK_WIDTH = 6.0; // default; a track may set its own `width`
 
 // Driving surface + paint
 export const ASPHALT_TILE = 5; // metres of track per asphalt texture repeat

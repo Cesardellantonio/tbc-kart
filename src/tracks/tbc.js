@@ -5,7 +5,7 @@
 // Corner radii stay ≥ 3.5 m and separate parts of the track stay ≥ 12 m apart so the
 // barriers on both sides never cut into each other.
 
-export const WAYPOINTS = [
+const waypoints = [
   [12.0, 31.6], //    start / finish straight
   [22.0, 30.6],
   [31.0, 27.3], //    bottom-right sweeper
@@ -39,4 +39,15 @@ export const WAYPOINTS = [
   [3.5, 28.6],
 ];
 
-export const START_INDEX = 0;
+export default {
+  id: 'tbc',
+  name: 'TBC Indoor',
+  location: 'Vancouver, Canada',
+  inspiredBy: 'TBC Indoor Racing — the home track',
+  blurb: 'The original hall layout: sweeper, the "ear" hairpin, a long back straight and a tight chicane.',
+  laps: 5,
+  waypoints,
+  startIndex: 0,
+  samples: 1000, // the v1 sampling, so best laps saved before multi-track still count
+  exempt: ['radius', 'grid'], // predates the design rules: a 3.9 m hairpin and a grid on the chicane exit
+};

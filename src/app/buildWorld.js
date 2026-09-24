@@ -1,6 +1,9 @@
-// Builds the static scene from the track definition and returns the handles the game needs.
+// Builds the static scene for one track (all in one group, so a track change can drop it) and
+// returns the handles the game needs.
 
-import { TrackPath } from '../track/TrackPath.js';
+import * as THREE from 'three';
+import { pathOf } from '../track/validate.js';
+import { barrierFaces } from '../track/barrierLines.js';
 import { boundsOf, wallLoop } from '../track/bounds.js';
 import { BarrierCollider } from '../physics/BarrierCollider.js';
 import { createFloor, createFloorLogo } from '../world/Floor.js';
@@ -13,15 +16,45 @@ import { createBanners } from '../world/Banners.js';
 import { createLighting } from '../world/Lighting.js';
 import { StartGantry } from '../world/StartGantry.js';
 import { broadcastAnchors } from './anchors.js';
-import { WAYPOINTS, START_INDEX } from '../config/trackWaypoints.js';
-import { TRACK_SAMPLES, TRACK_WIDTH, TRACK_SPLINE, GRID_BACK, BARRIER_THICKNESS } from '../config/track.js';
+import { GRID_BACK, BARRIER_THICKNESS } from '../config/track.js';
 import { VENUE_MARGIN } from '../config/venue.js';
 import { COLLISION_CELL } from '../config/physics.js';
 
-export function buildWorld(scene, anisotropy) {
-  const path = new TrackPath(WAYPOINTS, { samples: TRACK_SAMPLES, width: TRACK_WIDTH, spline: TRACK_SPLINE });
-  const [sx, sz] = WAYPOINTS[START_INDEX];
-  const startIndex = path.nearest(sx, sz);
+const LOGO_WIDTH = 34;
+
+// Floor spot for a w × h painted logo, clear of the track and barriers: the centre of the layout
+// if free, else the free spot nearest to it (null if the infield is too busy). 1 m occupancy grid.
+function clearSpot(path, b, w, h) {
+  const [cols, rows] = [Math.ceil(b.width), Math.ceil(b.depth)];
+  const busy = new Uint8Array(cols * rows);
+  const keep = Math.ceil(path.halfWidth + 2.5);
+  const stride = Math.max(1, Math.round(1 / path.spacing));
+  for (let i = 0; i < path.count; i += stride) {
+    const [c0, r0] = [Math.floor(path.x[i] - b.minX), Math.floor(path.z[i] - b.minZ)];
+    for (let dc = -keep; dc <= keep; dc++) {
+      for (let dr = -keep; dr <= keep; dr++) {
+        const [c, r] = [c0 + dc, r0 + dr];
+        if (c >= 0 && r >= 0 && c < cols && r < rows && dc * dc + dr * dr <= keep * keep) busy[r * cols + c] = 1;
+      }
+    }
+  }
+  const free = (x, z) => {
+    const [c0, r0] = [Math.floor(x - w / 2 - b.minX), Math.floor(z - h / 2 - b.minZ)];
+    if (c0 < 2 || r0 < 2 || c0 + w > cols - 2 || r0 + h > rows - 2) return false;
+    for (let r = r0; r <= r0 + h; r++) for (let c = c0; c <= c0 + w; c++) if (busy[r * cols + c]) return false;
+    return true;
+  };
+  const cx = path.x.reduce((a, v) => a + v, 0) / path.count;
+  const cz = path.z.reduce((a, v) => a + v, 0) / path.count;
+  const spots = [];
+  for (let x = b.minX; x <= b.maxX; x += 2) for (let z = b.minZ; z <= b.maxZ; z += 2) spots.push({ x, z, d: (x - cx) ** 2 + (z - cz) ** 2 });
+  spots.sort((p, q) => p.d - q.d);
+  return free(cx, cz) ? { x: cx, z: cz } : (spots.find((p) => free(p.x, p.z)) ?? null);
+}
+
+export function buildWorld(track, anisotropy) {
+  const path = pathOf(track);
+  const startIndex = path.nearest(...track.waypoints[track.startIndex]);
   const gridIndex = path.wrap(startIndex - Math.round(GRID_BACK / path.spacing));
 
   const barriers = createBarriers(path);
@@ -29,13 +62,12 @@ export function buildWorld(scene, anisotropy) {
   const gantry = new StartGantry(path, startIndex);
   const rig = createRig(bounds);
 
-  // Infield logo sits at the centroid of the centreline.
-  const cx = path.x.reduce((a, v) => a + v, 0) / path.count;
-  const cz = path.z.reduce((a, v) => a + v, 0) / path.count;
+  const logo = clearSpot(path, bounds, LOGO_WIDTH, LOGO_WIDTH / 4);
 
-  scene.add(
+  const group = new THREE.Group();
+  group.add(
     createFloor(bounds, anisotropy),
-    createFloorLogo(cx, cz, 34),
+    ...(logo ? [createFloorLogo(logo.x, logo.z, LOGO_WIDTH)] : []),
     createTrackSurface(path, startIndex, gridIndex, anisotropy),
     createCurbs(path),
     barriers.mesh,
@@ -47,6 +79,6 @@ export function buildWorld(scene, anisotropy) {
   );
   rig.group.userData.ceiling = true;
 
-  const collider = new BarrierCollider([...barriers.faces, wallLoop(bounds)], COLLISION_CELL);
-  return { path, startIndex, gridIndex, bounds, collider, gantry, rig, anchors: broadcastAnchors(path) };
+  const collider = new BarrierCollider([...barrierFaces(path), wallLoop(bounds)], COLLISION_CELL);
+  return { track, group, path, startIndex, gridIndex, bounds, collider, gantry, rig, anchors: broadcastAnchors(path) };
 }

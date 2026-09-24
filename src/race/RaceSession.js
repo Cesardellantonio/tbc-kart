@@ -2,10 +2,12 @@
 // and the player's lap timer. mode: 'race' (Grand Prix vs rivals) | 'timeattack' (alone + ghost).
 
 import { LapTimer } from './LapTimer.js';
-import { LIGHT_INTERVAL, LIGHTS_HOLD, GO_SHOW, LIGHT_COUNT, RACE_LAPS } from '../config/race.js';
+import { LIGHT_INTERVAL, LIGHTS_HOLD, GO_SHOW, LIGHT_COUNT } from '../config/race.js';
 
 export class RaceSession {
-  constructor(sampleCount, startIndex, bus, record) {
+  // laps: Grand Prix race distance on this track.
+  constructor(sampleCount, startIndex, bus, record, laps) {
+    this.laps = laps;
     this.bus = bus;
     this.timer = new LapTimer(sampleCount, startIndex);
     this.timer.best = record.best;
@@ -84,7 +86,7 @@ export class RaceSession {
     return {
       state: this.state,
       mode: this.mode,
-      totalLaps: RACE_LAPS,
+      totalLaps: this.laps,
       lap: t.lap,
       lapTime: t.lapTime(this.clock),
       last: t.lastLap,

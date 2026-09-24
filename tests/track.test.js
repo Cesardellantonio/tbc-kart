@@ -2,15 +2,15 @@
 // and a kart that cannot drive through them.
 
 import { describe, it, expect } from 'vitest';
-import { TrackPath } from '../src/track/TrackPath.js';
 import { offsetChain } from '../src/track/offsetChain.js';
 import { BarrierCollider } from '../src/physics/BarrierCollider.js';
 import { stepKart } from '../src/physics/kartPhysics.js';
-import { WAYPOINTS } from '../src/config/trackWaypoints.js';
-import { TRACK_SAMPLES, TRACK_WIDTH, BARRIER_GAP } from '../src/config/track.js';
+import tbc from '../src/tracks/tbc.js';
+import { pathOf } from '../src/track/validate.js';
+import { BARRIER_GAP } from '../src/config/track.js';
 import { KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE } from '../src/config/physics.js';
 
-const path = new TrackPath(WAYPOINTS, { samples: TRACK_SAMPLES, width: TRACK_WIDTH });
+const path = pathOf(tbc);
 const hw = path.halfWidth;
 
 describe('TrackPath', () => {

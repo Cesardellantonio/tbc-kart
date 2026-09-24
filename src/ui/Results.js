@@ -19,6 +19,7 @@ export class Results {
            <tbody data-ref="rows"></tbody></table>
          <div class="res-actions">
            <button class="btn btn-primary" data-act="start">RACE AGAIN <kbd>ENTER</kbd></button>
+           <button class="btn" data-act="nextTrack">NEXT TRACK <kbd>N</kbd></button>
            <button class="btn" data-act="quit">MENU <kbd>ESC</kbd></button>
          </div>
        </div>`,

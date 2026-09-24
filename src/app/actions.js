@@ -40,13 +40,20 @@ export function respawn(game) {
 }
 
 export function handleActions(game) {
-  const { input, session, camera, bus, screens } = game;
+  const { input, camera, bus, screens } = game;
+  const session = game.session;
   const state = session.state;
   if (state === 'title') {
     if (input.action('left') || input.action('right')) screens.cycleMode();
+    if (input.action('prevTrack')) game.selectTrack(-1);
+    if (input.action('nextTrack')) game.selectTrack(1);
     if (input.action('start')) startRace(game, screens.mode);
   } else if (state === 'finished') {
     if (input.action('start') || input.action('reset')) startRace(game);
+    if (input.action('nextTrack')) {
+      game.selectTrack(1);
+      startRace(game);
+    }
     if (input.action('pause') || input.action('quit')) goTitle(game);
   } else {
     if (input.action('pause')) session.togglePause();
