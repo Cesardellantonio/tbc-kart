@@ -1,7 +1,7 @@
 // Full-screen overlays: the title card with track + mode select (attract mode plays behind it), the
 // pause card and the results card. Buttons fire the same actions as the keys, so touch works too.
 
-import { el, refs, setText } from './dom.js';
+import { el, refs, setText, showScreen } from './dom.js';
 import { formatTime } from './format.js';
 import { Results } from './Results.js';
 import { drawTrackMap } from './trackMap.js';
@@ -63,6 +63,7 @@ export class Screens {
          <p><kbd>C</kbd> camera &nbsp; <kbd>M</kbd> sound</p></div>`,
     );
     document.body.append(this.title, this.pause);
+    showScreen(this.pause, false);
     this.results = new Results(onAction);
     this.r = refs(this.title);
     this.modeButtons = [...this.title.querySelectorAll('[data-mode]')];
@@ -106,11 +107,11 @@ export class Screens {
   }
 
   showTitle(visible) {
-    this.title.classList.toggle('is-visible', visible);
+    showScreen(this.title, visible);
   }
 
   showPause(visible) {
-    this.pause.classList.toggle('is-visible', visible);
+    showScreen(this.pause, visible);
   }
 
   showResults(visible) {

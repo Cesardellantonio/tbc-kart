@@ -22,7 +22,7 @@ npm run build    # production bundle in dist/
 
 ## How to play
 
-Pick a mode on the title screen (`←` `→`, then **Enter** — or click / tap a mode):
+Pick a track (`↑` `↓`) and a mode (`←` `→`) on the title screen, then **Enter** — or click / tap a mode:
 
 - **Grand Prix** — 5 laps against five rivals from 5th on the grid. Tuck in behind a kart to catch its slipstream (the speedo shows **SLIPSTREAM**), then pull out and pass. Rubbing is racing: karts bump and shove each other. The timing tower shows the running order and real time gaps; the results card fills in as the field takes the flag.
 - **Time Attack** — alone on track against the clock. Your best lap is saved in the browser (shown in purple) along with a translucent **ghost** of that lap to chase.
@@ -39,9 +39,10 @@ On a phone or tablet, on-screen buttons appear: steer bottom-left, gas / brake /
 | `R` | Reset kart onto the track (restart when paused) |
 | `M` | Sound on/off |
 | `Esc` / `P` | Pause (then `R` restart, `Q` menu) |
+| `Enter` / `N` / `Esc` | Results card: race again / next track / menu (the driving keys do nothing there) |
 | `` ` `` / `F3` | Developer overlay |
 
-A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbrake, Y camera, Back reset, Start pause.
+A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbrake, Y camera, Back reset, Start start / pause / race again, B menu. On the title card the D-pad picks the track (up / down) and mode (left / right); on the results card D-pad down is next track.
 
 ## What's in it
 

@@ -1,7 +1,7 @@
 // Chequered-flag card: your finishing position and the classification, filled in live as the
 // rest of the field crosses the line.
 
-import { el, refs, setText } from './dom.js';
+import { el, refs, setText, showScreen } from './dom.js';
 import { formatTime, formatGap, ordinal } from './format.js';
 
 const VERDICT = ['', 'VICTORY', 'SECOND PLACE', 'PODIUM', 'SOLID DRIVE', 'KEEP PUSHING', 'BACK OF THE FIELD'];
@@ -18,20 +18,21 @@ export class Results {
          <table><thead><tr><th>POS</th><th>DRIVER</th><th>TIME</th><th>BEST LAP</th></tr></thead>
            <tbody data-ref="rows"></tbody></table>
          <div class="res-actions">
-           <button class="btn btn-primary" data-act="start">RACE AGAIN <kbd>ENTER</kbd></button>
-           <button class="btn" data-act="nextTrack">NEXT TRACK <kbd>N</kbd></button>
+           <button class="btn btn-primary" data-act="raceAgain">RACE AGAIN <kbd>ENTER</kbd></button>
+           <button class="btn" data-act="nextRace">NEXT TRACK <kbd>N</kbd></button>
            <button class="btn" data-act="quit">MENU <kbd>ESC</kbd></button>
          </div>
        </div>`,
     );
     document.body.appendChild(this.el);
     this.r = refs(this.el);
+    this.el.inert = true;
     for (const b of this.el.querySelectorAll('[data-act]')) b.addEventListener('click', () => onAction(b.dataset.act));
     this._key = '';
   }
 
   show(visible) {
-    this.el.classList.toggle('is-visible', visible);
+    showScreen(this.el, visible);
     this._key = '';
   }
 

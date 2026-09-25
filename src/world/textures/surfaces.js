@@ -2,7 +2,19 @@
 
 import { makeCanvas, blotches, speckle, grain, toTexture } from './canvas.js';
 
-export function concreteTexture() {
+// None of these depend on the track, so each canvas is drawn once per page and wrapped in a fresh
+// texture per track load (a track change disposes its textures, and callers set repeat/anisotropy).
+const drawn = new Map();
+const cached = (key, draw) => {
+  if (!drawn.has(key)) drawn.set(key, draw());
+  return toTexture(drawn.get(key));
+};
+
+export const concreteTexture = () => cached('concrete', drawConcrete);
+export const asphaltTexture = () => cached('asphalt', drawAsphalt);
+export const wallTexture = (accent = '#d7263d') => cached(`wall${accent}`, () => drawWall(accent));
+
+function drawConcrete() {
   const S = 1024;
   const { canvas, ctx } = makeCanvas(S, S);
   ctx.fillStyle = '#74767b';
@@ -19,11 +31,11 @@ export function concreteTexture() {
   ctx.fillStyle = 'rgba(255,255,255,0.08)';
   ctx.fillRect(0, 3, S, 1);
   ctx.fillRect(3, 0, 1, S);
-  return toTexture(canvas);
+  return canvas;
 }
 
 // u runs along the track (canvas x), v across it (canvas y).
-export function asphaltTexture() {
+function drawAsphalt() {
   const W = 512;
   const H = 512;
   const { canvas, ctx } = makeCanvas(W, H);
@@ -40,11 +52,11 @@ export function asphaltTexture() {
   band.addColorStop(0.82, 'rgba(0,0,0,0)');
   ctx.fillStyle = band;
   ctx.fillRect(0, 0, W, H);
-  return toTexture(canvas);
+  return canvas;
 }
 
 // One 4 m wide × 10 m tall wall section: kick plate, accent stripe, ribbed metal cladding.
-export function wallTexture(accent = '#d7263d') {
+function drawWall(accent) {
   const W = 512;
   const H = 1280;
   const px = H / 10; // pixels per metre
@@ -68,5 +80,5 @@ export function wallTexture(accent = '#d7263d') {
   ctx.fillRect(0, H - 1.85 * px, W, 0.45 * px);
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.fillRect(0, H - 1.95 * px, W, 0.06 * px);
-  return toTexture(canvas);
+  return canvas;
 }

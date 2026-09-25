@@ -18,3 +18,10 @@ export function refs(root) {
 export function setText(node, text) {
   if (node.textContent !== text) node.textContent = text;
 }
+
+// Show or hide a full-screen card. A hidden card is inert: no clicks, taps or Tab focus reach its
+// buttons (it stays in the DOM, faded out, stacked above the HUD).
+export function showScreen(screen, visible) {
+  screen.classList.toggle('is-visible', visible);
+  screen.inert = !visible;
+}

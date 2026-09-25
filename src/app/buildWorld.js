@@ -3,7 +3,6 @@
 
 import * as THREE from 'three';
 import { pathOf } from '../track/validate.js';
-import { barrierFaces } from '../track/barrierLines.js';
 import { boundsOf, wallLoop } from '../track/bounds.js';
 import { BarrierCollider } from '../physics/BarrierCollider.js';
 import { createFloor, createFloorLogo } from '../world/Floor.js';
@@ -85,7 +84,7 @@ export function buildWorld(track, anisotropy) {
   );
   rig.group.userData.ceiling = true;
 
-  const collider = new BarrierCollider([...barrierFaces(path), wallLoop(bounds)], COLLISION_CELL);
+  const collider = new BarrierCollider([...barriers.faces, wallLoop(bounds)], COLLISION_CELL);
   const curbs = curbTable(path); // per-sample kerb lookup for the kerb feel
   return { track, group, path, line, curbs, startIndex, gridIndex, bounds, collider, gantry, rig, anchors: broadcastAnchors(path) };
 }

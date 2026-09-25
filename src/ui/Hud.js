@@ -29,7 +29,9 @@ export class Hud {
     if (isTouchDevice()) this.touch = new TouchControls(this.root, input);
     this.mode = 'race';
     this.laps = 5;
-    this._dots = [];
+    this.visible = false;
+    this._dots = []; // rival dots for the minimap, reused frame to frame
+    this._minimapShown = true; // false where the CSS hides the minimap (phones): skip drawing it
 
     bus.on('go', () => this.toasts.show('GO!', { kind: 'go', time: 1.1 }));
     bus.on('lap', (e) => {
@@ -51,7 +53,18 @@ export class Hud {
   }
 
   setVisible(visible) {
+    this.visible = visible;
     this.root.classList.toggle('is-hidden', !visible);
+    if (visible) this.resize();
+  }
+
+  clearToasts() {
+    this.toasts.clear();
+  }
+
+  // Layout changed (and on show): is the minimap on screen at this size? One reflow, not per frame.
+  resize() {
+    this._minimapShown = !!this.minimap && this.minimap.canvas.offsetParent !== null;
   }
 
   // New track: redraw the minimap and take its race distance.
@@ -66,15 +79,25 @@ export class Hud {
     this.standings.setVisible(mode === 'race');
   }
 
+  // Nothing to draw while the HUD is hidden (title card, results card).
   update(view, kart, game) {
+    if (!this.visible) return;
     const race = this.mode === 'race';
     this.lap.update(view);
     this.speedo.update(kart.telemetry.speed, kart.draft);
     if (race) this.standings.update(game.field, game.session.clock);
-    const others = race || view.state === 'title' ? game.rivals : [];
-    this._dots.length = others.length;
-    others.forEach((r, i) => (this._dots[i] = { x: r.kart.state.x, z: r.kart.state.z, color: hex(r.profile.body) }));
-    this.minimap.update(kart.state, this._dots);
+    if (this._minimapShown) this.minimap.update(kart.state, this._rivalDots(race ? game.rivals : []));
     this.lights.update(view);
+  }
+
+  _rivalDots(rivals) {
+    const dots = this._dots;
+    dots.length = rivals.length;
+    rivals.forEach((r, i) => {
+      const d = (dots[i] ??= { x: 0, z: 0, body: -1, color: '' });
+      if (d.body !== r.profile.body) [d.body, d.color] = [r.profile.body, hex(r.profile.body)];
+      [d.x, d.z] = [r.kart.state.x, r.kart.state.z];
+    });
+    return dots;
   }
 }

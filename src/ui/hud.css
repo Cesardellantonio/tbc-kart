@@ -288,10 +288,15 @@ kbd {
   padding: 7vh 6vw;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.6s ease;
+  visibility: hidden; /* after the fade: a hidden card must not catch taps meant for the HUD below */
+  transition:
+    opacity 0.6s ease,
+    visibility 0s linear 0.6s;
 }
 .screen.is-visible {
   opacity: 1;
+  visibility: visible;
+  transition: opacity 0.6s ease;
 }
 .screen-title {
   background:
@@ -492,9 +497,13 @@ kbd {
 
 /* ---- buttons + mode select ---- */
 .screen button {
-  pointer-events: auto;
   font-family: var(--hud-font);
   cursor: pointer;
+}
+/* Only a visible card takes clicks: the screens stack above the HUD and each other, and a faded-out
+   card's buttons would otherwise swallow taps on the touch controls or on the card in front. */
+.screen.is-visible button {
+  pointer-events: auto;
 }
 .title-modes {
   display: flex;
@@ -772,6 +781,28 @@ kbd {
   .title-best {
     margin: 4px 0;
   }
+  /* Short landscape (phones): logo, track picker and both modes must fit above the fold. */
+  .title-kicker,
+  .title-meta {
+    display: none;
+  }
+  .title-logo {
+    margin: 0 0 6px;
+    font-size: clamp(36px, 9vh, 100px);
+  }
+  .title-press {
+    font-size: 14px;
+  }
+  .title-press kbd {
+    font-size: 12px;
+    padding: 2px 8px;
+  }
+  .title-best {
+    font-size: 13px;
+  }
+  .title-modes {
+    margin-bottom: 8px;
+  }
 }
 
 /* ---- v3: track picker on the title card ---- */
@@ -856,5 +887,50 @@ kbd {
   }
   .tt-info em {
     display: none;
+  }
+}
+
+/* ---- touch layout fixes ---- */
+/* The start lights clear the CAM / pause buttons (on a short landscape screen 11% is under them). */
+.is-touch .hud-lights {
+  top: max(11%, calc(66px + env(safe-area-inset-top, 0px)));
+}
+/* Portrait phone: one row of steer + pedals only fits ~410 px at full size, so the buttons shrink
+   (clears at 360 px wide); the speedo, which would sit under them, moves to the top right below
+   CAM / pause, which move off the lap panel. */
+@media (orientation: portrait) {
+  .is-touch .touch-left,
+  .is-touch .touch-right {
+    width: 72px;
+    height: 72px;
+    font-size: 22px;
+  }
+  .is-touch .touch-right {
+    left: calc(98px + env(safe-area-inset-left, 0px));
+  }
+  .is-touch .touch-brake {
+    right: calc(118px + env(safe-area-inset-right, 0px));
+    width: 64px;
+    height: 64px;
+  }
+  .is-touch .touch-camera {
+    left: auto;
+    right: calc(66px + env(safe-area-inset-right, 0px));
+  }
+  .is-touch .touch-pause {
+    left: auto;
+    right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+  .is-touch .hud-speedo {
+    left: auto;
+    right: calc(4px + env(safe-area-inset-right, 0px));
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    transform: scale(0.5);
+    transform-origin: top right;
+  }
+  /* The top of a portrait screen is full (lap panel, standings, speedo): lights go mid-screen. */
+  .is-touch .hud-lights {
+    top: max(40%, calc(330px + env(safe-area-inset-top, 0px)));
   }
 }

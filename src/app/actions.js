@@ -15,6 +15,7 @@ export function startRace(game, mode = game.session.mode) {
   game.screens.showPause(false);
   game.screens.showResults(false);
   game.hud.setMode(mode);
+  game.hud.clearToasts(); // the last race's CHEQUERED FLAG must not sit over the new start lights
   game.hud.setVisible(true);
 }
 
@@ -27,6 +28,7 @@ export function goTitle(game) {
   game.screens.showPause(false);
   game.screens.showResults(false);
   game.screens.showTitle(true);
+  game.hud.clearToasts();
   game.hud.setVisible(false);
 }
 
@@ -39,6 +41,15 @@ export function respawn(game) {
   game.bus.emit('reset');
 }
 
+// What the results card does this frame — at most one thing ('again' | 'next' | 'menu' | null):
+// the pad's Start fires raceAgain and pause together, and must race again, not quit to the menu.
+export function resultsChoice(input) {
+  if (input.action('raceAgain') || input.action('reset')) return 'again';
+  if (input.action('nextRace')) return 'next';
+  if (input.action('pause') || input.action('quit')) return 'menu';
+  return null;
+}
+
 export function handleActions(game) {
   const { input, camera, bus, screens } = game;
   const session = game.session;
@@ -49,12 +60,10 @@ export function handleActions(game) {
     if (input.action('nextTrack')) game.selectTrack(1);
     if (input.action('start')) startRace(game, screens.mode);
   } else if (state === 'finished') {
-    if (input.action('start') || input.action('reset')) startRace(game);
-    if (input.action('nextTrack')) {
-      game.selectTrack(1);
-      startRace(game);
-    }
-    if (input.action('pause') || input.action('quit')) goTitle(game);
+    const choice = resultsChoice(input);
+    if (choice === 'next') game.selectTrack(1);
+    if (choice === 'again' || choice === 'next') startRace(game);
+    else if (choice === 'menu') goTitle(game);
   } else {
     if (input.action('pause')) session.togglePause();
     if (input.action('quit') && state === 'paused') return goTitle(game);

@@ -29,7 +29,8 @@ import { disposeTree } from './dispose.js';
 import { wireEvents } from './wireEvents.js';
 import { createRivals, setFieldTrack, placeField } from './field.js';
 import { stepGame, controlsFor, runLoop } from './frame.js';
-import { TRACKS, trackById } from '../tracks/index.js';
+import { TRACKS } from '../tracks/index.js';
+import { chooseTrack, recordSignature } from './trackChoice.js';
 import { RIVALS, PLAYER } from '../config/race.js';
 import { LIVERY } from '../config/kart.js';
 
@@ -80,7 +81,7 @@ export class Game {
     const { path, startIndex, anchors } = this.world;
     this.camera.anchors = anchors;
     setFieldTrack(this);
-    this.signature = `${path.count}:${path.length.toFixed(1)}`; // invalidates records if the layout changes
+    this.signature = recordSignature(track, path, startIndex); // invalidates records if the layout changes
     this.recordKey = recordKey(track.id);
     this.record = loadRecord(this.signature, this.recordKey);
     this.session = new RaceSession(path.count, startIndex, this.bus, this.record, track.laps);
@@ -93,14 +94,20 @@ export class Game {
     this.screens.setTrack(track, path, startIndex, position, TRACKS.length, this.record.best);
     for (const r of this.rivals) r.fx.reset();
     placeField(this, true);
-    this.camera.broadcast();
-    remember(track.id);
+    this.camera.broadcast(this.kart); // cut into the new hall (a following start swoops from here)
   }
 
-  // Step through the track list (wraps around).
+  // Step through the track list (wraps around). The pick is remembered, and a ?track= in the URL
+  // follows it, so a reload keeps the menu choice.
   selectTrack(offset) {
     const i = TRACKS.indexOf(this.track);
     this.loadTrack(TRACKS[(i + offset + TRACKS.length) % TRACKS.length]);
+    remember(this.track.id);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('track')) {
+      url.searchParams.set('track', this.track.id);
+      window.history.replaceState(window.history.state, '', url);
+    }
   }
 
   resize() {
@@ -108,6 +115,7 @@ export class Game {
     this.renderer.setSize(w, h);
     this.post.setSize(w, h);
     this.camera.setAspect(w / h);
+    this.hud.resize();
   }
 
   controlsFor = (state) => controlsFor(this, state);
@@ -124,16 +132,20 @@ export class Game {
   }
 }
 
-// ?track=<id> in the URL wins, then the last track played, then the home track.
+// ?track=<id> in the URL wins, then the last track played, then the home track. An unknown id is
+// reported and ignored — it never overwrites the saved choice.
 function initialTrack() {
-  const fromUrl = new URLSearchParams(window.location.search).get('track');
+  const urlId = new URLSearchParams(window.location.search).get('track');
   let saved = null;
   try {
     saved = localStorage.getItem(LAST_TRACK_KEY);
   } catch {
     // storage unavailable
   }
-  return trackById(fromUrl ?? saved ?? 'tbc');
+  const { track, fromUrl, unknown } = chooseTrack(urlId, saved, TRACKS);
+  if (unknown) console.warn(`?track=${unknown}: no such track (${TRACKS.map((t) => t.id).join(', ')})`);
+  if (fromUrl) remember(track.id);
+  return track;
 }
 
 function remember(id) {

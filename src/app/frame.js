@@ -47,9 +47,9 @@ function announceOvertakes(game, dt) {
 }
 
 export function stepGame(game, dt) {
+  game.input.poll();
+  handleActions(game); // may load another track (new world, session, field): read them only after
   const { input, session, kart, world, camera } = game;
-  input.poll();
-  handleActions(game);
   const state = session.state;
   const paused = state === 'paused';
   const grandPrix = session.mode === 'race' || state === 'title';

@@ -22,4 +22,10 @@ export class Toasts {
       setTimeout(() => toast.remove(), time * 1000 + 500),
     ];
   }
+
+  clear() {
+    this._timers.forEach(clearTimeout);
+    this._timers = [];
+    this.el.replaceChildren();
+  }
 }

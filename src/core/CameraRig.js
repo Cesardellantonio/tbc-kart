@@ -46,9 +46,14 @@ export class CameraRig {
     this._swoop = 0;
   }
 
-  broadcast() {
+  // Trackside TV cameras. With a kart, cut straight to its camera instead of blending: after a track
+  // change the current pose belongs to the old hall, and the next swoop must not start from there.
+  broadcast(kart = null) {
     this.broadcastCam.reset();
     this.mode = 'broadcast';
+    if (!kart) return;
+    this._swoop = 1;
+    this.update(kart, 0);
   }
 
   shake(amount) {

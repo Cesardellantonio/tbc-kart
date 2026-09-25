@@ -2,6 +2,8 @@
 
 import * as THREE from 'three';
 
+const cellKey = (cx, cz) => cx * 1048576 + cz; // unique while |cz| < 2^19 cells
+
 export class TrackPath {
   // samples: fixed count, or spacing: target metres between samples (count follows the lap length).
   constructor(waypoints, { samples, spacing = 0.25, width, spline = 'centripetal' }) {
@@ -63,13 +65,38 @@ export class TrackPath {
     return best;
   }
 
-  // True if (x, z) lies within `radius` of any centreline sample.
+  // True if (x, z) lies within `radius` of any centreline sample. Looks only at the 3×3 grid cells
+  // (cell = radius) around the point, so building barrier lines stays linear in the sample count.
   within(x, z, radius) {
+    if (!(radius > 0)) return false;
+    const grid = this._cells(radius);
+    const [cx, cz] = [Math.floor(x / radius), Math.floor(z / radius)];
     const r2 = radius * radius;
-    for (let i = 0; i < this.count; i++) {
-      if ((this.x[i] - x) ** 2 + (this.z[i] - z) ** 2 < r2) return true;
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        const cell = grid.get(cellKey(cx + dx, cz + dz));
+        if (!cell) continue;
+        for (const i of cell) if ((this.x[i] - x) ** 2 + (this.z[i] - z) ** 2 < r2) return true;
+      }
     }
     return false;
+  }
+
+  // Sample indices bucketed by grid cell of the given size (built once per size, on first use).
+  _cells(size) {
+    this._grids ??= new Map();
+    let grid = this._grids.get(size);
+    if (!grid) {
+      grid = new Map();
+      for (let i = 0; i < this.count; i++) {
+        const key = cellKey(Math.floor(this.x[i] / size), Math.floor(this.z[i] / size));
+        const cell = grid.get(key);
+        if (cell) cell.push(i);
+        else grid.set(key, [i]);
+      }
+      this._grids.set(size, grid);
+    }
+    return grid;
   }
 
   heading(i) {
