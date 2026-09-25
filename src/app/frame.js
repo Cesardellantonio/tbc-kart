@@ -87,6 +87,7 @@ export function stepGame(game, dt) {
   const view = session.view;
   game.ghost.update(view.lapTime, session.mode === 'timeattack' && state === 'racing' && view.lap >= 1, paused ? 0 : dt);
   world.gantry.setLights(session.lights, session.lightsMode);
+  world.lighting.follow(kart.state.x, kart.state.z);
   camera.update(kart, paused ? 0 : dt, game.kerb);
   kart.model.setFirstPerson(camera.mode === 'follow' && camera.view === 'cockpit');
 

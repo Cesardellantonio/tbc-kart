@@ -58,7 +58,7 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 - **Sound** (all synthesized with WebAudio, no files): a single-cylinder rental-kart engine behind a centrifugal clutch (lumpy idle, revs hang at the bite point on launch then climb with road speed, flare when the rear steps out, pops and crackles on a high-rev lift), tyre squeal that grows with cornering load and slip, a juddering scrub under hard braking, a scrape when grinding a barrier, a kerb rumble, impacts, start beeps, and lap chimes.
 - **Kerbs you can feel**: ride a kerb and the kart hops and tilts over the ribs, the camera judders and the rumble plays at the rib rate. A per-sample kerb table (`track/curbTable.js`) keeps the check O(1) per frame.
 - **Cockpit head**: in the cockpit view the driver's head sways and tilts against lateral g, surges and nods under braking, and looks into the corner with the steering. Chase views get a fine speed-dependent engine buzz.
-- **Rubbered-in line**: a soft, streaky darker band follows the AI racing line (darker where it's loaded hardest), with faint rear-tyre marks in the main braking zones.
+- **Rubbered-in line**: a soft, streaky darker band follows the AI racing line (darker where it's loaded hardest), with faint rear-tyre marks where the rivals actually brake (darker where they brake harder).
 
 ## Architecture
 
@@ -78,23 +78,23 @@ src/
     track · physics · kart · camera · render · venue · audio · input · race
   core/                engine-level pieces, no game rules
     Renderer · PostFX · GradeShader · venueEnvironment
-    CameraRig → FollowCam (+ HeadMotion) · BroadcastCam · CameraShake · CameraVibe (+ pure cameraModes)
+    CameraRig → FollowCam (+ HeadMotion) · BroadcastCam · CameraShake · CameraVibe (+ pure cameraModes, FrameSines: per-frame sines that can't alias)
     Input · events (EventBus) · math
   track/               centreline geometry shared by everything
     TrackPath          sampled spline: nearest(), offset(), lateral(), curvature
     offsetChain        clean barrier lines (cuts corner loops, keeps off the asphalt)
     stripGeometry      flat strips for asphalt, paint, curbs and the rubbered line (optional vertex alpha)
     curbRuns · curbTable  where the curbs are, and a per-sample lookup for "which wheels are on a kerb"
-    brakingZones       lap speed profile → where karts brake hard (tyre marks)
+    brakingZones       a point-mass lap driven by the AI's own speed rule → where karts brake (tyre marks)
     bounds             venue size from the barriers + a wall loop collider
   physics/             kartPhysics (pure single-track step) · tyres · axles · controls · BarrierCollider (circle vs segments, grid)
                        kartContacts (kart vs kart, slipstream)
-  entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts
+  entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts (merged per material: ~18 draws a kart)
   world/               Floor · TrackSurface · RubberLine (+ BrakeMarks) · Curbs · Barriers · Venue · Rig · Banners
-                       Lighting · StartGantry · textures/ (all procedural canvas textures)
+                       Lighting (shadow box follows the kart in big halls) · StartGantry · textures/ (all procedural canvas textures)
   fx/                  Particles (+ shader) · SkidMarks · KartFx · KerbFeel (kerb contact + kart ride)
-  audio/               AudioEngine · EngineSound (engineRpm clutch model + engineVoice graph + Backfire)
-                       PackSound (rival engines) · TyreSound · KerbRumble · Sfx (one-shots) · nodes
+  audio/               AudioEngine (suspends while the tab is hidden) · EngineSound (engineRpm clutch model + engineVoice graph + Backfire)
+                       PackSound (rival engines: an rpm model per kart, voices stay with their kart) · TyreSound · KerbRumble · Sfx (one-shots) · nodes
   race/                RaceSession (state machine) · LapTimer (pure) · storage · Autopilot
                        RaceField (order, gaps, finish) · AiDriver · racingLine · GhostRecorder
   ui/                  Hud · LapPanel · Standings · Speedo · Minimap · StartLights · Toasts

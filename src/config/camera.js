@@ -47,4 +47,10 @@ export const VIBE = {
   kerb: 0.028, // m at full kerb contact (chase / far)
   kerbCockpit: 0.014,
   aim: -2.5, // share of the offset applied to the aim point in reverse → a little angular judder
+  nyquist: 0.4, // default ceiling: vibration partials stay below this share of the frame rate (no slow aliasing)
+  // Per-partial ceilings (share of the frame rate, core/FrameSines): distinct and ordered like the partials,
+  // so summed partials never merge into one tone; not simple fractions, so none repeats every few frames.
+  buzzCeil: [0.331, 0.379, 0.353], // engine buzz: 25 Hz, ×1.54 and ×1.27 partials
+  kerbCeil: [0.303, 0.397, 0.303], // kerb rib, its ×2.3 overtone (≥ 0.09 × fps above the rib), ×0.5 rock
+  fpsSmoothing: 0.05, // per-frame blend of the frame-rate estimate that sets that cap
 };

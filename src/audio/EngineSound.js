@@ -25,17 +25,24 @@ export class EngineSound {
   // tel: kart telemetry (speed, forwardSpeed, slip, sliding); throttle 0..1; active=false fades the
   // engine out (paused / title before gesture); volume 0..1 scales the level (distant rival karts).
   update(tel, throttle, dt, active = true, volume = 1) {
-    const rpm = this.model.step(tel, throttle, dt);
-    if (this.model.liftOff && active) this.pops.trigger(this.model.liftOff);
+    this.model.step(tel, throttle, dt);
+    this.render(this.model, dt, active, volume);
+  }
+
+  // Voice an rpm model stepped elsewhere (PackSound keeps one per rival kart). jump: the voice has
+  // just moved to another kart, so snap to its pitch instead of sweeping from the last one.
+  render(model, dt, active = true, volume = 1, jump = false) {
+    if (jump) this.pops.update(0, 0); // the last kart's crackle stays with that kart
+    if (model.liftOff && active) this.pops.trigger(model.liftOff);
     this.pops.update(dt, active ? volume : 0);
     if (!this.n) return;
     const { ctx, main, sub, noiseBand, drive, filter, amp, pulse, pulseDepth, wobble, wobbleDepth } = this.n;
     const t = ctx.currentTime;
-    const rev = this.model.rev;
-    const load = this.model.load;
+    const rev = model.rev;
+    const load = model.load;
     const idle = 1 - clamp(rev * 3, 0, 1); // 1 at idle, gone by a third of the range
-    const hz = (rpm / 60) * ENGINE.hzPerRev * this.pitch;
-    const glide = 0.03;
+    const hz = (model.rpm / 60) * ENGINE.hzPerRev * this.pitch;
+    const glide = jump ? 0.002 : 0.03;
     main.frequency.setTargetAtTime(hz, t, glide);
     sub.frequency.setTargetAtTime(hz * 0.5, t, glide);
     pulse.frequency.setTargetAtTime(hz / 4, t, glide);

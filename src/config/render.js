@@ -23,6 +23,11 @@ export const FILLS = [
 export const SHADOW_MAP_SIZE = LITE ? 2048 : 4096;
 export const SHADOW_BIAS = -0.0003;
 export const SHADOW_NORMAL_BIAS = 0.035;
+// Shadow box: the whole hall when it fits in `maxHalf` m either side of centre (the home track);
+// bigger halls get a box that size following the kart, so shadows stay as sharp as at home.
+export const SHADOW_FIT = { maxHalf: 58 };
+// On phones the barrier shadow (a ~1-texel sliver at the base) isn't worth 35-88k depth triangles.
+export const BARRIER_SHADOWS = !LITE;
 
 export const BLOOM = { strength: 0.65, radius: 0.08, threshold: 1.2 }; // small radius = tight glow, no haze
 export const GRADE = { vignette: 0.42, saturation: 1.12, contrast: 1.06 };

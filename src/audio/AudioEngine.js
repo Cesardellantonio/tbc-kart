@@ -1,22 +1,27 @@
-// WebAudio context + master bus (gain → compressor). Unlocks on the first user gesture.
+// WebAudio context + master bus (gain → compressor). Unlocks on the first user gesture, and goes
+// quiet and suspends while the page is hidden: no frames run then, so every continuous voice
+// (engines, tyres, kerb rumble) would otherwise hold its last level forever.
 
-import { MASTER_VOLUME } from '../config/audio.js';
+import { MASTER_VOLUME, LIFECYCLE } from '../config/audio.js';
 
 export class AudioEngine {
   constructor() {
     this.ctx = null;
     this.master = null;
     this.muted = false;
+    this.hidden = globalThis.document?.hidden ?? false;
     this._pending = [];
     this._noise = null;
+    this._suspendTimer = 0;
     const unlock = () => this.unlock();
     for (const type of ['keydown', 'pointerdown', 'touchstart']) {
       window.addEventListener(type, unlock, { once: true, passive: true });
     }
+    globalThis.document?.addEventListener('visibilitychange', () => this.setHidden(document.hidden));
   }
 
   unlock() {
-    if (this.ctx) return void this.ctx.resume?.();
+    if (this.ctx) return void (this.hidden || this.ctx.resume?.());
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     this.ctx = new Ctx();
@@ -24,7 +29,7 @@ export class AudioEngine {
     compressor.threshold.value = -14;
     compressor.ratio.value = 4;
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.muted ? 0 : MASTER_VOLUME;
+    this.master.gain.value = this._level();
     this.master.connect(compressor).connect(this.ctx.destination);
     for (const fn of this._pending) fn(this.ctx, this.master);
     this._pending.length = 0;
@@ -38,8 +43,23 @@ export class AudioEngine {
 
   toggleMute() {
     this.muted = !this.muted;
-    if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : MASTER_VOLUME, this.ctx.currentTime, 0.05);
+    if (this.master) this.master.gain.setTargetAtTime(this._level(), this.ctx.currentTime, 0.05);
     return this.muted;
+  }
+
+  // Page hidden: fade the master out, then suspend the context (a clean stop, no click). Shown
+  // again: resume and fade back in — the voices pick up where the frozen race left them.
+  setHidden(hidden) {
+    this.hidden = hidden;
+    if (!this.ctx) return;
+    clearTimeout(this._suspendTimer);
+    this.master.gain.setTargetAtTime(this._level(), this.ctx.currentTime, LIFECYCLE.fade);
+    if (hidden) this._suspendTimer = setTimeout(() => this.hidden && this.ctx.suspend?.(), LIFECYCLE.suspendMs);
+    else this.ctx.resume?.();
+  }
+
+  _level() {
+    return this.muted || this.hidden ? 0 : MASTER_VOLUME;
   }
 
   // Two seconds of white noise, shared by every noisy effect.

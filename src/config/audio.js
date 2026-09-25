@@ -1,6 +1,8 @@
 // Synthesised audio: levels and engine voice tuning (all sound is generated, no files).
 
 export const MASTER_VOLUME = 0.7;
+// Page hidden: master fade time constant (s), then suspend the context after this many ms
+export const LIFECYCLE = { fade: 0.012, suspendMs: 60 };
 // Single-cylinder rental kart with a centrifugal clutch (rpm). Firing tone = rpm / 60 × hzPerRev.
 export const ENGINE = {
   idleRpm: 1700,
@@ -19,6 +21,10 @@ export const ENGINE = {
   rumbleDepth: 0.3, // firing-pulse amplitude modulation
   idleWobble: 22, // cents of lumpy-idle pitch wander
 };
+// Rival engines: the nearest karts get a voice each (pitch multipliers keep them apart), fading out
+// by `hear` m; a voiced kart keeps its voice unless another is `hold` m closer (no swapping back and forth);
+// a kart that moves more than `teleport` m in one frame was placed, so its revs restart from idle
+export const PACK = { pitches: [1.08, 0.93], hear: 34, hold: 3, teleport: 4 };
 // Pops and crackles on the overrun after lifting off at high revs
 export const BACKFIRE = { minRpm: 0.62, lift: 0.5, pops: [3, 7], window: 0.55, gain: 0.16 };
 // Tyres: squeal from how hard they work (lateral g + slip), brake scrub, barrier scrape

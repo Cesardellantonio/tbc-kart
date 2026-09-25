@@ -2,6 +2,7 @@
 
 import * as THREE from 'three';
 import { WHEELBASE, FRONT_TRACK, REAR_TRACK, FRONT_WHEEL, REAR_WHEEL } from '../../config/kart.js';
+import { mergeStatic } from './merge.js';
 
 function wheelMesh(spec, mats, side) {
   const g = new THREE.Group();
@@ -32,6 +33,7 @@ export function buildWheels(mats) {
       steer.position.set(side * halfTrack, spec.radius, (front ? -1 : 1) * (WHEELBASE / 2));
       const spin = new THREE.Group();
       spin.add(wheelMesh(spec, mats, side));
+      mergeStatic(spin, { alias: new Map([[mats.frame, mats.rim]]) }); // bolts share the rim's draw
       steer.add(spin);
       group.add(steer);
       wheels.push({ steer, spin, radius: spec.radius, front, side });

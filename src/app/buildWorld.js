@@ -67,6 +67,7 @@ export function buildWorld(track, anisotropy) {
 
   const logo = clearSpot(path, bounds, LOGO_WIDTH, LOGO_WIDTH / 4);
   const line = racingLine(path, AI); // shared with the rival AI (app/field.js)
+  const lighting = createLighting(bounds); // lighting.follow(x, z): shadow box on the kart in big halls
 
   const group = new THREE.Group();
   group.add(
@@ -79,12 +80,12 @@ export function buildWorld(track, anisotropy) {
     createVenue(bounds, anisotropy),
     rig.group,
     createBanners(bounds),
-    createLighting(bounds),
+    lighting.group,
     gantry.group,
   );
   rig.group.userData.ceiling = true;
 
   const collider = new BarrierCollider([...barriers.faces, wallLoop(bounds)], COLLISION_CELL);
   const curbs = curbTable(path); // per-sample kerb lookup for the kerb feel
-  return { track, group, path, line, curbs, startIndex, gridIndex, bounds, collider, gantry, rig, anchors: broadcastAnchors(path) };
+  return { track, group, path, line, curbs, startIndex, gridIndex, bounds, collider, gantry, rig, lighting, anchors: broadcastAnchors(path) };
 }

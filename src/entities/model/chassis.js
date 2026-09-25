@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { numberPlateTexture } from '../../world/textures/markings.js';
 import { KART_NUMBER } from '../../config/kart.js';
+import { mergeStatic } from './merge.js';
 
 const rbox = (w, h, d, r, mat) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), mat);
 
@@ -44,6 +45,7 @@ export function buildChassis(mats, number = KART_NUMBER, ghost = false) {
   );
   plate.position.set(0, 0.235, -0.87);
   plate.lookAt(0, 0.235 + 0.88, -0.87 - 0.46); // face forward-up along the nose slope
+  plate.userData.small = true;
   g.add(plate);
 
   place(g, rbox(0.42, 0.07, 0.38, 0.03, mats.accent), 0, 0.14, 0.2); // seat base
@@ -62,5 +64,8 @@ export function buildChassis(mats, number = KART_NUMBER, ghost = false) {
   wheel.add(new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.03, 0.02), mats.frame));
   steering.add(wheel);
   g.add(steering);
+  wheel.children.forEach((m) => (m.userData.small = true));
+  mergeStatic(wheel, { alias: new Map([[mats.frame, mats.accent]]) });
+  mergeStatic(g, { keep: [wheel], alias: new Map([[mats.frame, mats.engine]]) });
   return { group: g, steeringWheel: wheel };
 }

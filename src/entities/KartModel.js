@@ -27,7 +27,9 @@ export class KartModel {
     this.wheels = wheels;
     this.root.add(group);
     this.root.traverse((o) => {
-      if (o.isMesh) o.castShadow = o.receiveShadow = !ghost;
+      if (!o.isMesh) return;
+      o.receiveShadow = !ghost;
+      o.castShadow = !ghost && !o.userData.small; // visor, plate, steering wheel: too small to matter
     });
     this._roll = 0;
     this._pitch = 0;
