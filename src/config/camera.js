@@ -24,3 +24,27 @@ export const SHAKE_AMPLITUDE = 0.32;
 
 // Title-screen orbit around the kart
 export const ORBIT = { radius: 9.5, height: 3.4, speed: 0.16 };
+
+// Cockpit: the driver's head moves with g-forces (inputs in m/s², springs in 1/s)
+export const HEAD = {
+  sway: 0.0045, // m sideways per m/s² lateral g (pushed to the outside of the corner)
+  swayMax: 0.06,
+  surge: 0.004, // m forward per m/s² of braking (back under throttle)
+  surgeMax: 0.05,
+  nod: 0.012, // m the aim point drops per m/s² of braking (rises under throttle)
+  nodMax: 0.22,
+  roll: 0.0022, // rad head tilt per m/s² lateral g
+  rollMax: 0.035,
+  lookInto: 0.13, // rad the driver looks into the corner at full steering lock
+  stiffness: 70, // spring: higher = snappier head
+  damping: 13, // spring damping (≈ 1.6·√stiffness → a hint of overshoot, no wobble)
+  gClamp: 22, // m/s² cap on inputs so wall hits don't whip the head
+};
+// Continuous vibration: engine buzz in the chase views, kerb judder in every driving view
+export const VIBE = {
+  engine: 0.0045, // m at full revs (chase / far)
+  engineCockpit: 0.0015,
+  kerb: 0.028, // m at full kerb contact (chase / far)
+  kerbCockpit: 0.014,
+  aim: -2.5, // share of the offset applied to the aim point in reverse → a little angular judder
+};

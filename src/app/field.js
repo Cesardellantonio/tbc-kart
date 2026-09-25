@@ -4,10 +4,10 @@
 import { Kart } from '../entities/Kart.js';
 import { KartFx } from '../fx/KartFx.js';
 import { AiDriver } from '../race/AiDriver.js';
-import { racingLine } from '../race/racingLine.js';
 import { resolveContacts, drafts } from '../physics/kartContacts.js';
 import { gridSpot } from '../race/grid.js';
 import { trafficFor } from '../race/traffic.js';
+import { KerbFeel } from '../fx/KerbFeel.js';
 import { RIVALS, GRID, AI, DRAFT, CONTACT } from '../config/race.js';
 import { clamp } from '../core/math.js';
 
@@ -18,14 +18,13 @@ export function createRivals(scene) {
       livery: { body: profile.body, suit: profile.suit, helmet: profile.body, helmetStripe: profile.stripe },
     });
     scene.add(kart.object3d);
-    return { profile, kart, driver: new AiDriver(null, null, profile), fx: new KartFx(scene), index: -1 };
+    return { profile, kart, driver: new AiDriver(null, null, profile), fx: new KartFx(scene), kerb: new KerbFeel(), index: -1 };
   });
 }
 
 // Point every kart and driver at a newly built world.
 export function setFieldTrack(game) {
-  const { path, collider } = game.world;
-  const line = racingLine(path, AI);
+  const { path, collider, line } = game.world; // line: racing line built with the world
   game.kart.collider = collider;
   for (const r of game.rivals) {
     r.kart.collider = collider;
@@ -48,8 +47,10 @@ export function placeField(game, race) {
     r.index = g.i;
     r.driver.reset();
     r.fx.reset();
+    r.kerb.reset();
   });
   game.fx.reset();
+  game.kerb.reset();
 }
 
 // Rivals drive; everyone on track bumps and drafts. go: false holds rivals on the grid.
@@ -67,6 +68,7 @@ export function stepField(game, dt, go) {
     if (c.reset) respawnRival(game, r);
     else r.kart.update(c, dt);
     r.index = path.nearest(r.kart.state.x, r.kart.state.z, r.index);
+    r.kerb.update(r.kart, path, game.world.curbs, r.index, dt);
     r.fx.update(r.kart, dt, game.camera.three, game.renderer.three.domElement.height);
   }
   interact(all.map((o) => o.kart));

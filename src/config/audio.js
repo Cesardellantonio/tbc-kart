@@ -1,16 +1,42 @@
 // Synthesised audio: levels and engine voice tuning (all sound is generated, no files).
 
 export const MASTER_VOLUME = 0.7;
+// Single-cylinder rental kart with a centrifugal clutch (rpm). Firing tone = rpm / 60 × hzPerRev.
 export const ENGINE = {
-  idleHz: 44,
-  topHz: 150,
-  cutoffIdle: 420,
-  cutoffTop: 3200,
-  idleGain: 0.06,
-  throttleGain: 0.12,
-  rumbleDepth: 0.25,
+  idleRpm: 1700,
+  biteRpm: 2600, // clutch starts to grab
+  lockRpm: 3000, // clutch fully locked; above this the engine is tied to the rear axle
+  dropRpm: 2000, // off the throttle the clutch stays engaged (engine braking) down to here
+  maxRpm: 5400, // governed top end
+  topSpeed: 16.5, // m/s the kart reaches at maxRpm (single fixed ratio)
+  slipFlare: 650, // rpm added when the rear tyres spin / slide under power
+  revRate: 9, // 1/s how fast free revs chase the throttle (clutch open)
+  hzPerRev: 1.6, // fundamental Hz per rev/s (≈ 45 Hz at idle, 145 Hz flat out)
+  cutoffIdle: 380,
+  cutoffTop: 3400,
+  idleGain: 0.07,
+  loadGain: 0.12,
+  rumbleDepth: 0.3, // firing-pulse amplitude modulation
+  idleWobble: 22, // cents of lumpy-idle pitch wander
 };
-export const SCREECH = { threshold: 1.8, full: 5.5, gain: 0.2, freq: 1900 };
+// Pops and crackles on the overrun after lifting off at high revs
+export const BACKFIRE = { minRpm: 0.62, lift: 0.5, pops: [3, 7], window: 0.55, gain: 0.16 };
+// Tyres: squeal from how hard they work (lateral g + slip), brake scrub, barrier scrape
+export const TYRES = {
+  gripG: [7, 15], // m/s² lateral: squeal starts / full from cornering load alone
+  slip: [1.4, 5], // m/s sideways: squeal starts / full from sliding
+  squealGain: 0.19,
+  squealHz: [1350, 2150], // two resonant tyre bands, pitch rises a little with slip
+  brakeDecel: [6, 12], // m/s² braking: scrub starts / full
+  brakeGain: 0.16,
+  brakeHz: 520,
+  judderHz: 19, // tyre/chassis hop under hard braking
+  scrapeGain: 0.22,
+  scrapeHz: 2600,
+  scrapeHold: 0.18, // s the scrape lingers after the last wall contact
+};
+// Kerb rumble: filtered noise chopped at the rib rate plus a low buzz
+export const KERB_RUMBLE = { gain: 0.3, lowpass: 420, buzz: 0.35 };
 export const IMPACT = { minSpeed: 1.2, gain: 0.55 };
 export const BEEP = { red: 660, go: 1320, gain: 0.22 };
 export const CHIME = { lap: [880, 1320], best: [880, 1109, 1320, 1760], gain: 0.16 };

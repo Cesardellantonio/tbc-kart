@@ -27,3 +27,14 @@ export const BODY_ROLL = 0.012; // rad per m/s² of lateral acceleration
 export const BODY_PITCH = 0.01; // rad per m/s² of longitudinal acceleration
 export const BODY_MOTION_LIMIT = 0.07; // rad clamp for roll/pitch
 export const DRIVER_LEAN = 0.35; // share of body roll the driver leans into
+
+// Riding a kerb: the kart hops over the ribs and tilts toward the side that is up on the kerb
+export const KERB_RIDE = {
+  ridge: 0.32, // m between kerb ribs → rumble rate = speed / ridge
+  tyreHalfWidth: 0.09, // m of tyre past its centre that can touch the kerb
+  lift: 0.022, // m the kart rides up at full contact
+  hop: 0.012, // m of rib-to-rib bounce
+  roll: 0.035, // rad tilt with one side fully on the kerb
+  attack: 40, // 1/s how fast contact builds
+  release: 14, // 1/s how fast it fades after leaving the kerb
+};

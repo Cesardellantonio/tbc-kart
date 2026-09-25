@@ -13,6 +13,9 @@ import { AudioEngine } from '../audio/AudioEngine.js';
 import { EngineSound } from '../audio/EngineSound.js';
 import { PackSound } from '../audio/PackSound.js';
 import { Sfx } from '../audio/Sfx.js';
+import { TyreSound } from '../audio/TyreSound.js';
+import { KerbRumble } from '../audio/KerbRumble.js';
+import { KerbFeel } from '../fx/KerbFeel.js';
 import { RaceSession } from '../race/RaceSession.js';
 import { RaceField } from '../race/RaceField.js';
 import { GhostRecorder } from '../race/GhostRecorder.js';
@@ -43,11 +46,14 @@ export class Game {
     this.rivals = createRivals(scene);
     scene.add(this.kart.object3d, this.ghost.object3d);
     this.fx = new KartFx(scene);
+    this.kerb = new KerbFeel(); // player's kerb contact: body ride, camera judder, rumble
     this.post = new PostFX(this.renderer, scene, this.camera.three);
     this.audio = new AudioEngine();
     this.engine = new EngineSound(this.audio);
     this.pack = new PackSound(this.audio);
     this.sfx = new Sfx(this.audio);
+    this.tyres = new TyreSound(this.audio);
+    this.rumble = new KerbRumble(this.audio);
     this.recorder = new GhostRecorder();
     this.input = new Input();
     this.hud = new Hud(this.bus, this.input);

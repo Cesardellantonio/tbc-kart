@@ -33,10 +33,10 @@ export function asphaltTexture() {
   speckle(ctx, W, H, { count: 9000, color: 'rgba(120,124,132,0.35)', minR: 0.4, maxR: 1.1, seed: 22 });
   speckle(ctx, W, H, { count: 5000, color: 'rgba(15,16,18,0.4)', minR: 0.4, maxR: 1.2, seed: 23 });
   grain(ctx, W, H, 18, 24);
-  // Darker rubbered band where karts drive most
+  // Faint general wear down the middle (the real racing line is world/RubberLine.js)
   const band = ctx.createLinearGradient(0, 0, 0, H);
   band.addColorStop(0.18, 'rgba(0,0,0,0)');
-  band.addColorStop(0.5, 'rgba(0,0,0,0.22)');
+  band.addColorStop(0.5, 'rgba(0,0,0,0.08)');
   band.addColorStop(0.82, 'rgba(0,0,0,0)');
   ctx.fillStyle = band;
   ctx.fillRect(0, 0, W, H);

@@ -3,43 +3,15 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { stripGeometry } from '../track/stripGeometry.js';
+import { cornerRuns, curbInner, curbOuter } from '../track/curbRuns.js';
 import { curbTexture } from './textures/markings.js';
-import {
-  PAINT_Y, CURB_WIDTH, CURB_OVERLAP, CURB_MIN_CURVATURE, CURB_MIN_LENGTH, CURB_EXTEND,
-  CURB_STRIPE, CURB_RED, CURB_WHITE,
-} from '../config/track.js';
+import { PAINT_Y, CURB_STRIPE, CURB_RED, CURB_WHITE } from '../config/track.js';
 
-// Runs of consecutive samples that turn the same way sharply enough to deserve a curb.
-export function cornerRuns(path) {
-  const n = path.count;
-  const ext = Math.round(CURB_EXTEND / path.spacing);
-  const side = new Int8Array(n);
-  for (let i = 0; i < n; i++) {
-    if (Math.abs(path.curvature[i]) < CURB_MIN_CURVATURE) continue;
-    for (let d = -ext; d <= ext; d++) {
-      const j = path.wrap(i + d);
-      if (!side[j]) side[j] = Math.sign(path.curvature[i]);
-    }
-  }
-  const start = side.indexOf(0);
-  if (start < 0) return [];
-  const runs = [];
-  let run = null;
-  for (let k = 1; k <= n; k++) {
-    const i = path.wrap(start + k);
-    if (run && side[i] === run.side) run.indices.push(i);
-    else {
-      if (run) runs.push(run);
-      run = side[i] ? { side: side[i], indices: [i] } : null;
-    }
-  }
-  return runs.filter((r) => r.indices.length * path.spacing >= CURB_MIN_LENGTH);
-}
+export { cornerRuns }; // kept here too for existing importers
 
 export function createCurbs(path) {
-  const inner = path.halfWidth - CURB_OVERLAP;
-  const outer = (i) =>
-    Math.max(inner + 0.12, Math.min(inner + CURB_WIDTH, 0.92 / Math.max(1e-6, Math.abs(path.curvature[i]))));
+  const inner = curbInner(path);
+  const outer = (i) => curbOuter(path, i);
   const opts = { uPerMetre: 1 / (2 * CURB_STRIPE) };
   const y = PAINT_Y + 0.004;
   const geoms = cornerRuns(path).map(({ side, indices }) =>
