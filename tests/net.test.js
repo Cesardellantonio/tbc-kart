@@ -263,14 +263,19 @@ describe('interpolation', () => {
     const interp = new Interpolator();
     interp.push(snap(0, [0, 0, 0, 10, -2, 0, 1, 0]));
     const soon = interp.sample(0.1);
-    expect(soon.s[0]).toBeCloseTo(1, 9);
-    expect(soon.s[1]).toBeCloseTo(-0.2, 9);
+    // along the arc: 1 rad/s of yaw turns the velocity (10, -2) left by 0.1 rad over the 0.1 s
+    const [sa, ca] = [Math.sin(0.1), 1 - Math.cos(0.1)];
+    expect(soon.s[0]).toBeCloseTo(10 * sa - 2 * ca, 9);
+    expect(soon.s[1]).toBeCloseTo(-2 * sa - 10 * ca, 9);
     expect(soon.s[2]).toBeCloseTo(0.1, 9);
+    expect(Math.hypot(soon.s[3], soon.s[4])).toBeCloseTo(Math.hypot(10, -2), 9);
     expect(soon.stale).toBe(false);
-    const late = interp.sample(2);
+    const straight = new Interpolator();
+    straight.push(snap(0, [0, 0, 0, 10, 0, 0, 0, 0]));
+    const late = straight.sample(2);
     expect(late.s[0]).toBeCloseTo(10 * EXTRAPOLATE_MAX, 9);
     expect(late.stale).toBe(true);
-    expect(interp.sample(5).s).toEqual(late.s); // frozen
+    expect(straight.sample(5).s).toEqual(late.s); // frozen
   });
   it('ignores late or repeated snapshots and holds the oldest before the buffer starts', () => {
     const interp = new Interpolator({ size: 4 });
@@ -293,5 +298,19 @@ describe('interpolation', () => {
     expect(near.delay).toBe(INTERP_DELAY);
     expect(far.delay).toBeGreaterThan(0.3);
     expect(far.delay).toBeLessThan(0.4);
+  });
+  it('draws a kart whose snapshots arrive unevenly far enough back to cover most late ones', () => {
+    const interp = new Interpolator();
+    const rand = seededRandom(5);
+    const ages = [];
+    for (let n = 0; n < 400; n++) {
+      const age = 0.18 + (rand() < 0.05 ? 0.3 * rand() : 0.02 * rand()); // now and then held up
+      ages.push(age);
+      interp.push(moving(n / 20), n / 20 + age);
+    }
+    const covered = ages.slice(200).filter((a) => a <= interp.delay + EXTRAPOLATE_MAX).length / 200;
+    expect(interp.delay).toBeGreaterThan(0.25);
+    expect(interp.delay).toBeLessThan(0.45);
+    expect(covered).toBe(1);
   });
 });

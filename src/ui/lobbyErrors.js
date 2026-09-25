@@ -38,7 +38,11 @@ export const ERRORS = {
     retry: true,
   },
   closed: { title: 'HOST LEFT', text: 'The host closed the room.', retry: false },
-  offline: { title: 'NOT AVAILABLE YET', text: "This build can't race online yet.", retry: false },
+  offline: {
+    title: "YOU'RE OFFLINE",
+    text: 'Online racing needs an internet connection. Reconnect, then try again.',
+    retry: true,
+  },
 };
 const UNKNOWN = {
   title: 'SOMETHING WENT WRONG',

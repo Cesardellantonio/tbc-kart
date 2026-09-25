@@ -1,7 +1,7 @@
 // The host's finish book for one online race (pure, unit-tested): who took the flag when, who left,
-// when the classification is final (every human still here has finished, or RESULTS_GRACE after the
-// first human's flag), and the final order: finishers by time, then karts still running by how far
-// they got, then those who left (DNF).
+// when the classification is final (every kart still here — humans and AI — has finished, or
+// RESULTS_GRACE after the first human's flag, so nobody waits long for a straggler), and the final
+// order: finishers by time, then karts still running by how far they got, then those who left (DNF).
 
 export class FinishBook {
   constructor(roster, grace) {
@@ -26,9 +26,9 @@ export class FinishBook {
   }
 
   due(now) {
-    const humansDone = this.humans.every((id) => this.done.has(id) || this.gone.has(id));
     if (this.firstHuman === null) return false;
-    return humansDone || now - this.firstHuman >= this.grace;
+    const allDone = this.ids.every((id) => this.done.has(id) || this.gone.has(id));
+    return allDone || now - this.firstHuman >= this.grace;
   }
 
   // progress(id): how far a kart still running got (larger = further), for the unfinished order.

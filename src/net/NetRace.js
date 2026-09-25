@@ -6,8 +6,9 @@
 //   const race = new NetRace({ room, start })   start: the room's 'start' message
 //   race.update(dt, { own, ai })  own: { s, c, i, p, lap } your kart (null: nothing to send)
 //                                 ai (host only): [{ id, s, c, i, p, lap }] the rivals it runs
-//   race.remoteStates(time?) → Map id → { s, c, i, p, lap, stale, t }: every other kart at host time
-//                              `time`, or by default each at its own render time t (RemoteKarts)
+//   race.remoteStates(time?, cap?) → Map id → { s, c, i, p, lap, stale, t }: every other kart at host
+//                              time `time`, or by default each at its own render time t (RemoteKarts);
+//                              cap: coasting limit past the newest snapshot (default EXTRAPOLATE_MAX)
 //   race.finish(time, best)  your flag (race-clock s) · race.aiFinish(id, time, best) (host)
 //   race.poll() → events since the last poll: { type: 'finish', id, time, best } (another kart) ·
 //     { type: 'left', id } · { type: 'results', entries: [{ id, time|null, best|null, dnf }] } in
@@ -76,8 +77,8 @@ export class NetRace {
     }
   }
 
-  remoteStates(time) {
-    return this.remote.states(this.room.hostNow(), time);
+  remoteStates(time, cap) {
+    return this.remote.states(this.room.hostNow(), time, cap);
   }
 
   finish(time, best) {

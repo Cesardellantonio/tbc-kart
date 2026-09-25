@@ -282,7 +282,7 @@ describe('online race', () => {
     });
   });
 
-  it('agrees one classification everywhere once every human has finished', () => {
+  it('agrees one classification everywhere once every kart has finished', () => {
     const r = raceWorld({ lag: 0.05, loss: 0.02 });
     r.drive(2);
     r.races[0].aiFinish('a1', 59.5, 19.2);
@@ -293,14 +293,17 @@ describe('online race', () => {
     expect(r.races[0].results).toBe(null);
     r.races[2].finish(62, 20.1);
     r.drive(1);
+    expect(r.races[0].results).toBe(null); // two AI karts are still out (within RESULTS_GRACE)
+    r.races[0].aiFinish('a2', 63.4, 20.2);
+    r.races[0].aiFinish('a0', 64, 20.6);
+    r.drive(1);
     const [h, a, b] = r.races.map((race) => race.results);
-    expect(h.map((e) => e.id).slice(0, 4)).toEqual(['a1', 'p1', 'p0', 'p2']);
+    expect(h.map((e) => e.id)).toEqual(['a1', 'p1', 'p0', 'p2', 'a2', 'a0']);
     expect(h[1]).toEqual({ id: 'p1', time: 60.1, best: 19.5, dnf: false });
-    expect(h.slice(4).every((e) => e.time === null && !e.dnf)).toBe(true);
     expect(a).toEqual(h);
     expect(b).toEqual(h);
     const events = r.races[1].poll();
-    expect(events.filter((e) => e.type === 'finish').map((e) => e.id)).toEqual(['a1', 'p0', 'p2']);
+    expect(events.filter((e) => e.type === 'finish').map((e) => e.id)).toEqual(['a1', 'p0', 'p2', 'a2', 'a0']);
     expect(events.filter((e) => e.type === 'results')).toHaveLength(1);
   });
 
@@ -326,6 +329,7 @@ describe('online race', () => {
     expect(r.races[1].remoteStates().has('p2')).toBe(false);
     r.races[0].finish(70, 20);
     r.races[1].finish(71, 20);
+    for (const id of ['a0', 'a1', 'a2']) r.races[0].aiFinish(id, 72, 21);
     r.drive(0.5);
     const results = r.races[1].results;
     expect(results.at(-1)).toEqual({ id: 'p2', time: null, best: null, dnf: true });

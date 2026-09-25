@@ -35,11 +35,12 @@ export class Hud {
 
     bus.on('go', () => this.toasts.show('GO!', { kind: 'go', time: 1.1 }));
     bus.on('lap', (e) => {
-      if (this.mode === 'race' && e.lap >= this.laps) return; // the results card takes over
+      const race = this.mode !== 'timeattack'; // Grand Prix or online
+      if (race && e.lap >= this.laps) return; // the results card takes over
       const sub = e.isBest
         ? e.delta == null ? 'FIRST LAP ON THE BOARD' : `NEW BEST  ${formatDelta(e.delta)}`
         : `LAP ${e.lap}  ${formatDelta(e.delta)}`;
-      const final = this.mode === 'race' && e.lap === this.laps - 1;
+      const final = race && e.lap === this.laps - 1;
       this.toasts.show(final ? 'FINAL LAP' : formatTime(e.time), {
         sub: final ? `${formatTime(e.time)}  ·  ${sub}` : sub,
         kind: final ? 'go' : e.isBest ? 'best' : '',
@@ -74,22 +75,25 @@ export class Hud {
     else this.minimap = new Minimap(this.root, path, startIndex);
   }
 
+  // mode: 'race' | 'timeattack' | 'online' (a race too: the tower and the dots cover every kart)
   setMode(mode) {
     this.mode = mode;
-    this.standings.setVisible(mode === 'race');
+    this.standings.setVisible(mode !== 'timeattack');
   }
 
   // Nothing to draw while the HUD is hidden (title card, results card).
   update(view, kart, game) {
     if (!this.visible) return;
-    const race = this.mode === 'race';
+    const race = this.mode !== 'timeattack';
     this.lap.update(view);
     this.speedo.update(kart.telemetry.speed, kart.draft);
     if (race) this.standings.update(game.field, game.session.clock);
-    if (this._minimapShown) this.minimap.update(kart.state, this._rivalDots(race ? game.rivals : []));
+    const others = this.mode === 'online' ? game.online.others : race ? game.rivals : [];
+    if (this._minimapShown) this.minimap.update(kart.state, this._rivalDots(others));
     this.lights.update(view);
   }
 
+  // rivals: [{ profile: { body }, kart }] — the AI rivals, or online every other kart.
   _rivalDots(rivals) {
     const dots = this._dots;
     dots.length = rivals.length;

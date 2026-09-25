@@ -20,6 +20,7 @@ export function wireEvents(game) {
   bus.on('finish', () => {
     sfx.chime(game.field.position(game.field.player) === 1);
     camera.broadcast();
+    screens.showOnlinePause(false); // online, Esc's card may be up when you take the flag
     screens.showResults(true);
     game.hud.setVisible(false);
   });

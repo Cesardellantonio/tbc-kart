@@ -19,12 +19,12 @@ export class RemoteKarts {
   }
 
   // Map id → { s, c, i, p, lap, stale, t }: each kart at host time `time`, or (no time) at its own
-  // render time now − Interpolator.delay.
-  states(now, time) {
+  // render time now − Interpolator.delay. cap: how far past its newest snapshot a kart may coast.
+  states(now, time, cap) {
     const out = new Map();
     for (const [id, interp] of this.interps) {
       const t = time ?? now - interp.delay;
-      const state = interp.sample(t);
+      const state = interp.sample(t, cap);
       if (state) out.set(id, { ...state, t });
     }
     return out;

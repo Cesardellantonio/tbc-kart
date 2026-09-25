@@ -2,15 +2,16 @@
 
 import { placeField } from './field.js';
 
-// mode: 'race' (Grand Prix vs the field) | 'timeattack' (alone, with the best-lap ghost).
-export function startRace(game, mode = game.session.mode) {
+// mode: 'race' (Grand Prix vs the field) | 'timeattack' (alone, with the best-lap ghost) | 'online'
+// (app/onlineRace.js lines up the room's grid afterwards). hold: the lights' hold (online: the host's).
+export function startRace(game, mode = game.session.mode, hold) {
   game.audio.unlock();
   placeField(game, mode === 'race');
   game.field.reset();
   game.recorder.reset();
   game.ghost.set(game.record.ghost);
   game.camera.follow(game.kart);
-  game.session.startCountdown(mode);
+  game.session.startCountdown(mode, hold);
   game.screens.showTitle(false);
   game.screens.showPause(false);
   game.screens.showResults(false);
@@ -65,6 +66,8 @@ export function handleActions(game) {
       if (screens.mode === 'online') screens.openLobby();
       else startRace(game, screens.mode);
     }
+  } else if (session.mode === 'online') {
+    game.online.handle(input, state); // nothing pauses; the host picks what's next (app/online.js)
   } else if (state === 'finished') {
     const choice = resultsChoice(input);
     if (choice === 'next') game.selectTrack(1);

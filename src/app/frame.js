@@ -44,7 +44,7 @@ export function runLoop(game) {
 }
 
 // Toast a gained place once it has held for a moment (no flicker when side by side).
-function announceOvertakes(game, dt) {
+export function announceOvertakes(game, dt) {
   const pos = game.field.position(game.field.player);
   if (pos !== game.heldPosition) [game.heldPosition, game.positionAge] = [pos, 0];
   game.positionAge += dt;
@@ -77,6 +77,9 @@ export function stepGame(game, dt) {
       if (state === 'racing' && done.some((e) => e.isPlayer)) session.finish();
       announceOvertakes(game, dt);
     }
+    // Online (app/online.js): the room's heartbeats every frame; in a race, the karts driven elsewhere,
+    // the host's AI, contacts and slipstream with them, timing and flags.
+    game.online.step(dt);
     game.fx.update(kart, dt, camera.three, game.renderer.three.domElement.height);
     game.impactCooldown -= dt;
     if (kart.telemetry.impact > IMPACT_MIN && game.impactCooldown <= 0) {

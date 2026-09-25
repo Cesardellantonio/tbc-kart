@@ -1,8 +1,12 @@
 // Race flow: title → countdown → racing ⇄ paused → finished (Grand Prix). Drives the start lights
-// and the player's lap timer. mode: 'race' (Grand Prix vs rivals) | 'timeattack' (alone + ghost).
+// and the player's lap timer. mode: 'race' (Grand Prix vs rivals) | 'timeattack' (alone + ghost) |
+// 'online' (the countdown and race clock follow the room's shared clock, see follow()).
 
 import { LapTimer } from './LapTimer.js';
 import { LIGHT_INTERVAL, LIGHTS_HOLD, GO_SHOW, LIGHT_COUNT } from '../config/race.js';
+
+// How long all five reds stay lit before GO: random, so nobody can time the start.
+export const randomHold = (random = Math.random) => LIGHTS_HOLD[0] + random() * (LIGHTS_HOLD[1] - LIGHTS_HOLD[0]);
 
 export class RaceSession {
   // laps: Grand Prix race distance on this track.
@@ -18,16 +22,18 @@ export class RaceSession {
     this.lights = 0;
     this.lightsMode = 'off'; // 'off' | 'red' | 'go'
     [this._t, this._hold, this._goAt, this._resumeTo] = [0, 1, 0, null];
+    this.elapsed = null; // online: () => shared-clock seconds since the countdown began
   }
 
-  startCountdown(mode = this.mode) {
+  // hold: given online, so every peer's lights go out together.
+  startCountdown(mode = this.mode, hold = randomHold()) {
     this.mode = mode;
     this.state = 'countdown';
     this._t = 0;
     this.clock = 0;
     this.lights = 0;
     this.lightsMode = 'red';
-    this._hold = LIGHTS_HOLD[0] + Math.random() * (LIGHTS_HOLD[1] - LIGHTS_HOLD[0]);
+    this._hold = hold;
     this.timer.reset();
     this.bus.emit('countdown');
   }
@@ -44,6 +50,13 @@ export class RaceSession {
     this.bus.emit('finish');
   }
 
+  // Online: time comes from elapsed() (seconds since the countdown began on the host's clock; negative
+  // until then) instead of summed frame times, so GO and every flag land at the same host time on
+  // every peer however its frames ran. null goes back to frame time.
+  follow(elapsed) {
+    this.elapsed = elapsed;
+  }
+
   togglePause() {
     if (this.state === 'paused') {
       this.state = this._resumeTo;
@@ -56,6 +69,7 @@ export class RaceSession {
   }
 
   update(dt, trackIndex) {
+    if (this.elapsed) dt = Math.max(0, this.elapsed() - this._t);
     if (this.state === 'countdown') {
       this._t += dt;
       const lit = Math.min(LIGHT_COUNT, Math.floor(this._t / LIGHT_INTERVAL));
@@ -63,10 +77,12 @@ export class RaceSession {
         this.lights = lit;
         this.bus.emit('light', lit);
       }
-      if (lit === LIGHT_COUNT && this._t >= LIGHT_COUNT * LIGHT_INTERVAL + this._hold) {
+      const goAt = LIGHT_COUNT * LIGHT_INTERVAL + this._hold;
+      if (lit === LIGHT_COUNT && this._t >= goAt) {
         this.state = 'racing';
         this.lightsMode = 'go';
         this._goAt = this._t;
+        if (this.elapsed) this.clock = this._t - goAt; // the shared GO, not this frame's, is time zero
         this.bus.emit('go');
       }
     } else if (this.state === 'racing') {
@@ -76,6 +92,7 @@ export class RaceSession {
       const event = this.timer.update(trackIndex, this.clock);
       if (event) this.bus.emit('lap', event);
     } else if (this.state === 'finished') {
+      this._t += dt;
       this.clock += dt;
     }
   }

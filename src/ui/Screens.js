@@ -7,8 +7,10 @@ import { formatTime } from './format.js';
 import { Results } from './Results.js';
 import { Lobby } from './Lobby.js';
 import { OnlinePause } from './OnlinePause.js';
+import { Toasts } from './Toasts.js';
 import { drawTrackMap } from './trackMap.js';
 import { RIVALS, DIFFICULTY } from '../config/race.js';
+import { NOTICE_TIME } from '../config/net.js';
 
 const CONTROLS = [
   ['<kbd>W</kbd><kbd>↑</kbd>', 'throttle'],
@@ -72,6 +74,9 @@ export class Screens {
     this.results = new Results(onAction);
     this.lobby = new Lobby(offlineLobby(this)); // the online layer replaces these with lobby.bind()
     this.onlinePause = new OnlinePause(onAction);
+    const layer = el('div', 'hud notice-layer'); // over every card, so it reads on the title too
+    document.body.appendChild(layer);
+    this.notices = new Toasts(layer);
     this.r = refs(this.title);
     this.modeButtons = [...this.title.querySelectorAll('[data-mode]')];
     for (const b of this.modeButtons) {
@@ -161,6 +166,11 @@ export class Screens {
     this.results.show(visible);
   }
 
+  // A short online notice ("MARTA LEFT", "HOST LEFT") that shows over whatever is on screen.
+  notify(text, sub = '') {
+    this.notices.show(text, { sub, kind: 'info', time: NOTICE_TIME });
+  }
+
   update(game) {
     if (game.session.state === 'finished') this.results.update(game.field);
   }
@@ -170,14 +180,10 @@ export class Screens {
   }
 }
 
-// Lobby callbacks until the online layer binds its own: BACK closes the card, and creating or
-// joining explains that this build can't go online yet.
+// Lobby callbacks until the online layer (app/online.js) binds its own: BACK closes the card.
 function offlineLobby(screens) {
-  const offline = () => screens.lobby.render({ phase: 'error', error: 'offline' });
   return {
     onBack: () => screens.closeLobby(),
     onLeave: () => screens.lobby.render({ phase: 'choose' }),
-    onCreate: offline,
-    onJoin: offline,
   };
 }

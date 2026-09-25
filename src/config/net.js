@@ -27,12 +27,15 @@ export const SILENCE_TIMEOUT = 5; // s without a word from a peer before it coun
 // Remote karts are drawn this far in the past, between two snapshots, so a late packet rarely leaves
 // a gap. Past the newest snapshot a kart coasts on its velocity for a moment, then freezes.
 export const INTERP_DELAY = 0.1; // s behind the host clock
-export const EXTRAPOLATE_MAX = 0.15; // s of coasting past the newest snapshot
+// Coasting covers a snapshot held up by a lost packet (resent a round trip later): along the kart's
+// arc it drifts ~0.5 m in 0.35 s at the limit, where freezing a 25 m/s kart puts it metres behind.
+export const EXTRAPOLATE_MAX = 0.35; // s of coasting past the newest snapshot
 export const INTERP_BUFFER = 32; // snapshots kept per kart (1.6 s at 20 Hz)
 // On a slow path (a kart relayed through the host, or ?netlag) snapshots arrive older than
 // INTERP_DELAY, so each kart is drawn at least its typical snapshot age plus this margin behind…
 export const INTERP_MARGIN = 0.06; // s (a bit more than one snapshot interval)
-export const AGE_SMOOTHING = 0.1; // …where the age is averaged over snapshots at this rate (0..1)
+export const AGE_SMOOTHING = 0.1; // …where the age is averaged over snapshots at this rate (0..1)…
+export const AGE_SPREAD = 3; // …plus this many mean deviations of it (uneven arrivals: loss, jitter)
 
 export const START_LEAD = 1; // s between START and the shared countdown (every client hears it first)
 export const RESULTS_GRACE = 20; // s after the first human's flag before results are final anyway
@@ -54,3 +57,16 @@ export const HUMAN_LIVERIES = [
 export const NETLAG_MAX = 2000; // ms
 export const NETLOSS_MAX = 0.5; // share of messages
 export const RESEND_MIN = 0.05; // s: the earliest a lost message is resent (a retransmit timer's floor)
+
+// The game's side of an online race (app/online*.js). Contacts and slipstream against another driver's
+// kart use where it is now, not where it is drawn (INTERP_DELAY and more in the past: a kart length or
+// two at racing speed, enough for phantom bumps when following closely): its newest snapshot is
+// dead-reckoned forward, for at most this long (a kart relayed through the host on a slow link arrives
+// ~0.3 s old).
+export const CONTACT_EXTRAPOLATE = 0.4; // s
+// A remote kart's telemetry is rebuilt from its velocities, so it rolls, pitches, smokes and revs like
+// a local one: the rear counts as sliding past this body slip angle, and the fore-aft acceleration
+// (differentiated from 20 Hz snapshots, so steppy) is smoothed at this rate.
+export const REMOTE_SLIDE_ANGLE = 0.12; // rad
+export const REMOTE_ACCEL_RATE = 6; // 1/s
+export const NOTICE_TIME = 3; // s a "DRIVER LEFT" / "HOST LEFT" notice stays up

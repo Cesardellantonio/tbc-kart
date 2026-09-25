@@ -389,3 +389,8 @@
     padding: 6px 0;
   }
 }
+
+/* ---- online notices ("MARTA LEFT", "HOST LEFT"): above every card, clear of the race toasts ---- */
+.notice-layer .hud-toasts {
+  top: 12%;
+}
