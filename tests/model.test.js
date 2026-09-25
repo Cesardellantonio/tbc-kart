@@ -58,6 +58,25 @@ describe('kart model merging', () => {
     expect(merged.every((m) => !m.userData.small)).toBe(true); // the small part rode along with a big one
   });
 
+  it('keeps merged parts indexed (vertex sharing survives) and shares one tinted material', () => {
+    const [paint, trim] = [0xff0000, 0x0000ff].map((c) => new THREE.MeshStandardMaterial({ color: c }));
+    const build = () => {
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 8), paint));
+      g.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2).toNonIndexed(), trim)); // an unindexed part
+      return mergeStatic(g, { alias: new Map([[trim, paint]]) });
+    };
+    const [a, b] = [build(), build()];
+    const m = a.children[0];
+    const source = new THREE.SphereGeometry(0.3, 12, 8).attributes.position.count + 24; // box welds to 24
+    expect(a.children).toHaveLength(1);
+    expect(m.geometry.index).not.toBeNull();
+    expect(m.geometry.attributes.position.count).toBe(source);
+    expect(m.geometry.index.count).toBe(new THREE.SphereGeometry(0.3, 12, 8).index.count + 36);
+    expect(b.children[0].material).toBe(m.material); // not a fresh clone per merge
+    expect(m.material.vertexColors).toBe(true);
+  });
+
   it('costs 2 draws per wheel and 4 for the driver (1 body + 3 head)', () => {
     const mats = kartMaterials();
     for (const w of buildWheels(mats).wheels) expect(meshes(w.spin).length).toBe(2);

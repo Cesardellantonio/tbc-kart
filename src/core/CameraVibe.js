@@ -9,7 +9,7 @@ const BUZZ_HZ = 157 / (2 * Math.PI); // engine tremble fundamental (25 Hz); part
 
 export class CameraVibe {
   constructor() {
-    this._buzz = new FrameSines([1, 241 / 157, 199 / 157], [0, 1.3, 0.7]);
+    this._buzz = new FrameSines([1, 241 / 157, 199 / 157], [0, 1.3, 0.7], VIBE.buzzCeil);
     this.offset = { x: 0, y: 0, z: 0 };
     this._aim = { x: 0, y: 0, z: 0 };
   }

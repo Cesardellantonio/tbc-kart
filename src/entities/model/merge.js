@@ -5,15 +5,18 @@
 // Parts flagged userData.small (visor, plate, …) cast no shadow unless merged with a bigger part.
 
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const ATTRS = ['position', 'normal', 'uv'];
 
+// Every part stays indexed (a non-indexed one gets its shared vertices welded), so the merged mesh
+// keeps the parts' vertex sharing: fewer vertices to store and to transform.
 function bake(mesh, toGroup, color) {
-  let g = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
+  let g = mesh.geometry.clone();
   for (const name of Object.keys(g.attributes)) if (!ATTRS.includes(name)) g.deleteAttribute(name);
+  if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+  if (!g.index) g = mergeVertices(g);
   const count = g.attributes.position.count;
-  if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(count * 2), 2));
   g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(toGroup, mesh.matrixWorld));
   if (color) {
     const rgb = new Float32Array(count * 3);
@@ -22,6 +25,13 @@ function bake(mesh, toGroup, color) {
   }
   g.clearGroups();
   return g;
+}
+
+// One vertex-coloured twin per material, shared by every merge that tints into it.
+const tintable = new WeakMap();
+function vertexColoured(material) {
+  if (!tintable.has(material)) tintable.set(material, Object.assign(material.clone(), { vertexColors: true, color: new THREE.Color(0xffffff) }));
+  return tintable.get(material);
 }
 
 export function mergeStatic(group, { keep = [], alias = new Map() } = {}) {
@@ -44,7 +54,7 @@ export function mergeStatic(group, { keep = [], alias = new Map() } = {}) {
     const tinted = parts.some((p) => p.material !== material);
     const merged = new THREE.Mesh(
       mergeGeometries(parts.map((p) => bake(p, toGroup, tinted && p.material.color))),
-      tinted ? Object.assign(material.clone(), { vertexColors: true, color: new THREE.Color(0xffffff) }) : material,
+      tinted ? vertexColoured(material) : material,
     );
     merged.userData.small = parts.every((p) => p.userData.small);
     for (const p of parts) p.geometry.dispose();

@@ -12,7 +12,7 @@ import { EngineRpm } from '../src/audio/engineRpm.js';
 import { HeadMotion } from '../src/core/HeadMotion.js';
 import { ENGINE } from '../src/config/audio.js';
 import { BRAKE_MARKS, CURB_OVERLAP, BARRIER_THICKNESS } from '../src/config/track.js';
-import { HEAD } from '../src/config/camera.js';
+import { HEAD, VIBE } from '../src/config/camera.js';
 import { KERB_RIDE } from '../src/config/kart.js';
 import { FrameSines } from '../src/core/FrameSines.js';
 import { trackById } from '../src/tracks/index.js';
@@ -161,7 +161,7 @@ describe('vibration partials (no aliasing at low frame rates)', () => {
     return peak;
   };
   const judder = (fps, hz, bandLimited) => {
-    const sines = new FrameSines([1, 2.3]);
+    const sines = new FrameSines([1, 2.3], [0, 0.4], VIBE.kerbCeil);
     const ys = [];
     for (let f = 1; f <= fps * 2; f++) {
       const [a, b] = bandLimited ? sines.update(hz, 1 / fps) : [Math.sin((2 * Math.PI * hz * f) / fps), Math.sin((2 * Math.PI * 2.3 * hz * f) / fps)];
@@ -180,6 +180,45 @@ describe('vibration partials (no aliasing at low frame rates)', () => {
       }
     }
     expect(naive).toBeGreaterThan(0.5); // plain per-frame sines fold into a slow wobble
+  });
+
+  // Judder strength over a short kerb hit (0.4 s), for a kart arriving with any leftover phase.
+  const hitRms = (fps, hz, phase0) => {
+    const s = new FrameSines([1, 2.3, 0.5], [0, 0.4, 1.1], VIBE.kerbCeil);
+    s.fps = fps;
+    s.phase = [phase0, (phase0 * 2.3 + 1.7) % (2 * Math.PI), 0];
+    let sum = 0;
+    const n = Math.round(fps * 0.4);
+    for (let f = 0; f < n; f++) {
+      const [rib, over] = s.update(hz, 1 / fps);
+      sum += (0.7 * rib + 0.3 * over) ** 2;
+    }
+    return Math.sqrt(sum / n);
+  };
+
+  it('gives every kerb hit the same judder strength, whatever phase it starts on', () => {
+    const full = Math.sqrt((0.7 ** 2 + 0.3 ** 2) / 2);
+    for (const fps of [30, 60, 144]) {
+      for (let speed = 7; speed <= 16; speed += 1) {
+        const r = Array.from({ length: 24 }, (_, k) => hitRms(fps, speed / KERB_RIDE.ridge, (k / 24) * 2 * Math.PI));
+        expect(Math.min(...r)).toBeGreaterThan(full * 0.88);
+        expect(Math.max(...r)).toBeLessThan(full * 1.12);
+      }
+    }
+  });
+
+  it('keeps capped partials that are summed apart, and off short repeats', () => {
+    // [multiples, ceilings, partials summed on one camera axis]: buzz 0+1 (y), kerb rib+overtone (y).
+    for (const [mults, ceil, [i, j]] of [[[1, 241 / 157, 199 / 157], VIBE.buzzCeil, [0, 1]], [[1, 2.3, 0.5], VIBE.kerbCeil, [0, 1]]]) {
+      for (const fps of [30, 60]) {
+        const s = new FrameSines(mults, undefined, ceil);
+        const ys = [];
+        for (let f = 0; f < fps * 2; f++) ys.push(s.update(60, 1 / fps).reduce((a, v, k) => a + v * (k + 1), 0));
+        expect(s.hz[j] - s.hz[i]).toBeGreaterThan(0.04 * fps); // never merged into one tone
+        const tail = ys.slice(-60);
+        for (let p = 1; p <= 30; p++) expect(tail.slice(p).some((v, k) => Math.abs(v - tail[k]) > 1e-3)).toBe(true);
+      }
+    }
   });
 
   it('is the exact sine while the frame rate can show it', () => {
