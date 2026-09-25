@@ -1,9 +1,9 @@
 // Driving views (chase / far / cockpit): trails the kart with damped yaw, position and FOV.
 
 import * as THREE from 'three';
-import { FOV_BASE, FOV_SPEED_BOOST, FOV_DAMP, VIEW_ORDER, POSITION_DAMP, YAW_DAMP, VIEWS } from '../config/camera.js';
+import { FOV_BASE, FOV_DAMP, FOV_SURGE_DAMP, VIEW_ORDER, POSITION_DAMP, YAW_DAMP, VIEWS } from '../config/camera.js';
 import { damp, dampAngle } from './math.js';
-import { speedFactor, trailYaw, followTarget } from './cameraModes.js';
+import { followFov, trailYaw, followTarget } from './cameraModes.js';
 import { HeadMotion } from './HeadMotion.js';
 
 export class FollowCam {
@@ -11,6 +11,7 @@ export class FollowCam {
     this.view = 'chase';
     this._yaw = 0;
     this._fov = FOV_BASE;
+    this._surge = 0; // m/s², slow average of the longitudinal acceleration (the FOV kick)
     this._target = { pos: new THREE.Vector3(), look: new THREE.Vector3(), roll: 0 };
     this.head = new HeadMotion(); // cockpit only
     this._pos = new THREE.Vector3();
@@ -26,6 +27,7 @@ export class FollowCam {
     this._yaw = kart.state.yaw;
     followTarget(kart.state, 0, this._yaw, this.view, this._target);
     this._pos.copy(this._target.pos);
+    this._surge = 0;
     this.head.reset();
   }
 
@@ -48,7 +50,8 @@ export class FollowCam {
     out.pos.copy(this._pos);
     out.look.copy(this._target.look);
     out.roll = this._target.roll;
-    this._fov = damp(this._fov, FOV_BASE + FOV_SPEED_BOOST * speedFactor(telemetry.speed), FOV_DAMP, dt);
+    this._surge = damp(this._surge, telemetry.longAccel || 0, FOV_SURGE_DAMP, dt);
+    this._fov = damp(this._fov, followFov(telemetry.speed, this._surge), FOV_DAMP, dt);
     return this._fov;
   }
 }

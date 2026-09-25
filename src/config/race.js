@@ -14,7 +14,7 @@ export const AUTOPILOT = {
   lookSpeed: 0.25, // s, …plus this many seconds of travel
   steerGain: 2.4, // steering input per rad of heading error
   yawDamp: 0.2, // steering input per rad/s of yaw rate beyond what the aim asks for
-  maxSpeed: 16.5, // m/s, target on the straights (above the kart's ~16 m/s top, so skill 1 runs flat out)
+  maxSpeed: 17.5, // m/s, target on the straights (above the kart's ~17 m/s top, so skill 1 runs flat out)
   latAccel: 7.5, // m/s², lateral acceleration planned for in corners at skill 1 (race/speedPlan.js)…
   planChord: 0.7, // s, …on the line's curvature measured across this much travel (pure pursuit rounds
   planChordMin: 4.5, // m    off a quick flick far more than a slow hairpin), kept within these
@@ -82,25 +82,28 @@ export const AI = {
 // any skill) everywhere: difficulty does not depend on the circuit. Regenerate with
 // node tools/ai-pace.mjs after changing a layout, the physics or the driver.
 export const TRACK_PACE = {
-  tbc: 1.045,
-  monaco: 1.01,
-  monza: 1.004,
-  silverstone: 1.018,
-  spa: 0.999,
-  interlagos: 0.976,
-  montreal: 0.98,
-  austin: 1.019,
-  spielberg: 1.049,
-  singapore: 1.021,
+  tbc: 1.07,
+  monaco: 1.023,
+  monza: 1.024,
+  silverstone: 1.03,
+  spa: 1.025,
+  interlagos: 0.986,
+  montreal: 1.003,
+  austin: 1.029,
+  spielberg: 1.054,
+  singapore: 1.031,
 };
 
 // Rival level, picked on the title card: scales every rival's corner and braking pace (their straights
-// stay flat out). Calibrated against a scripted skilled keyboard driver (100 ms reaction, digital
-// steering): about 10% quicker than the fastest rival on Amateur, level on Club, ~5% slower on Pro.
+// stay flat out). Calibrated against a scripted skilled keyboard driver (100 ms reaction, 60 ms key holds,
+// digital steering, best clean lap of a corner-speed sweep, straights capped at 16 m/s) over all ten
+// circuits, rival field averaged over three race seeds: it laps ~10% quicker than the fastest rival on
+// Amateur, level on Club and ~5% slower on Pro (-10.1 / -0.1 / +4.7%). Re-derive after changing the
+// physics or TRACK_PACE.
 export const DIFFICULTY = {
-  amateur: { label: 'AMATEUR', pace: 0.66 },
-  club: { label: 'CLUB', pace: 0.76 },
-  pro: { label: 'PRO', pace: 0.88 },
+  amateur: { label: 'AMATEUR', pace: 0.65 },
+  club: { label: 'CLUB', pace: 0.75 },
+  pro: { label: 'PRO', pace: 0.8 },
 };
 export const DEFAULT_DIFFICULTY = 'club';
 

@@ -3,8 +3,18 @@
 export const NEAR = 0.2;
 export const FAR = 420;
 export const FOV_BASE = 60;
-export const FOV_SPEED_BOOST = 16; // extra degrees at top speed
-export const FOV_DAMP = 3;
+export const SPEED_FULL = 17; // m/s treated as "full speed" by the camera effects (the kart's top, ~61 km/h)
+export const FOV_SPEED_BOOST = 17; // extra degrees at full speed (~1° per m/s, so the quicker top speed shows)
+// Sense of punch: the view widens while the kart surges and narrows a touch under braking (a lunge),
+// on top of the speed widening. It follows a slow average of the longitudinal acceleration, past a
+// dead zone, so a keyboard's on/off throttle taps don't make the view breathe; a real surge shows.
+export const FOV_SURGE_DAMP = 1; // 1/s, how fast that average follows the acceleration (~1 s lag)
+export const FOV_SURGE_DEAD = 2; // m/s², average surge ignored either way (lifts, part-throttle taps)
+export const FOV_ACCEL_KICK = 0.8; // degrees per m/s² beyond the dead zone… (a launch peaks near +2.3°)
+export const FOV_ACCEL_MAX = 3; // …at most under throttle…
+export const FOV_BRAKE_MAX = 1.5; // …and taken off at most under braking
+export const FOV_DAMP = 2.5; // 1/s, how fast the FOV follows its target (never snaps; the zippier pace swings the
+// speed more, and this keeps the view's breathing where it was)
 
 // distance: metres behind the kart, height: above ground, lookAhead/lookHeight: aim point
 export const VIEWS = {
@@ -44,6 +54,8 @@ export const HEAD = {
 export const VIBE = {
   engine: 0.0045, // m at full revs (chase / far)
   engineCockpit: 0.0015,
+  speed: 0.004, // m of extra tremble at full speed, growing with speed³ so it is only felt flat out (chase / far)…
+  speedCockpit: 0.002, // …and in the cockpit
   kerb: 0.028, // m at full kerb contact (chase / far)
   kerbCockpit: 0.014,
   aim: -2.5, // share of the offset applied to the aim point in reverse → a little angular judder

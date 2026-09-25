@@ -37,7 +37,7 @@ export function stepKart(s, input, dt) {
   const delta = vf0 > 0 ? assisted(base, bodySlipOf(vf0, vl0), travel, input.assist) : base;
   const vlFront = vl0 + CG_TO_FRONT * r0;
   const load = axleLoads(s.loadAccel ?? 0);
-  const pedal = pedals(vf0, input);
+  const pedal = pedals(vf0, input, r0); // r0: the low-speed pull waits until the kart stops rotating
   const front = frontAxle(vf0, vlFront, delta, load.front, dt);
   const handbrakeTime = input.handbrake ? (s.handbrakeTime ?? 0) + dt : 0;
   const locked = handbrakeTime > 0 && handbrakeTime <= HANDBRAKE_KICK + 1e-9 && speed > DYNAMIC_ABOVE;
