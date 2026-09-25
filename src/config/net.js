@@ -23,6 +23,10 @@ export const PING_BURST_GAP = 0.1; // …this far apart (s)
 export const CLOCK_WINDOW = 16; // most recent ping samples kept (older ones age out as clocks drift)
 export const CLOCK_BEST = 3; // offset = median of the samples with the lowest round trip
 export const SILENCE_TIMEOUT = 5; // s without a word from a peer before it counts as gone
+// The room is also stepped on a timer, not only every frame: a tab in the background gets no frames
+// but still runs timers (browsers slow them to about once a second), so its pings keep it in the room
+// while a friend switches to a chat app, and a hidden host still answers, times out and relays.
+export const NET_TICK = 0.25; // s between timer steps (a background tab gets ~1 s)
 
 // Remote karts are drawn this far in the past, between two snapshots, so a late packet rarely leaves
 // a gap. Past the newest snapshot a kart coasts on its velocity for a moment, then freezes.
@@ -39,6 +43,11 @@ export const AGE_SPREAD = 3; // …plus this many mean deviations of it (uneven 
 
 export const START_LEAD = 1; // s between START and the shared countdown (every client hears it first)
 export const RESULTS_GRACE = 20; // s after the first human's flag before results are final anyway
+// A host whose frames have stopped (its tab is in the background) can't send snaps; it passes each
+// client's kart straight on to the others as it arrives instead, so the humans still see each other.
+export const RELAY_STALL = 0.25; // s without a host frame before karts are relayed as they arrive
+// A client that hasn't seen the host's own kart in a snap for this long says the host is away.
+export const HOST_STALL = 1.5; // s
 
 // Karts of the other humans. The host keeps the player's own yellow #07 (config/kart.js LIVERY); the
 // others take these in join order. suit / stripe dress the driver like RIVALS in config/race.js.
@@ -51,9 +60,12 @@ export const HUMAN_LIVERIES = [
   { body: 0x1d3557, suit: 0xf4f6fb, stripe: 0xffc21a, number: '77' }, // navy
 ];
 
-// Dev / test only: ?netlag=ms delays everything this browser sends by that much (one way), and
-// ?netloss=0..1 loses that share of messages. The channel is reliable and ordered, so a lost message
-// is resent one round trip later and holds back the ones behind it — just like a real lossy link.
+// Dev / test only: ?netlag=ms delays everything this browser sends, and everything it receives, by
+// that much (each way: the round trip grows by twice it), and ?netloss=0..1 loses that share of
+// messages each way. Both ways, because a real slow link is slow in both directions, and a one-way
+// delay would skew the clock sync by half of it (ClockSync.js). The channel is reliable and ordered,
+// so a lost message is resent one round trip later and holds back the ones behind it, as on a real
+// lossy link.
 export const NETLAG_MAX = 2000; // ms
 export const NETLOSS_MAX = 0.5; // share of messages
 export const RESEND_MIN = 0.05; // s: the earliest a lost message is resent (a retransmit timer's floor)
@@ -70,3 +82,7 @@ export const CONTACT_EXTRAPOLATE = 0.4; // s
 export const REMOTE_SLIDE_ANGLE = 0.12; // rad
 export const REMOTE_ACCEL_RATE = 6; // 1/s
 export const NOTICE_TIME = 3; // s a "DRIVER LEFT" / "HOST LEFT" notice stays up
+// A goodbye (the host closing the room) must reach the others before the connections go: closing a
+// peer connection at once can drop what is still queued on it, and the client would see only a lost
+// connection. Closing waits this long after the last send (plus any ?netlag).
+export const CLOSE_LINGER = 0.5; // s

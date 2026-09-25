@@ -55,7 +55,7 @@ function world(shaping = {}) {
     run(0.5);
     return c;
   };
-  return { net, room, run, host, join };
+  return { net, rooms, room, run, host, join };
 }
 
 describe('online room', () => {
@@ -173,7 +173,7 @@ describe('online room', () => {
     expect(seat.state.you).toBe('p2');
   });
 
-  it('closes the room for everyone when the host leaves or goes silent', () => {
+  it("closes the room for everyone when the host leaves; a silent host is a lost connection", () => {
     const w = world();
     const host = w.host();
     const ann = w.join(host, 'Ann');
@@ -184,10 +184,46 @@ describe('online room', () => {
     expect(ann.state).toMatchObject({ phase: 'error', error: 'closed' });
     const host2 = w.host();
     const bob = w.join(host2, 'Bob');
-    host2.transport.vanish();
+    host2.transport.vanish(); // no goodbye: we can't know the host left, only that it went quiet
     w.run(SILENCE_TIMEOUT + 0.5);
-    expect(bob.state).toMatchObject({ phase: 'error', error: 'closed' });
+    expect(bob.state).toMatchObject({ phase: 'error', error: 'lost' });
     expect(closed).toEqual(['closed']);
+  });
+
+  it("tells a client the host dropped that the connection was lost, not that the host left", () => {
+    const w = world();
+    const host = w.host();
+    const ann = w.join(host, 'Ann');
+    const bob = w.join(host, 'Bob');
+    const [annPeer] = [...host.peers].find(([, id]) => id === 'p1');
+    host.transport.drop(annPeer); // what the host does to a client it stopped hearing
+    w.run(0.2);
+    expect(ann.state).toMatchObject({ phase: 'error', error: 'lost' });
+    expect(bob.state.phase).toBe('room');
+    expect(host.state.players.map((p) => p.name)).toEqual(['Cesar', 'Bob']);
+  });
+
+  it('keeps a client whose frames stopped (a background tab): its room steps on a 1 s timer', () => {
+    const w = world();
+    const host = w.host();
+    const ann = w.join(host, 'Ann');
+    const others = w.rooms.filter((r) => r !== ann);
+    for (let t = 0; t < 4 * SILENCE_TIMEOUT; t += FRAME) {
+      w.net.advance(FRAME);
+      for (const r of others) r.update();
+      if (Math.floor(t) !== Math.floor(t + FRAME)) ann.update(); // a throttled timer: once a second
+    }
+    expect(ann.state.phase).toBe('room');
+    expect(host.state.players.map((p) => p.name)).toEqual(['Cesar', 'Ann']);
+  });
+
+  it("won't let a human take an AI rival's name (the rival may join the grid)", () => {
+    const w = world();
+    const host = w.host();
+    w.join(host, RIVALS[0].name);
+    expect(host.state.players[1].name).toBe(`${RIVALS[0].name} 2`);
+    const roster = host.start({ laps: 3, hold: 0.5 }).roster;
+    expect(new Set(roster.map((e) => e.name)).size).toBe(roster.length);
   });
 
   it('starts everyone on one roster: humans and AI rivals, six distinct grid slots', () => {
@@ -336,14 +372,49 @@ describe('online race', () => {
     expect(results.slice(0, 2).map((e) => e.id)).toEqual(['p0', 'p1']);
   });
 
-  it('tells the clients when the host is gone', () => {
+  it('tells the clients when the host is gone: left, or lost', () => {
     const r = raceWorld({ lag: 0.05 });
     r.drive(2);
     r.host.transport.vanish();
     r.alive.delete(0);
     r.drive(SILENCE_TIMEOUT + 0.5);
     for (const race of r.races.slice(1)) {
+      expect(race.poll()).toContainEqual({ type: 'host-gone', reason: 'lost' });
+    }
+    const q = raceWorld({ lag: 0.05 });
+    q.drive(2);
+    q.host.leave();
+    q.alive.delete(0);
+    q.drive(0.5);
+    for (const race of q.races.slice(1)) {
       expect(race.poll()).toContainEqual({ type: 'host-gone', reason: 'closed' });
     }
+  });
+
+  it('a host without frames still relays the humans to each other, and they hear it is away', () => {
+    const r = raceWorld({ lag: 0.05 });
+    r.drive(2);
+    for (const race of r.races) race.poll();
+    r.alive.delete(0); // the host's tab goes to the background: no race.update, its room on a timer
+    const seen = [];
+    for (let t = 0; t < 5; t += FRAME) {
+      r.w.net.advance(FRAME);
+      for (const room of r.clients) room.update();
+      if (Math.floor(t) !== Math.floor(t + FRAME)) r.host.update();
+      r.races.slice(1).forEach((race, k) => {
+        const now = r.clients[k].hostNow();
+        race.update(FRAME, { own: truth(k + 1, now) });
+      });
+      const bob = r.races[1].remoteStates().get('p2'); // Bob's kart as Ann draws it
+      const lagBehind = r.clients[0].hostNow() - bob.t;
+      if (t > 2) seen.push(!bob.stale && lagBehind < 0.5 && Math.abs(bob.s[0] - 10 * bob.t) < 1);
+    }
+    expect(seen.every(Boolean)).toBe(true); // Bob keeps moving on Ann's screen, where he really is
+    expect(r.races[1].remoteStates().get('p0').stale).toBe(true); // the host's own kart stands
+    expect(r.races[1].poll()).toContainEqual({ type: 'host-away', away: true });
+    expect(r.host.state.players).toHaveLength(3); // nobody dropped
+    r.alive.add(0);
+    r.drive(1);
+    expect(r.races[1].poll()).toContainEqual({ type: 'host-away', away: false });
   });
 });

@@ -1,7 +1,10 @@
 // A client's side of a Room: says hello once the channel to the host is up, takes the welcome (or the
 // refusal), keeps the lobby as the host describes it, pings the host (a quick burst at first, then
 // every PING_INTERVAL — the heartbeat and the clock samples in one), and passes race messages on.
-// The host hanging up, saying bye or going silent for SILENCE_TIMEOUT closes the room ('closed').
+// Only the host's bye means it closed the room ('closed'). A channel that ends without one, or a host
+// silent for SILENCE_TIMEOUT, is a lost connection ('lost'): the host may have dropped us (it heard
+// nothing from us for as long), the network failed, or its tab crashed. Saying "the host left" then
+// would be a guess, and often wrong.
 
 import { msg } from './protocol.js';
 import { PROTOCOL_VERSION, CONNECT_TIMEOUT, SILENCE_TIMEOUT } from '../config/net.js';
@@ -42,7 +45,7 @@ export const CLIENT = {
     room.send(msg.hello(room.state.name));
   },
 
-  close: (room) => room.fail(room.state.phase === 'room' ? 'closed' : 'network'),
+  close: (room) => room.fail(room.state.phase === 'room' ? 'lost' : 'network'),
 
   message(room, from, m) {
     if (from !== room.hostPeer) return;
@@ -54,7 +57,7 @@ export const CLIENT = {
     if (room.state.phase === 'connecting' && now - room.since > CONNECT_TIMEOUT)
       return room.fail('timeout');
     if (room.state.phase !== 'room') return;
-    if (now - room.heard.get('host') > SILENCE_TIMEOUT) return room.fail('closed');
+    if (now - room.heard.get('host') > SILENCE_TIMEOUT) return room.fail('lost');
     if (now < room.nextPing) return;
     room.send(msg.ping(now));
     room.nextPing = now + (room.pings-- > 1 ? PING_BURST_GAP : PING_INTERVAL);

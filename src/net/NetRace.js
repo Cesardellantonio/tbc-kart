@@ -12,7 +12,9 @@
 //   race.finish(time, best)  your flag (race-clock s) · race.aiFinish(id, time, best) (host)
 //   race.poll() → events since the last poll: { type: 'finish', id, time, best } (another kart) ·
 //     { type: 'left', id } · { type: 'results', entries: [{ id, time|null, best|null, dnf }] } in
-//     final order · { type: 'host-gone', reason }
+//     final order · { type: 'host-gone', reason } ('closed' | 'lost') · client: { type: 'host-away',
+//     away } when the host's own kart stops coming (its frames stopped) and when it comes back
+// A host with no frames (a background tab) relays each client's kart to the others as it arrives.
 //   race.results (final entries, or null) · race.you · race.roster · race.dispose()
 // s: [x, z, yaw, vx, vz, steer, yawRate, slipAngle], c: [throttle, brake] (config/net.js).
 
@@ -20,7 +22,7 @@ import { msg } from './protocol.js';
 import { RemoteKarts } from './RemoteKarts.js';
 import { FinishBook } from './raceResults.js';
 import { stateOf, Ticker } from './kartState.js';
-import { KART_RATE, SNAP_RATE, RESULTS_GRACE } from '../config/net.js';
+import { KART_RATE, SNAP_RATE, RESULTS_GRACE, RELAY_STALL, HOST_STALL } from '../config/net.js';
 
 export class NetRace {
   constructor({ room, start }) {
@@ -31,6 +33,8 @@ export class NetRace {
     this.ticker = new Ticker(this.isHost ? SNAP_RATE : KART_RATE);
     this.events = [];
     this.results = null;
+    this.lastFrame = this.hostSeen = room.hostNow(); // host: its last update; client: last host kart
+    this.away = false; // client: the host's kart has stopped coming
     this.offs = [
       room.on('race', ({ msg: m }) => this.receive(m)),
       room.on('left', (id) => this.drop(id)),
@@ -39,9 +43,11 @@ export class NetRace {
   }
 
   update(dt, { own = null, ai = [] } = {}) {
-    const now = this.room.hostNow();
+    const now = (this.lastFrame = this.room.hostNow());
     if (!this.isHost) {
       if (own && this.ticker.due(dt)) this.room.send(msg.kart(stateOf(this.you, now, own)));
+      const away = now - this.hostSeen > HOST_STALL;
+      if (away !== this.away) this.events.push({ type: 'host-away', away: (this.away = away) });
       return;
     }
     if (own) this.latest.set(this.you, stateOf(this.you, now, own));
@@ -67,14 +73,22 @@ export class NetRace {
       const { type, ...k } = m;
       this.latest.set(k.id, k);
       this.remote.push(k, now);
+      if (now - this.lastFrame > RELAY_STALL) this.relay(k, now);
     } else if (m.type === 'snap') {
       for (const k of m.karts) if (k.id !== this.you) this.remote.push(k, now);
+      if (m.karts.some((k) => k.id === 'p0')) this.hostSeen = now; // the host (always p0) is live
     } else if (m.type === 'finish') {
       this.flag(m.id, m.time, m.best);
     } else if (m.type === 'results' && !this.results) {
       this.results = m.entries;
       this.events.push({ type: 'results', entries: m.entries });
     }
+  }
+
+  // Host without frames: this client's kart straight on to everyone else, as a snap of one.
+  relay(k, now) {
+    for (const [, id] of this.room.peers)
+      if (id && id !== k.id) this.room.sendTo(id, msg.snap(now, [k]));
   }
 
   remoteStates(time, cap) {

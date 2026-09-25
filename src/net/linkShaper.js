@@ -29,6 +29,11 @@ export class LinkShaper {
     return at;
   }
 
+  // A shaper with the same lag and loss for the opposite direction (its own queue).
+  mirror() {
+    return new LinkShaper({ lag: this.lag, loss: this.loss, rand: this.rand });
+  }
+
   forget(to) {
     this.last.delete(to);
   }

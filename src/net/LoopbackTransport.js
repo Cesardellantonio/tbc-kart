@@ -90,12 +90,18 @@ export class LoopbackTransport {
     for (const to of this.links) this.send(to, message);
   }
 
-  // Close one connection (host: kick a client); both ends hear 'close'.
+  // Close one connection (host: kick a client); both ends hear 'close', the far end only after what
+  // was already sent its way (Transport lingers on close so a goodbye gets there first).
   drop(to) {
     const peer = this.net.endpoints.get(to);
     if (!this.links.delete(to)) return;
     this._later('close', to, 0);
-    if (peer?.links.delete(this.id)) peer._later('close', this.id);
+    if (!peer) return;
+    const at = Math.max(this.net.t + peer.shaper.lag, this.shaper.last.get(to) ?? 0);
+    this.net.post(
+      at,
+      () => peer.links.delete(this.id) && !peer.dead && peer.bus.emit('close', this.id)
+    );
   }
 
   close() {

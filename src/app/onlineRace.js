@@ -13,7 +13,7 @@ import { dressOwnKart } from './RemoteKart.js';
 import { kartSnapshot, physicsView } from './onlineStates.js';
 import { trackById } from '../tracks/index.js';
 import { DIFFICULTY } from '../config/race.js';
-import { CONTACT_EXTRAPOLATE } from '../config/net.js';
+import { CONTACT_EXTRAPOLATE, NOTICE_TIME } from '../config/net.js';
 
 export class OnlineRace {
   // pool: the RemotePool (kept across races); notify(text, sub): an on-screen notice.
@@ -22,6 +22,7 @@ export class OnlineRace {
     this.isHost = room.isHost;
     this.net = new NetRace({ room, start });
     this.final = false;
+    this.awayNotice = null; // s until the "HOST AWAY" notice is shown again, while the host is away
     const track = trackById(start.track);
     if (track !== game.track) game.loadTrack(track);
     for (const r of game.rivals) r.driver.difficulty = DIFFICULTY[start.level]?.pace ?? 1; // host's pick
@@ -57,6 +58,7 @@ export class OnlineRace {
     this.pool.draw(net.remoteStates(), dt, game.camera.three, game.renderer.three.domElement.height);
     if ((state === 'racing' || state === 'finished') && !this.final) this.time(state, dt);
     for (const e of net.poll()) this.on(e);
+    this.remindAway(dt);
   }
 
   time(state, dt) {
@@ -86,7 +88,22 @@ export class OnlineRace {
       this.final = true;
       if (this.isHost) this.room.endRace(); // the room can start the next race
       if (game.session.state === 'racing') game.session.finish(); // out of time: the card takes over
-    } else if (e.type === 'host-gone') this.hostGone = true;
+    } else if (e.type === 'host-gone') this.hostGone = e.reason; // 'closed' (it left) or 'lost'
+    else if (e.type === 'host-away') this.hostAway(e.away);
+  }
+
+  // The host's frames stopped (its tab went to the background): its kart and AI stand still until
+  // it is back. Say so, rather than leave a frozen field unexplained — again each time the notice
+  // fades, for as long as it lasts.
+  hostAway(away) {
+    this.awayNotice = away ? 0 : null;
+    if (!away) this.notify('HOST BACK');
+  }
+
+  remindAway(dt) {
+    if (this.awayNotice === null || (this.awayNotice -= dt) > 0) return;
+    this.notify('HOST AWAY', 'WAITING FOR THEIR GAME');
+    this.awayNotice = NOTICE_TIME;
   }
 
   aiStates() {

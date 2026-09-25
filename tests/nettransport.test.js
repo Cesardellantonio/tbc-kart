@@ -1,11 +1,12 @@
 // The PeerJS wrapper against a fake Peer: the host's peer id, the channel options, PeerJS errors
-// mapped onto the lobby's reasons, the connect timeout, the offline check, and ?netlag shaping.
+// mapped onto the lobby's reasons, the connect timeout, the offline check, ?netlag shaping (both
+// ways) and the goodbye linger on close.
 // (The real broker is exercised in the browser: see the dev ?nettest=1 page.)
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Transport } from '../src/net/Transport.js';
 import { LinkShaper, shaperFromQuery } from '../src/net/linkShaper.js';
-import { CONNECT_TIMEOUT } from '../src/config/net.js';
+import { CONNECT_TIMEOUT, CLOSE_LINGER } from '../src/config/net.js';
 
 class Emitter {
   constructor() {
@@ -157,7 +158,7 @@ describe('transport', () => {
     const shaper = shaperFromQuery('?netlag=120&netloss=0');
     expect(shaper).toBeInstanceOf(LinkShaper);
     expect(shaperFromQuery('?nothing=1')).toBe(null);
-    const { t } = make(shaper);
+    const { t, seen } = make(shaper);
     t.host('K7QX2');
     await vi.advanceTimersByTimeAsync(0);
     const conn = new FakeConn('c');
@@ -169,6 +170,29 @@ describe('transport', () => {
     expect(conn.sent).toEqual([]);
     await vi.advanceTimersByTimeAsync(20);
     expect(conn.sent).toEqual([1, 2]);
+    conn.emit('data', 'in'); // …and what it receives: the same lag the other way
+    await vi.advanceTimersByTimeAsync(110);
+    expect(seen.filter(([type]) => type === 'message')).toEqual([]);
+    await vi.advanceTimersByTimeAsync(20);
+    expect(seen.filter(([type]) => type === 'message')).toEqual([
+      ['message', { from: 'c', data: 'in' }],
+    ]);
+  });
+
+  it('lets a last goodbye leave before it closes open channels', async () => {
+    vi.useFakeTimers();
+    const { t } = make();
+    t.host('K7QX2');
+    await vi.advanceTimersByTimeAsync(0);
+    const conn = new FakeConn('c');
+    FakePeer.last.emit('connection', conn);
+    conn.up();
+    t.send('c', 'bye');
+    t.close();
+    expect([conn.open, FakePeer.last.destroyed]).toEqual([true, false]);
+    await vi.advanceTimersByTimeAsync(CLOSE_LINGER * 1000 + 10);
+    expect([conn.open, FakePeer.last.destroyed]).toEqual([false, true]);
+    expect(conn.sent).toEqual(['bye']);
   });
 });
 

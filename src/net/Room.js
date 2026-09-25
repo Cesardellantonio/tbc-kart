@@ -8,7 +8,8 @@
 //                 track, level } — exactly what the Lobby card renders
 //   room.on(event, fn) → unsubscribe: 'change' (state) · 'start' (the start message, both sides) ·
 //     'race' ({ from: player id, msg }: kart / snap / finish / results) · 'left' (player id) ·
-//     'closed' (reason: the room went away while you were in it)
+//     'closed' (reason: the room went away while you were in it — 'closed' the host said goodbye,
+//     'lost' the connection ended without one)
 //   room.hostNow() host-clock s · room.send(msg) to the host · room.sendTo(id, msg) / room.broadcast(msg)
 //   from the host · room.racing · room.clock (ClockSync; the host's own clock is the reference)
 // A fresh transport per create / join (a closed PeerJS peer can't be reused); each side's message

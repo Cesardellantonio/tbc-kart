@@ -12,6 +12,7 @@ import { setFieldTrack } from './field.js';
 import { randomHold } from '../race/RaceSession.js';
 import { bindLobby, stepTrack } from './onlineLobby.js';
 import { trackById } from '../tracks/index.js';
+import { NET_TICK } from '../config/net.js';
 
 export class Online {
   constructor(game, makeTransport = () => new Transport()) {
@@ -21,6 +22,10 @@ export class Online {
     this.race = null;
     this.room.on('start', (start) => this.begin(start));
     bindLobby(this, game); // after the room is ready: a ?room= link joins at once
+    // Frames stop in a background tab, timers don't: the room's heartbeat must not depend on frames.
+    setInterval(() => this.room.update(), NET_TICK * 1000);
+    // Closing the tab: say goodbye, so the others read "host left" / "driver left" at once.
+    window.addEventListener('pagehide', () => this.room.leave());
   }
 
   get active() {
@@ -54,7 +59,8 @@ export class Online {
   step(dt) {
     this.room.update();
     this.race?.step(dt);
-    if (this.race?.hostGone) this.leave('HOST LEFT');
+    const gone = this.race?.hostGone;
+    if (gone) this.leave(gone === 'closed' ? 'HOST LEFT' : 'CONNECTION LOST');
   }
 
   // Keys in an online race: Esc toggles the small card over the running race (nothing pauses), Q on

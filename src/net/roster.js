@@ -7,7 +7,9 @@ import { NAME_MAX, MAX_PLAYERS } from '../config/lobby.js';
 import { HOST_LIVERY, HUMAN_LIVERIES } from '../config/net.js';
 import { RIVALS } from '../config/race.js';
 
-const RESERVED_CODES = [...RIVALS.map((r) => r.code), 'YOU']; // rivals may join the grid later
+// The AI rivals may join the grid at START: no human may take a rival's name or code.
+const RESERVED_NAMES = RIVALS.map((r) => r.name);
+const RESERVED_CODES = [...RIVALS.map((r) => r.code), 'YOU'];
 const same = (a, b) => a.toLocaleLowerCase() === b.toLocaleLowerCase();
 
 // The lowest free human id p0…p5, or null when the room is full.
@@ -16,10 +18,11 @@ export function nextPlayerId(players) {
   return null;
 }
 
-// "Max" → "Max 2" when a Max is already here (the suffix fits inside NAME_MAX).
+// "Max" → "Max 2" when a Max is already here, or is an AI rival (the suffix fits inside NAME_MAX).
 export function uniqueName(raw, players) {
   const name = sanitizeName(raw).trim() || 'Driver';
-  const taken = (n) => players.some((p) => same(p.name, n));
+  const taken = (n) =>
+    RESERVED_NAMES.some((r) => same(r, n)) || players.some((p) => same(p.name, n));
   if (!taken(name)) return name;
   for (let k = 2; k <= MAX_PLAYERS + 1; k++) {
     const tail = ` ${k}`;

@@ -1,6 +1,7 @@
 // Why joining or creating a room failed, in words a player can act on. Pure (unit-tested).
 // Keys are the reasons the net layer reports: refuse { reason } from the host ('full', 'version',
-// 'racing'), plus the transport's own failures. retry: whether trying the same thing again can help
+// 'racing'), the room's own ('closed': the host said goodbye; 'lost': the connection went without
+// one), plus the transport's failures. retry: whether trying the same thing again can help
 // (a version mismatch needs a reload instead, and a closed room is gone).
 
 import { MAX_PLAYERS } from '../config/lobby.js';
@@ -38,6 +39,12 @@ export const ERRORS = {
     retry: true,
   },
   closed: { title: 'HOST LEFT', text: 'The host closed the room.', retry: false },
+  // No goodbye: the host dropped us (it heard nothing for a while), or the network or its tab failed.
+  lost: {
+    title: 'CONNECTION LOST',
+    text: 'Lost touch with the host. The room may still be open: try joining again.',
+    retry: true,
+  },
   offline: {
     title: "YOU'RE OFFLINE",
     text: 'Online racing needs an internet connection. Reconnect, then try again.',

@@ -10,12 +10,13 @@
 //   'error'   (reason)                  setup failed: 'taken' 'not-found' 'network' 'timeout' 'offline'
 //   t.send(peerId, msg) · t.broadcast(msg) · t.drop(peerId) · t.close()
 // peerjs is loaded on first use, so single-player never downloads it. ?netlag / ?netloss (dev) shape
-// what this end sends (linkShaper.js). LoopbackTransport.js is the same API in memory, for tests.
+// what this end sends and what it receives, each way on its own (linkShaper.js). LoopbackTransport.js
+// is the same API in memory, for tests.
 
 import { EventBus } from '../core/events.js';
 import { peerIdFor } from './roomCode.js';
 import { shaperFromQuery } from './linkShaper.js';
-import { CONNECT_TIMEOUT } from '../config/net.js';
+import { CONNECT_TIMEOUT, CLOSE_LINGER } from '../config/net.js';
 
 const CHANNEL = { reliable: true, serialization: 'json' };
 const REASONS = {
@@ -30,6 +31,7 @@ const nowS = () => performance.now() / 1000;
 export class Transport {
   constructor({ shaper = shaperFromQuery(), loadPeer = () => import('peerjs') } = {}) {
     Object.assign(this, { shaper, loadPeer, bus: new EventBus(), conns: new Map() });
+    this.inbound = shaper?.active ? shaper.mirror() : null; // the same link, the other way
     this.opened = this.closed = false;
     this.onOffline = () => this._fail('offline');
   }
@@ -71,8 +73,16 @@ export class Transport {
       if (toHost) this._opened(conn.peer);
       else this.bus.emit('peer', conn.peer);
     });
-    conn.on('data', (data) => this.bus.emit('message', { from: conn.peer, data }));
-    conn.on('close', () => this.conns.delete(conn.peer) && this.bus.emit('close', conn.peer));
+    conn.on('data', (data) =>
+      this._arrive(conn.peer, () => this.bus.emit('message', { from: conn.peer, data }))
+    );
+    // The hang-up comes in behind what came before it (under ?netlag it must not overtake a goodbye).
+    conn.on(
+      'close',
+      () =>
+        this.conns.delete(conn.peer) &&
+        this._arrive(conn.peer, () => this.bus.emit('close', conn.peer))
+    );
     conn.on('error', () => conn.close());
   }
 
@@ -87,6 +97,13 @@ export class Transport {
     if (this.opened || this.closed) return; // after setup, trouble shows up as 'close' / silence
     this.close();
     this.bus.emit('error', reason);
+  }
+
+  // Something from peer `from`: now, or when the ?netlag / ?netloss shaping lets it arrive.
+  _arrive(from, emit) {
+    if (!this.inbound) return emit();
+    const now = nowS();
+    setTimeout(() => !this.closed && emit(), (this.inbound.arrival(from, now) - now) * 1000);
   }
 
   send(to, message) {
@@ -108,12 +125,18 @@ export class Transport {
     queueMicrotask(() => this.bus.emit('close', to));
   }
 
+  // With channels open, what was just sent (a goodbye) gets CLOSE_LINGER to leave before they go.
   close() {
     this.closed = true;
     clearTimeout(this.timer);
     globalThis.removeEventListener?.('offline', this.onOffline);
-    for (const conn of this.conns.values()) conn.close();
-    this.conns.clear();
-    this.peer?.destroy();
+    const { conns, peer } = this;
+    this.conns = new Map();
+    const shut = () => {
+      for (const conn of conns.values()) conn.close();
+      peer?.destroy();
+    };
+    if (!conns.size) return shut();
+    setTimeout(shut, (CLOSE_LINGER + (this.shaper?.lag ?? 0)) * 1000);
   }
 }

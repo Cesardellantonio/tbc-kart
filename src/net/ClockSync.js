@@ -3,6 +3,11 @@
 // the host read th at local (t0 + t1) / 2, so offset = th − (t0 + t1) / 2. Queues and jitter only
 // ever make a trip longer, and a longer trip is likelier to be lopsided, so only the samples with the
 // shortest round trips count: offset = median of the best CLOCK_BEST of the last CLOCK_WINDOW.
+// The one thing no ping can measure is a lopsided route: if the way to the host takes d longer than
+// the way back, every estimate is off by d / 2 (so the lights go out d / 2 early or late here). Real
+// paths are close to symmetric (a few ms apart); ?netlag delays both ways for the same reason. Check
+// the sync against a clock outside it (all browsers on one machine share the OS clock), never with
+// each peer's own hostNow(): that can only ever agree with itself.
 //   clock.sample(t0, th, t1) · clock.ready · clock.offset · clock.rtt · clock.hostNow(localNow)
 
 import { CLOCK_WINDOW, CLOCK_BEST } from '../config/net.js';
