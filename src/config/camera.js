@@ -6,11 +6,14 @@ export const FOV_BASE = 60;
 export const SPEED_FULL = 17; // m/s treated as "full speed" by the camera effects (the kart's top, ~61 km/h)
 export const FOV_SPEED_BOOST = 16; // extra degrees at full speed
 // Sense of punch: the view widens while the kart surges and narrows a touch under braking (a lunge),
-// on top of the speed widening. Degrees per m/s² of longitudinal acceleration, capped both ways.
-export const FOV_ACCEL_KICK = 0.5;
-export const FOV_ACCEL_MAX = 3.5; // degrees at most under throttle (a full-throttle launch)…
-export const FOV_BRAKE_MAX = 2; // …and taken off at most under braking
-export const FOV_DAMP = 4; // 1/s, how fast the FOV follows (a kick shows in ~0.25 s, never snaps)
+// on top of the speed widening. It follows a slow average of the longitudinal acceleration, past a
+// dead zone, so a keyboard's on/off throttle taps don't make the view breathe; a real surge shows.
+export const FOV_SURGE_DAMP = 1.5; // 1/s, how fast that average follows the acceleration (~0.7 s lag)
+export const FOV_SURGE_DEAD = 1.5; // m/s², average surge ignored either way (lifts, part-throttle taps)
+export const FOV_ACCEL_KICK = 0.6; // degrees per m/s² beyond the dead zone…
+export const FOV_ACCEL_MAX = 3; // …at most under throttle (a launch peaks near +2.4°)…
+export const FOV_BRAKE_MAX = 1.5; // …and taken off at most under braking
+export const FOV_DAMP = 3; // 1/s, how fast the FOV follows its target (never snaps)
 
 // distance: metres behind the kart, height: above ground, lookAhead/lookHeight: aim point
 export const VIEWS = {

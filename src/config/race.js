@@ -82,27 +82,28 @@ export const AI = {
 // any skill) everywhere: difficulty does not depend on the circuit. Regenerate with
 // node tools/ai-pace.mjs after changing a layout, the physics or the driver.
 export const TRACK_PACE = {
-  tbc: 1.072,
-  monaco: 1.019,
-  monza: 1.031,
-  silverstone: 1.037,
-  spa: 1.03,
-  interlagos: 0.989,
-  montreal: 1.014,
-  austin: 1.035,
+  tbc: 1.071,
+  monaco: 1.017,
+  monza: 1.025,
+  silverstone: 1.03,
+  spa: 1.032,
+  interlagos: 0.988,
+  montreal: 1.008,
+  austin: 1.026,
   spielberg: 1.058,
-  singapore: 1.032,
+  singapore: 1.028,
 };
 
 // Rival level, picked on the title card: scales every rival's corner and braking pace (their straights
 // stay flat out). Calibrated against a scripted skilled keyboard driver (100 ms reaction, 60 ms key holds,
-// digital steering, the game's throttle shaping) over all ten circuits: on average it laps ~10% quicker
-// than the fastest rival on Amateur, level on Club and ~5% slower on Pro. Re-derive after changing the
-// physics or TRACK_PACE.
+// digital steering, the game's throttle shaping, best of a corner-speed sweep) over all ten circuits: on
+// average it laps ~10% quicker than the fastest rival on Amateur, level on Club and ~5% slower on Pro
+// (-10.1 / +0.1 / +5.1%; a sweep capped lower, a slightly slower driver, lands within 0.1 point of it).
+// Re-derive after changing the physics or TRACK_PACE.
 export const DIFFICULTY = {
-  amateur: { label: 'AMATEUR', pace: 0.65 },
-  club: { label: 'CLUB', pace: 0.75 },
-  pro: { label: 'PRO', pace: 0.81 },
+  amateur: { label: 'AMATEUR', pace: 0.68 },
+  club: { label: 'CLUB', pace: 0.8 },
+  pro: { label: 'PRO', pace: 0.86 },
 };
 export const DEFAULT_DIFFICULTY = 'club';
 

@@ -43,13 +43,15 @@ export const AERO_DRAG = 0.008; // 1/m, drag deceleration = AERO_DRAG·v²
 export const DRAFT_DRAG_CUT = 0.55; // share of aero drag removed in a full slipstream
 export const CREEP_SPEED = 0.3; // m/s, below this the brake pedal selects reverse
 // Player's digital (keyboard / touch 0-1) throttle, physics/controls.js rampThrottle:
-export const THROTTLE_JUMP = 4; // m/s², drive a key press gives at once at any speed (~0.4 g: an instant shove)…
-export const THROTTLE_RISE = 6; // 1/s, …then the rest of the throttle opens at this rate…
+export const THROTTLE_RISE = 5; // 1/s, the throttle opens at this rate (a keyboard's feathering in slow corners)…
+export const THROTTLE_JUMP = 4; // m/s², …but at speed a key press gives this much drive at once (~0.4 g shove)…
+export const THROTTLE_JUMP_FROM = 10; // m/s, …phased in from here (below, slow corners: a jolt steps the rear out)…
+export const THROTTLE_JUMP_FULL = 14; // m/s, …to all of it here (50 km/h: the engine has too little left to upset it)
 export const THROTTLE_RAMP_SLIP = 0.25; // …unless body slip (rad) is past this: in a slide it acts at once
 
 // Steering
-export const STEER_IN = 10; // 1/s, input smoothing toward full lock
-export const STEER_OUT = 18; // 1/s, input smoothing back to centre
+export const STEER_IN = 7; // 1/s, input smoothing toward full lock (quicker hands loosen a keyboard slalom)
+export const STEER_OUT = 18; // 1/s, input smoothing back to centre (a quick unwind catches the exit)
 export const STEER_LOCK = 0.4; // rad, road-wheel angle at full lock
 export const STEER_LIMIT_ACCEL = 13; // m/s², full lock at speed aims at this lateral acceleration…
 export const STEER_LIMIT_SLIP = 0.13; // rad, …plus this front slip angle (speed-sensitive lock)

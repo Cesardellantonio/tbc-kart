@@ -15,7 +15,7 @@ A kart racing game set in indoor karting halls: the **TBC Indoor Racing** layout
 ```bash
 npm install
 npm run dev      # open the URL Vite prints (usually http://localhost:5173)
-npm test         # 160 unit tests: physics, tracks (rules + a six-kart AI race on every circuit), race logic, feel, flow
+npm test         # 173 unit tests: physics, tracks (rules + a six-kart AI race on every circuit), race logic, feel, flow
 node tools/track-report.mjs monza --svg monza.svg   # design check + AI race + map for one circuit
 npm run build    # production bundle in dist/
 ```

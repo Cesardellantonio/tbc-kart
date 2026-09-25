@@ -6,7 +6,7 @@ import { stepKart } from '../src/physics/kartPhysics.js';
 import { axleLoads } from '../src/physics/tyres.js';
 import { frontAxle, rearAxle } from '../src/physics/axles.js';
 import { rampThrottle, engineAccel } from '../src/physics/controls.js';
-import { TYRE_PEAK_SLIP, THROTTLE_JUMP } from '../src/config/physics.js';
+import { TYRE_PEAK_SLIP, THROTTLE_JUMP, THROTTLE_JUMP_FROM, THROTTLE_JUMP_FULL, THROTTLE_RISE } from '../src/config/physics.js';
 import { seededRandom, wrapAngle } from '../src/core/math.js';
 
 const DT = 1 / 120;
@@ -137,14 +137,22 @@ describe('player throttle shaping', () => {
   // Drive (m/s²) a throttle share asks for at speed v.
   const drive = (thr, v) => thr * engineAccel(v);
 
-  it('answers a key press at once with a THROTTLE_JUMP shove, then opens fully within ~0.1 s', () => {
-    for (const v of [4, 6, 10, 14]) {
-      let t = rampThrottle(0, 1, 0, 1 / 60, v);
-      expect(drive(t, v), `${v} m/s`).toBeCloseTo(THROTTLE_JUMP, 5);
-      for (let i = 1; i < 7; i++) t = rampThrottle(t, 1, 0, 1 / 60, v); // 7 frames: 0.12 s
-      expect(t, `${v} m/s`).toBe(1);
+  it('opens over ~0.2 s in slow corners (a keyboard feathers there), with an instant shove at speed', () => {
+    for (const v of [4, 6, THROTTLE_JUMP_FROM]) {
+      let t = 0;
+      for (let i = 0; i < 6; i++) t = rampThrottle(t, 1, 0, 1 / 60, v); // 0.1 s
+      expect(t, `${v} m/s`).toBeCloseTo(0.5, 5);
     }
-    expect(rampThrottle(0, 1, 0, 1 / 60, 16)).toBeGreaterThan(0.8); // near the top: all but instant
+    for (const v of [THROTTLE_JUMP_FULL, 15]) {
+      expect(drive(rampThrottle(0, 1, 0, 1 / 60, v), v), `${v} m/s`).toBeCloseTo(THROTTLE_JUMP, 5);
+    }
+    const mid = (THROTTLE_JUMP_FROM + THROTTLE_JUMP_FULL) / 2; // phased in between
+    expect(drive(rampThrottle(0, 1, 0, 1 / 60, mid), mid)).toBeCloseTo(THROTTLE_JUMP / 2, 5);
+    expect(rampThrottle(0, 1, 0, 1 / 60, 16)).toBe(1); // near the top the engine has less than the shove to give
+  });
+
+  it('falls back to the plain ramp when the speed is missing or not finite (never NaN, never a free pass)', () => {
+    for (const v of [undefined, NaN, Infinity]) expect(rampThrottle(0, 1, 0, 1 / 60, v), String(v)).toBeCloseTo(THROTTLE_RISE / 60, 9);
   });
 
   it('closes at once, and passes straight through in a slide', () => {
@@ -156,7 +164,7 @@ describe('player throttle shaping', () => {
   it('does not hold back a launch from the grid or from walking pace', () => {
     expect(rampThrottle(0, 1, 0, 1 / 60, 0)).toBe(1);
     expect(rampThrottle(0, 1, 0, 1 / 60, 2.5)).toBe(1);
-    expect(rampThrottle(0, 1, 0, 1 / 60, 6)).toBeLessThan(0.6);
+    expect(rampThrottle(0, 1, 0, 1 / 60, 6)).toBeLessThan(0.2);
   });
 
   it('stops a floored exit from a tight corner snapping the rear', () => {
