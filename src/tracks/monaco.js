@@ -1,13 +1,147 @@
-// Monte Carlo — kart-scale indoor layout inspired by Circuit de Monaco. STUB: waypoints not designed yet.
-// +X east, +Z south (north up), metres; the kart drives in list order (clockwise, like the real circuit).
+// Monte Carlo — kart-scale indoor layout of Circuit de Monaco, driven clockwise; +X east, +Z south (north up), metres.
+// Kinked start straight → Sainte Dévote (R) → uphill Beau Rivage → Massenet (long L) → Casino Square (R) → Mirabeau (R)
+// → Grand Hotel hairpin (tight L, the slowest corner) → Mirabeau Bas + Portier (two Rs) → curving tunnel → Nouvelle chicane (L-R)
+// → Tabac (L) → short straight → Swimming Pool flicks (L-R, R-L) → La Rascasse (tight R) → Anthony Noghès (R) onto the start.
+
+const waypoints = [
+  [-66.76, 30],     // 0 start / finish, Boulevard Albert 1er
+  [-68.99, 18.41],
+  [-69.58, 9.64],
+  [-69.39, 3.15],
+  [-68.91, -1.62],
+  [-68.25, -5.18],  // 5 Sainte Dévote (right)
+  [-66.58, -8.29],
+  [-63.98, -10.6],
+  [-60.7, -11.88],
+  [-56.84, -12.42],
+  [-51.64, -13.11],
+  [-44.61, -14.05],
+  [-35.09, -15.32],
+  [-22.26, -17.03], // 13 Beau Rivage, uphill
+  [-10, -18.54],
+  [-0.96, -19.53],
+  [5.75, -20.26],
+  [10.72, -20.8],   // 17 Massenet (long left)
+  [14.58, -21.51],
+  [17.95, -23.42],
+  [20.42, -26.34],
+  [21.74, -29.93],
+  [21.75, -33.81],
+  [20.51, -37.27],
+  [18.96, -39.72],  // 24 Casino Square (right)
+  [18.17, -42.44],
+  [18.36, -45.21],
+  [19.49, -47.75],
+  [21.44, -49.95],
+  [24.07, -52.67],
+  [26.48, -55.11],  // 30 Mirabeau Haute (right)
+  [29.18, -56.69],
+  [32.31, -57.25],
+  [35.39, -56.7],
+  [38.13, -55.11],
+  [40.13, -52.7],
+  [41.59, -49.59],
+  [42.93, -46.65],
+  [43.92, -44.48],  // 38 Grand Hotel hairpin (left)
+  [44.84, -42.83],
+  [46.25, -41.57],
+  [47.96, -40.9],
+  [49.8, -40.85],
+  [51.59, -41.46],
+  [53.01, -42.62],
+  [53.96, -44.19],
+  [54.42, -46.08],
+  [54.92, -48.61],
+  [55.54, -51.69],
+  [56.03, -54.13],  // 49 Mirabeau Bas (right)
+  [56.77, -56.08],
+  [58.13, -57.66],
+  [60.01, -58.69],
+  [62.07, -59],
+  [64.61, -59],
+  [67.49, -58.94],  // 55 Portier (right)
+  [70.19, -58.1],
+  [72.4, -56.4],
+  [73.89, -54.06],
+  [74.49, -51.3],
+  [74.5, -48.09],   // 60 tunnel (long right)
+  [74.31, -43.8],
+  [73.31, -38.05],
+  [70.67, -30.67],
+  [64.91, -21.76],
+  [54.43, -13.06],
+  [41.28, -8.32],
+  [28.49, -7.33],
+  [18.91, -6.77],
+  [11.82, -6.36],
+  [6.58, -6.06],
+  [2.69, -5.83],
+  [-0.2, -5.66],    // 72 Nouvelle chicane (left-right)
+  [-2.57, -5.1],
+  [-4.6, -3.77],
+  [-6.5, -1.75],
+  [-8.35, 0.2],
+  [-10.41, 1.49],
+  [-12.79, 2],
+  [-15.64, 2],
+  [-19.43, 2],
+  [-24.52, 2],
+  [-31.06, 2],
+  [-36.3, 2],
+  [-40.34, 2.15],   // 84 Tabac (left)
+  [-43.94, 3.44],
+  [-46.92, 5.92],
+  [-48.83, 9.23],
+  [-49.5, 13.05],
+  [-49.5, 17.52],   // 89 Swimming Pool 1 (left)
+  [-49.26, 21.84],
+  [-47.71, 25.76],
+  [-45.37, 29.47],  // 92 Swimming Pool 1 (right)
+  [-44.11, 33.45],
+  [-44, 37.13],
+  [-44.01, 39.86],  // 95 Swimming Pool 2 (right)
+  [-44.58, 42.26],
+  [-45.94, 44.32],  // 97 Swimming Pool 2 (left)
+  [-47.38, 46.33],
+  [-48.08, 48.7],
+  [-47.93, 51.13],
+  [-47.1, 53.66],
+  [-45.63, 56.01],
+  [-43.4, 57.75],
+  [-40.75, 58.59],
+  [-37.71, 58.72],
+  [-34.86, 58.8],   // 106 La Rascasse (tight right)
+  [-32.6, 59.1],
+  [-30.57, 60.14],
+  [-29.02, 61.82],
+  [-28.15, 63.93],
+  [-28.05, 66.18],
+  [-28.72, 68.36],
+  [-30.11, 70.18],
+  [-31.99, 71.38],
+  [-34.21, 71.88],
+  [-36.76, 71.85],
+  [-40.21, 71.79],
+  [-44.8, 71.71],
+  [-48.9, 71.64],   // 119 Anthony Noghès (right)
+  [-52.07, 71.34],
+  [-54.95, 70.03],
+  [-57.18, 67.84],
+  [-58.53, 64.97],
+  [-59.36, 61.47],
+  [-60.47, 56.75],
+  [-61.98, 50.33],
+  [-64, 41.72],
+];
 
 export default {
   id: 'monaco',
   name: 'Monte Carlo',
   location: 'Monaco',
   inspiredBy: 'Circuit de Monaco',
-  blurb: '',
-  laps: 5,
-  waypoints: null,
+  blurb: 'Narrow streets, a walking-pace hairpin and a flat-out tunnel: touch the barriers and your race is over.',
+  laps: 3,
+  waypoints,
   startIndex: 0,
+  width: 6,
 };

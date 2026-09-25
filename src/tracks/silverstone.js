@@ -1,13 +1,136 @@
-// Silverstone — kart-scale indoor layout inspired by Silverstone Circuit. STUB: waypoints not designed yet.
-// +X east, +Z south (north up), metres; the kart drives in list order (clockwise, like the real circuit).
+// Silverstone Circuit (2011+ Arena layout), driven clockwise, traced from the real map at ≈1:10 E–W × 1:13.5 N–S.
+// Hamilton straight (start) → Abbey → Farm → Village → The Loop → Aintree → Wellington straight → Brooklands →
+// Luffield → Woodcote → National straight → Copse → Maggotts–Becketts–Chapel → Hangar straight → Stowe → Vale → Club.
+// Arena hairpins and Luffield opened up for karts; Maggotts–Becketts and Stowe keep wide radii so they stay fast.
+
+const waypoints = [
+  [-34.40, 12.50],  // 0 start / finish — Hamilton straight
+  [-25.02, 2.98],   // 1 Abbey (fast right)
+  [-22.83, 1.15],
+  [-20.34, -0.24],
+  [-17.63, -1.13],
+  [-14.80, -1.49],
+  [-7.57, -1.71],   // 6 Farm (left kink)
+  [-4.64, -2.02],
+  [-1.79, -2.75],
+  [0.92, -3.90],
+  [3.44, -5.43],
+  [8.03, -8.71],    // 11 Village (right)
+  [10.32, -9.84],
+  [12.85, -10.19],
+  [15.37, -9.73],
+  [17.61, -8.49],
+  [19.35, -6.61],
+  [20.40, -4.28],
+  [21.23, -1.20],   // 18 The Loop (tight left)
+  [22.51, 1.15],
+  [24.70, 2.68],
+  [27.35, 3.06],
+  [29.46, 2.88],
+  [32.14, 1.94],
+  [34.05, -0.16],
+  [34.74, -2.92],
+  [34.72, -11.75],  // 26 Aintree (left)
+  [34.47, -14.16],
+  [33.73, -16.47],
+  [32.55, -18.59],
+  [30.97, -20.43],
+  [29.05, -21.91],  // 31 Wellington straight
+  [19.08, -28.12],
+  [9.10, -34.32],
+  [-0.88, -40.52],
+  [-10.86, -46.73], // 35 Brooklands (left)
+  [-13.58, -47.76],
+  [-16.49, -47.67],
+  [-19.15, -46.48],
+  [-21.16, -44.36],
+  [-22.21, -41.64],
+  [-22.43, -40.36], // 41 Luffield (long right)
+  [-23.28, -37.96],
+  [-24.89, -35.99],
+  [-27.07, -34.67],
+  [-29.56, -34.15],
+  [-32.09, -34.50],
+  [-34.38, -35.68],
+  [-36.12, -37.55],
+  [-37.13, -39.90],
+  [-37.30, -42.45],
+  [-36.60, -44.91],
+  [-31.62, -55.23], // 52 Woodcote (right)
+  [-30.27, -57.40],
+  [-28.50, -59.23],
+  [-26.38, -60.65],
+  [-24.01, -61.59],
+  [-21.50, -62.00], // 57 National straight
+  [-10.16, -62.66],
+  [1.19, -63.31],
+  [12.53, -63.96],
+  [23.87, -64.61],  // 61 Copse (fast right)
+  [26.72, -64.52],
+  [29.50, -63.92],
+  [32.14, -62.84],
+  [34.55, -61.31],
+  [36.64, -59.37],
+  [38.36, -57.10],
+  [39.65, -54.55],
+  [40.46, -51.82],
+  [42.45, -42.06],
+  [44.43, -32.30],  // 71 Maggotts (left)
+  [45.19, -29.57],
+  [46.33, -26.97],
+  [47.98, -23.84],  // 74 Maggotts (right)
+  [49.00, -21.25],
+  [49.45, -18.50],
+  [49.31, -15.71],
+  [48.85, -12.89],  // 78 Becketts (left)
+  [48.72, -10.68],
+  [49.05, -8.50],
+  [49.82, -6.43],   // 81 Becketts (right)
+  [50.67, -4.02],
+  [50.92, -1.48],
+  [50.54, 1.04],
+  [49.57, 3.40],
+  [48.05, 5.45],
+  [46.09, 7.08],
+  [45.25, 7.62],    // 88 Chapel (left)
+  [43.25, 9.16],
+  [41.53, 11.01],   // 90 Hangar straight
+  [34.38, 20.16],
+  [27.23, 29.32],
+  [20.08, 38.47],
+  [12.93, 47.63],
+  [5.78, 56.78],    // 95 Stowe (right)
+  [3.80, 58.78],
+  [1.40, 60.27],
+  [-1.28, 61.15],
+  [-4.08, 61.39],
+  [-6.87, 60.96],
+  [-9.48, 59.89],
+  [-11.77, 58.25],  // 102 Vale straight
+  [-21.09, 49.73],
+  [-30.42, 41.20],  // 104 Vale (left)
+  [-32.54, 39.84],
+  [-34.99, 39.25],
+  [-37.49, 39.51],
+  [-39.77, 40.59],  // 108 Club (right)
+  [-42.48, 41.82],
+  [-45.43, 41.98],
+  [-48.23, 41.06],
+  [-50.51, 39.19],
+  [-51.96, 36.62],
+  [-52.39, 33.71],
+  [-51.73, 30.85],
+  [-50.09, 28.42],
+  [-42.24, 20.46],
+];
 
 export default {
   id: 'silverstone',
   name: 'Silverstone',
   location: 'Great Britain',
   inspiredBy: 'Silverstone Circuit',
-  blurb: '',
-  laps: 5,
-  waypoints: null,
+  blurb: 'Flat-out Copse, the Maggotts–Becketts snake and the long Hangar blast: fast, flowing, brave.',
+  laps: 3,
+  waypoints,
   startIndex: 0,
 };
