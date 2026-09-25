@@ -52,7 +52,7 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 
 - **Tracks**: ten circuits, each 6 m (up to 7 m) wide asphalt with edge lines, red/white curbs on the inside of tight corners, a checkered start/finish line and a six-kart grid, lined with rounded plastic barriers that actually stop you, inside a hall sized to the layout — TBC Indoor (Vancouver, the home track) · Monte Carlo (Monaco) · Monza · Silverstone · Spa · Interlagos · Montréal · Austin (COTA) · Spielberg (Red Bull Ring) · Marina Bay (Singapore). The F1 layouts are scaled to kart size (390–612 m) and keep each circuit's direction, silhouette and corner sequence; every one was reviewed corner by corner against the real map. Best laps and ghosts are saved per track.
 - **Physics**: a single-track (bicycle) model of a ~160 kg rental kart: a saturating tyre curve per axle with longitudinal load transfer, a driven solid rear axle carrying the only brakes (so trail braking and lifting rotate the kart, and too much throttle or brake at the limit steps the rear out), a drift button that kicks the rear loose, and a countersteer assist so a slide can be held and caught on a keyboard. Fixed 1/120 s substeps; barriers bounce and scrape with Coulomb friction.
-- **Kart**: low-poly chassis, nose cone with number plate, side pods, engine, and a driver in a helmet. Wheels spin and steer, the body rolls and pitches with load, and the driver's head leans into corners.
+- **Kart**: a modern indoor rental kart — tubular steel frame (rails, kingpins, tie rods, bumper loops, nerf bars), wide nose fairing and front panel with number roundels, side pods, full-width rear bumper, moulded bucket seat, fuel tank between the driver's legs, pedals, a Honda GX-style engine (finned cylinder, red fan shroud and recoil starter, air box, silencer, chain guard) and the rear axle with brake disc and sprocket. Slick tyres are lathed from a real cross-section on spoked 5-inch rims. The driver sits reclined in a race suit with the kart's colour on its side panels and a neck brace; skinned arms keep the gloves on the rim at quarter to three as the wheel turns; the full-face helmet has an egg-shaped shell cut lower at the nape than at the chin bar, a tinted visor on side pivots, a brow peak, vents, a livery stripe and a neck roll. Wheels spin and steer, the body rolls and pitches with load, and the driver's head leans into corners.
 - **Venue**: concrete floor with slab joints, ribbed-metal walls with an accent stripe and neon, banners, roof trusses, LED panels with floor light pools, and a start gantry with real start lights.
 - **Look**: ACES tone mapping, a custom reflection environment of the hall itself, soft shadows, tight bloom, a colour grade with vignette, and 4× MSAA.
 - **Feel**: speed-driven FOV, a chase camera that swings to show your drift angle, impact shake, tyre smoke, skid marks, and sparks.
@@ -95,7 +95,8 @@ src/
     barrierLines       barrier geometry shared by the scene, collider, simulator and tests
   physics/             kartPhysics (pure single-track step) · tyres · axles · controls · BarrierCollider (circle vs segments, grid)
                        kartContacts (kart vs kart, slipstream)
-  entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts (merged per material: ~18 draws a kart)
+  entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts (merged per material: 18 draws, ~11.6k triangles a kart)
+                       model/: shapes + primitives (surface helpers) · frame · bodywork · cockpit · engine · wheels · driver · arms (skinned, IK) · helmet + helmetShell
   world/               Floor · TrackSurface · RubberLine (+ BrakeMarks) · Curbs · Barriers · Venue · Rig · Banners
                        Lighting (shadow box follows the kart in big halls) · StartGantry · textures/ (all procedural canvas textures)
   fx/                  Particles (+ shader) · SkidMarks · KartFx · KerbFeel (kerb contact + kart ride)
@@ -138,6 +139,7 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `fin
 | Rubbered line and brake marks | `config/track.js` → `RUBBER_LINE`, `BRAKE_MARKS` |
 | Brightness, bloom, colour grade | `config/render.js` |
 | Kart colours / number | `config/kart.js` → `LIVERY`, `KART_NUMBER` |
+| Driver pose, steering wheel position, arm lengths | `config/kart.js` → `COCKPIT` |
 | Track shape | `src/tracks/<id>.js` → `waypoints` (then `node tools/track-report.mjs <id>`: the rules in `track/validate.js` + an AI race) |
 | Banner texts, neon colours, lights | `config/venue.js` |
 | Race length | the track file's `laps` (about 140 s of racing; `tests/tracks.test.js` checks it) |

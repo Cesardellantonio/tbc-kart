@@ -51,14 +51,18 @@ export function mergeStatic(group, { keep = [], alias = new Map() } = {}) {
   };
   walk(group);
   for (const [material, parts] of buckets) {
-    const tinted = parts.some((p) => p.material !== material);
-    const merged = new THREE.Mesh(
-      mergeGeometries(parts.map((p) => bake(p, toGroup, tinted && p.material.color))),
-      tinted ? vertexColoured(material) : material,
-    );
+    const merged = new THREE.Mesh(...bakeParts(parts, material, toGroup));
     merged.userData.small = parts.every((p) => p.userData.small);
-    for (const p of parts) p.geometry.dispose();
     group.add(merged);
   }
   return group;
+}
+
+// One geometry (and the material to draw it with) from meshes that all shade as `material`:
+// parts with another material of their own carry its colour as vertex colours (always, with tint).
+export function bakeParts(parts, material, toGroup = new THREE.Matrix4(), tint = false) {
+  const tinted = tint || parts.some((p) => p.material !== material);
+  const geometry = mergeGeometries(parts.map((p) => bake(p, toGroup, tinted && p.material.color)));
+  for (const p of parts) p.geometry.dispose();
+  return [geometry, tinted ? vertexColoured(material) : material];
 }

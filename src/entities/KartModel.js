@@ -29,7 +29,7 @@ export class KartModel {
     this.root.traverse((o) => {
       if (!o.isMesh) return;
       o.receiveShadow = !ghost;
-      o.castShadow = !ghost && !o.userData.small; // visor, plate, steering wheel: too small to matter
+      o.castShadow = !ghost && !o.userData.small; // plates, steering wheel: too small to matter
     });
     this._roll = 0;
     this._pitch = 0;
@@ -58,6 +58,7 @@ export class KartModel {
       if (w.front) w.steer.rotation.y = state.steer * MAX_STEER_ANGLE;
     }
     this.steeringWheel.rotation.z = state.steer * STEERING_WHEEL_TURN;
+    this.driver.arms.update(this.steeringWheel.rotation.z); // gloves stay on the rim
 
     const lim = BODY_MOTION_LIMIT;
     const roll = clamp(-tel.latAccel * BODY_ROLL, -lim, lim) || 0; // || 0 drops NaN

@@ -7,6 +7,8 @@ import { mergeStatic } from '../src/entities/model/merge.js';
 import { kartMaterials } from '../src/entities/model/materials.js';
 import { buildWheels } from '../src/entities/model/wheels.js';
 import { buildDriver } from '../src/entities/model/driver.js';
+import { KartModel } from '../src/entities/KartModel.js';
+import { COCKPIT } from '../src/config/kart.js';
 import { createLighting } from '../src/world/Lighting.js';
 import { SHADOW_FIT, SHADOW_MAP_SIZE, SUN } from '../src/config/render.js';
 
@@ -77,12 +79,52 @@ describe('kart model merging', () => {
     expect(m.material.vertexColors).toBe(true);
   });
 
-  it('costs 2 draws per wheel and 4 for the driver (1 body + 3 head)', () => {
+  it('costs 2 draws per wheel and 4 for the driver (body, skinned arms, helmet, visor)', () => {
     const mats = kartMaterials();
     for (const w of buildWheels(mats).wheels) expect(meshes(w.spin).length).toBe(2);
     const driver = buildDriver(mats);
-    expect(meshes(driver.group, [driver.head]).length).toBe(1);
-    expect(meshes(driver.head).length).toBe(3);
+    expect(meshes(driver.group, [driver.head, driver.arms.mesh]).length).toBe(1);
+    expect(driver.arms.mesh.isSkinnedMesh).toBe(true);
+    expect(meshes(driver.head).length).toBe(2);
+  });
+
+  it('stays inside the triangle budget and the physics footprint', () => {
+    const model = new KartModel({ ghost: true }); // same geometry, no canvas textures
+    let tris = 0;
+    model.root.traverse((o) => {
+      if (o.isMesh) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+    });
+    expect(tris).toBeLessThan(12000);
+    const box = worldBox(model.root);
+    expect(box.max.x - box.min.x).toBeLessThan(1.5); // m: rental karts are ~1.4 m wide
+    expect(box.max.z - box.min.z).toBeLessThan(2.1); // m: and ~2 m long
+    expect(box.min.y).toBeGreaterThan(-1e-3); // nothing below the ground
+  });
+});
+
+describe('driver arms', () => {
+  const wheel = new THREE.Object3D();
+  wheel.position.set(...COCKPIT.wheelCentre);
+  wheel.rotation.x = -COCKPIT.wheelTilt;
+  const grip = (turn, side) => {
+    wheel.updateMatrixWorld(true);
+    const p = new THREE.Vector3(side * COCKPIT.wheelRadius * Math.cos(turn), side * COCKPIT.wheelRadius * Math.sin(turn), 0);
+    return p.applyMatrix4(wheel.matrixWorld);
+  };
+
+  it('keeps the gloves on the rim at quarter to three as the wheel turns, elbows bent out', () => {
+    const { arms } = buildDriver(kartMaterials());
+    const bones = arms.mesh.skeleton.bones;
+    for (const turn of [0, 0.5, -0.5, 1, -1]) {
+      arms.update(turn);
+      for (const [side, upper, fore] of [[-1, bones[0], bones[1]], [1, bones[2], bones[3]]]) {
+        const hand = new THREE.Vector3(0, COCKPIT.forearm, 0).applyQuaternion(fore.quaternion).add(fore.position);
+        expect(hand.distanceTo(grip(turn, side))).toBeLessThan(0.002); // m
+        expect(upper.position.distanceTo(fore.position)).toBeCloseTo(COCKPIT.upperArm, 3);
+        if (turn === 0) expect(Math.sign(fore.position.x - upper.position.x)).toBe(side); // elbows out
+        expect(fore.position.y).toBeLessThan(upper.position.y); // and below the shoulder
+      }
+    }
   });
 });
 
