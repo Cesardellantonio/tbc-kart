@@ -14,7 +14,8 @@ const range = (n, a, b) => Array.from({ length: n + 1 }, (_, k) => a + ((b - a) 
 function shell(mat) {
   const azs = range(AZ - 1, -Math.PI, Math.PI - (2 * Math.PI) / AZ);
   const hem = azs.map((az) => elevationAt(az, hemY(az)));
-  const rows = range(ROWS - 1, 1 / ROWS, 1).map((t) => azs.map((az, k) => surface(az, Math.PI / 2 - t * (Math.PI / 2 - hem[k]))));
+  const lat = (t, k) => Math.PI / 2 - t * (Math.PI / 2 - hem[k]); // crown (t = 0) → hem (t = 1)
+  const rows = range(ROWS - 1, 1 / ROWS, 1).map((t) => azs.map((az, k) => surface(az, lat(t, k))));
   const g = gridSurface(rows, { wrap: true, out: (i, j) => rows[i][j] });
   const roll = rows[ROWS - 1].map((p) => p.clone().multiply(v3(0.9, 1, 0.9)).add(v3(0, -0.004, 0)));
   const neckRoll = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roll, true), AZ, 0.016, 5, true);

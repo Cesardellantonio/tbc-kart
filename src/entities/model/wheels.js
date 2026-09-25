@@ -34,7 +34,9 @@ function wheelMesh(spec, mats) {
     web.position.x = s * 0.2 * W;
     g.add(web);
   }
-  const rimPts = [[RIM - 0.007, -0.7 * W], [RIM - 0.007, 0.76 * W], [RIM + 0.006, 0.84 * W], [RIM + 0.004, 0.92 * W], [RIM - 0.005, 0.9 * W]];
+  const rimPts = [ // barrel, then the outer flange lip
+    [RIM - 0.007, -0.7 * W], [RIM - 0.007, 0.76 * W], [RIM + 0.006, 0.84 * W], [RIM + 0.004, 0.92 * W], [RIM - 0.005, 0.9 * W],
+  ];
   g.add(new THREE.Mesh(lathe(rimPts, 18), mats.rim));
   for (let k = 0; k < 5; k++) {
     const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.012, RIM - 0.02, 0.017), mats.rim);

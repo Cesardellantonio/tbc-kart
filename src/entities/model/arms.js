@@ -24,7 +24,9 @@ function segment(mats, fore) {
     ? [rod(v3(), v3(0, B - 0.1, 0), 0.043, mats.suit, 8, 0.036),
       rod(v3(0, B - 0.115, 0), v3(0, B - 0.045, 0), 0.041, mats.glove, 8, 0.047, false),
       ball(1, 0.047, 0.058, 0.038, B - 0.008, mats.glove)]
-    : [rod(v3(), v3(0, A, 0), 0.054, mats.suit, 8, 0.044), ball(0.06, 1, 1, 1, 0, mats.suit), ball(0.046, 1, 1, 1, A, mats.suit)];
+    : [rod(v3(), v3(0, A, 0), 0.054, mats.suit, 8, 0.044),
+      ball(0.06, 1, 1, 1, 0, mats.suit),
+      ball(0.046, 1, 1, 1, A, mats.suit)];
   new THREE.Group().add(...parts).updateMatrixWorld(true);
   return bakeParts(parts, mats.suit, undefined, true);
 }
@@ -34,9 +36,9 @@ export function buildArms(mats) {
   const baked = bones.map((_, i) => segment(mats, i % 2 === 1));
   const geo = mergeGeometries(baked.map(([g]) => g));
   const count = baked.map(([g]) => g.attributes.position.count);
-  const skinIndex = count.flatMap((n, i) => Array(n).fill([i, 0, 0, 0]).flat());
-  geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4));
-  geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(count.flatMap((n) => Array(n).fill([1, 0, 0, 0]).flat()), 4));
+  const perVertex = (f) => count.flatMap((n, i) => Array(n).fill(f(i)).flat());
+  geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(perVertex((i) => [i, 0, 0, 0]), 4));
+  geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(perVertex(() => [1, 0, 0, 0]), 4));
   const mesh = new THREE.SkinnedMesh(geo, baked[0][1]);
   mesh.add(...bones);
   mesh.bind(new THREE.Skeleton(bones, bones.map(() => new THREE.Matrix4())), new THREE.Matrix4());

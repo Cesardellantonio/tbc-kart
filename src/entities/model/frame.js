@@ -21,19 +21,23 @@ export function buildFrame(mats) {
   // Main rails: from the front bumper mounts, out to the kingpins, in along the seat, out to the rear
   both([v3(0.17, Y, -0.84), v3(0.3, Y, -0.7), v3(0.36, Y, FZ), v3(0.29, Y, -0.3), v3(0.22, Y, -0.05),
     v3(0.22, Y, 0.2), v3(0.31, Y, 0.42), v3(0.36, Y, 0.6), v3(0.28, Y, 0.74)], R, 18);
-  for (const [z, hw] of [[FZ, 0.36], [-0.2, 0.26], [0.1, 0.22], [0.66, 0.34]]) parts.push(rod(v3(-hw, Y, z), v3(hw, Y, z), R, m));
+  for (const [z, hw] of [[FZ, 0.36], [-0.2, 0.26], [0.1, 0.22], [0.66, 0.34]]) { // cross members
+    parts.push(rod(v3(-hw, Y, z), v3(hw, Y, z), R, m));
+  }
   // Front stub axles and kingpins (the wheels steer about these)
   const hub = FRONT_TRACK / 2;
   for (const s of [-1, 1]) {
     parts.push(rod(v3(s * 0.36, Y, FZ), v3(s * (hub - 0.05), 0.14, FZ), 0.013, m));
-    parts.push(rod(v3(s * (hub - 0.06), 0.1, FZ + 0.02), v3(s * (hub - 0.075), 0.2, FZ - 0.01), 0.014, m, 6, 0.014, false));
+    const [k0, k1] = [v3(s * (hub - 0.06), 0.1, FZ + 0.02), v3(s * (hub - 0.075), 0.2, FZ - 0.01)];
+    parts.push(rod(k0, k1, 0.014, m, 6, 0.014, false));
     parts.push(rod(v3(0, 0.1, -0.5), v3(s * (hub - 0.08), 0.12, FZ + 0.06), 0.007, m)); // tie rod
   }
   // Front bumper: a lower loop and an upper bar carrying the nose
   both([v3(0.17, Y, -0.84), v3(0.24, 0.07, -0.93), v3(0.12, 0.08, -1.0), v3(0, 0.08, -1.01)], 0.012, 8);
   both([v3(0.3, Y, -0.7), v3(0.3, 0.09, -0.86), v3(0.14, 0.1, -0.93), v3(0, 0.1, -0.94)], 0.011, 8);
   // Side nerf bars (the pods sit on them)
-  both([v3(0.29, Y, -0.3), v3(0.5, 0.07, -0.3), v3(0.58, 0.09, -0.1), v3(0.58, 0.09, 0.15), v3(0.5, 0.07, 0.3), v3(0.31, Y, 0.3)], 0.011, 12);
+  both([v3(0.29, Y, -0.3), v3(0.5, 0.07, -0.3), v3(0.58, 0.09, -0.1),
+    v3(0.58, 0.09, 0.15), v3(0.5, 0.07, 0.3), v3(0.31, Y, 0.3)], 0.011, 12);
   // Rear bumper frame behind the wheels
   both([v3(0.28, Y, 0.74), v3(0.4, 0.12, 0.84), v3(0.6, 0.14, 0.86), v3(0.66, 0.16, 0.8)], 0.012, 8);
   parts.push(rod(v3(-0.4, 0.12, 0.84), v3(0.4, 0.12, 0.84), 0.012, m));

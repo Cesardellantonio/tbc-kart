@@ -8,7 +8,10 @@ import { rod, mesh, v3 } from './primitives.js';
 import { COCKPIT } from '../../config/kart.js';
 
 // Seat stations up the bucket: [y, z] of the inner surface's centre line (fits the torso's back)
-const SEAT = [[0.095, 0.03], [0.07, 0.14], [0.068, 0.25], [0.1, 0.345], [0.25, 0.378], [0.37, 0.41], [0.47, 0.43], [0.565, 0.445]];
+const SEAT = [
+  [0.095, 0.03], [0.07, 0.14], [0.068, 0.25], [0.1, 0.345],
+  [0.25, 0.378], [0.37, 0.41], [0.47, 0.43], [0.565, 0.445],
+];
 
 function seat(mat) {
   const surface = (grow) => SEAT.map(([y, z], i) => {
@@ -54,7 +57,9 @@ function steeringWheel(mats) {
     grip.rotation.z = a;
     wheel.add(grip);
   }
-  for (const a of [0, Math.PI, -Math.PI / 2]) wheel.add(rod(v3(0, 0, -0.03), v3(Math.cos(a) * R, Math.sin(a) * R, 0), 0.011, mats.frame, 4));
+  for (const a of [0, Math.PI, -Math.PI / 2]) { // spokes, dished toward the column
+    wheel.add(rod(v3(0, 0, -0.03), v3(Math.cos(a) * R, Math.sin(a) * R, 0), 0.011, mats.frame, 4));
+  }
   wheel.add(rod(v3(0, 0, -0.06), v3(0, 0, -0.025), 0.038, mats.frame, 12, 0.032, false)); // hub
   return wheel;
 }

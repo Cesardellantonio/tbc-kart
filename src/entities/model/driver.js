@@ -26,18 +26,21 @@ const X = v3(1, 0, 0);
 const Z = v3(0, 0, 1);
 
 function torso(mat) {
-  const rows = TORSO.map(([y, z, hw, df, db]) => ring(v3(0, y, z), X, Z, hw, db, 14, 2.6, df));
+  const rows = TORSO.map(([y, z, hw, df, db]) => ring(v3(0, y, z), X, Z, hw, db, 16, 2.6, df));
   const centre = v3(0, 0.35, 0.3);
   const out = (i, j) => rows[i][j].clone().sub(v3(0, rows[i][j].y, TORSO[i][1]));
-  return [mesh(gridSurface(rows, { wrap: true, out }), mat), mesh(cap(rows[0], centre), mat), mesh(cap(rows.at(-1), centre), mat)];
+  const body = gridSurface(rows, { wrap: true, out });
+  return [mesh(body, mat), mesh(cap(rows[0], centre), mat), mesh(cap(rows.at(-1), centre), mat)];
 }
 
 // Suit side panels: a band down each flank from the armpit to the hip, just proud of the torso.
 function panels(mat) {
-  const fine = TORSO.slice(1, 6).map(([y, z, hw, df, db]) => ring(v3(0, y, z), X, Z, hw * 1.012, db * 1.012, 48, 2.6, df * 1.012));
+  const fine = TORSO.slice(1, 6).map(([y, z, hw, df, db]) =>
+    ring(v3(0, y, z), X, Z, hw * 1.012, db * 1.012, 48, 2.6, df * 1.012));
   return [0, 24].map((k) => {
     const rows = fine.map((r) => [-2, -1, 0, 1, 2].map((d) => r[(k + d + 48) % 48]));
-    return mesh(gridSurface(rows, { out: (i, j) => rows[i][j].clone().sub(v3(0, rows[i][j].y, TORSO[i + 1][1])) }), mat);
+    const out = (i, j) => rows[i][j].clone().sub(v3(0, rows[i][j].y, TORSO[i + 1][1]));
+    return mesh(gridSurface(rows, { out }), mat);
   });
 }
 
