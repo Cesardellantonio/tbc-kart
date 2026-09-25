@@ -5,6 +5,7 @@ import '@fontsource/chakra-petch/latin-600.css';
 import '@fontsource/chakra-petch/latin-700.css';
 import '@fontsource/chakra-petch/latin-700-italic.css';
 import './ui/hud.css';
+import './ui/lobby.css';
 import { Game } from './app/Game.js';
 
 const game = new Game();
@@ -21,4 +22,8 @@ if (import.meta.env.DEV) {
     teleport: (x, z, yaw = game.kart.state.yaw) => game.kart.place(x, z, yaw),
     togglePause: () => game.session.togglePause(),
   };
+  // ?lobbydemo=1: feeds made-up online states through the lobby / results / Esc cards (no network).
+  if (new URLSearchParams(window.location.search).has('lobbydemo')) {
+    import('./ui/lobbyDemo.js').then((m) => (window.__lobbyDemo = m.lobbyDemo(game)));
+  }
 }
