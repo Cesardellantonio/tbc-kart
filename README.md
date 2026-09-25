@@ -81,7 +81,7 @@ src/
     offsetChain        clean barrier lines (cuts corner loops, keeps off the asphalt)
     stripGeometry      flat strips for asphalt, paint and curbs
     bounds             venue size from the barriers + a wall loop collider
-  physics/             kartPhysics (pure step) · BarrierCollider (circle vs segments, grid)
+  physics/             kartPhysics (pure single-track step) · tyres · axles · controls · BarrierCollider (circle vs segments, grid)
                        kartContacts (kart vs kart, slipstream)
   entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts
   world/               Floor · TrackSurface · Curbs · Barriers · Venue · Rig · Banners
@@ -114,9 +114,9 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `fin
 
 | Want to change… | Edit |
 |---|---|
-| Top speed, acceleration, braking | `config/physics.js` → `ENGINE_ACCEL`, `TOP_SPEED`, `BRAKE_DECEL` |
-| How grippy / drifty it feels | `config/physics.js` → `GRIP*`, `SLIDE_THRESHOLD`, `DRIFT_YAW_BOOST` |
-| Steering speed | `config/physics.js` → `STEER_RATE`, `STEER_IN`, `STEER_OUT` |
+| Top speed, acceleration, braking | `config/physics.js` → `ENGINE_ACCEL`, `TOP_SPEED`, `BRAKE_FORCE` (rear brakes only) |
+| How grippy / drifty it feels | `config/physics.js` → `MU_FRONT` / `MU_REAR`, `TYRE_SHAPE`, `TYRE_SLIDE_MIN`, `COG_HEIGHT`, `REAR_WEIGHT` (single-track tyre model) |
+| Steering and drift help | `config/physics.js` → `STEER_LOCK`, `STEER_LIMIT_*`, `STEER_IN` / `STEER_OUT`, `STEER_ASSIST` (countersteer assist 0..1) |
 | Camera distance, FOV kick, shake | `config/camera.js` |
 | Brightness, bloom, colour grade | `config/render.js` |
 | Kart colours / number | `config/kart.js` → `LIVERY`, `KART_NUMBER` |

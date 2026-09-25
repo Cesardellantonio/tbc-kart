@@ -34,7 +34,7 @@ export class DebugOverlay {
       `fps      ${this._fps.toFixed(0)}   calls ${info.calls}   tris ${info.triangles}`,
       `state    ${game.session.state}   camera ${game.camera.mode}/${game.camera.view}`,
       `speed    ${(t.speed * 3.6).toFixed(1)} km/h   fwd ${t.forwardSpeed.toFixed(2)} m/s`,
-      `slip     ${t.slip.toFixed(2)} m/s   ${t.sliding ? 'SLIDING' : ''}`,
+      `slip     ${t.slip.toFixed(2)} m/s   β ${((t.slipAngle * 180) / Math.PI).toFixed(0)}°   drift ${t.drift.toFixed(2)}   ${t.sliding ? 'SLIDING' : ''}`,
       `accel    long ${t.longAccel.toFixed(1)}   lat ${t.latAccel.toFixed(1)} m/s²`,
       `pos      ${s.x.toFixed(1)}, ${s.z.toFixed(1)}   track #${game.trackIndex}`,
     ].join('\n');

@@ -2,7 +2,9 @@
 // slower karts, backs off when boxed in, and asks for a reset when stuck against a wall.
 
 import { AUTOPILOT, AI } from '../config/race.js';
-import { clamp, damp, wrapAngle, yawFromDirection } from '../core/math.js';
+import { clamp, damp } from '../core/math.js';
+import { speedControl } from './speedControl.js';
+import { pursuitSteer } from './pursuit.js';
 
 const IDLE = { throttle: 0, brake: 0, steer: 0, handbrake: false };
 
@@ -47,11 +49,10 @@ export class AiDriver {
     }
     this.pass = damp(this.pass, passWant, AI.offsetRate, dt);
 
-    const look = Math.round((AUTOPILOT.lookAhead + speed * 0.3) / p.spacing);
+    const look = Math.round((AUTOPILOT.lookAhead + speed * AUTOPILOT.lookSpeed) / p.spacing);
     const t = p.wrap(this.index + look);
     const lat = clamp(this.line[t] + this.profile.line + this.pass, -p.halfWidth + 0.85, p.halfWidth - 0.85);
     const aim = p.offset(t, lat);
-    const error = wrapAngle(yawFromDirection(aim.x - state.x, aim.z - state.z) - state.yaw);
 
     let k = 0;
     const span = Math.round((8 + speed * 1.4) / p.spacing);
@@ -61,9 +62,8 @@ export class AiDriver {
 
     this.stuck = speed < 1 ? this.stuck + dt : 0;
     return {
-      throttle: speed < want ? 1 : 0,
-      brake: speed > want + 1.2 ? 1 : 0,
-      steer: clamp(error * 2.4, -1, 1),
+      ...speedControl(speed, want),
+      steer: pursuitSteer(state, aim, speed),
       handbrake: false,
       reset: this.stuck > AI.stuckTime,
     };

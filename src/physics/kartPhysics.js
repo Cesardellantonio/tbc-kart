@@ -1,66 +1,83 @@
-// Pure kart dynamics step: engine, brakes, tyre grip / drift and steering. No THREE, no side effects.
+// Pure kart dynamics step: a single-track (bicycle) model with saturating tyres, longitudinal load
+// transfer, a rear friction ellipse (drive and the only brakes share the rear grip) and a kinematic
+// blend at walking pace. No THREE, no side effects.
 
 import {
-  ENGINE_ACCEL, TOP_SPEED, BRAKE_DECEL, REVERSE_ACCEL, REVERSE_MAX,
-  ROLLING_DECEL, AERO_DRAG, DRAFT_DRAG_CUT, HANDBRAKE_DECEL,
-  GRIP, GRIP_SLIDING, GRIP_HANDBRAKE, SLIDE_THRESHOLD,
-  STEER_RATE, STEER_FULL_SPEED, STEER_HIGH_SPEED_CUT, DRIFT_YAW_BOOST, STEER_IN, STEER_OUT,
+  MASS, WHEELBASE, YAW_INERTIA, PITCH_RATE, SLIP_SPEED_MIN, KINEMATIC_BELOW, DYNAMIC_ABOVE, LOW_SPEED_SCRUB,
 } from '../config/physics.js';
-import { clamp, forwardFromYaw, rightFromYaw } from '../core/math.js';
+import { damp, lerp, smoothstep, forwardFromYaw, rightFromYaw } from '../core/math.js';
+import { CG_TO_FRONT, CG_TO_REAR, axleLoads, driftOf } from './tyres.js';
+import { frontAxle, rearAxle } from './axles.js';
+import { smoothSteer, wheelAngle, assisted, pedals } from './controls.js';
 
-// state: { x, z, yaw, vx, vz, steer }
-// input: { throttle 0..1, brake 0..1, steer -1..1 (+ = left), handbrake bool, draft 0..1 (slipstream) }
-// Returns the next state, including telemetry used by camera, FX, audio and HUD.
+const bodySlipOf = (vf, vl) => (Math.hypot(vf, vl) > 0.3 ? Math.atan2(vl, Math.abs(vf)) : 0);
+
+// state: { x, z, yaw, vx, vz, steer, yawRate (rad/s, + = left), loadAccel (m/s², drives load transfer) }
+// input: { throttle 0..1, brake 0..1, steer -1..1 (+ = left), handbrake bool (drift button: locks the
+// rear), draft 0..1 (slipstream), assist 0..1 (optional, overrides STEER_ASSIST) }
+// Returns the next state plus telemetry for camera, FX, audio and HUD (see the bottom of the step).
 export function stepKart(s, input, dt) {
-  if (!(dt > 0)) return { ...s, forwardSpeed: s.forwardSpeed ?? 0, slip: s.slip ?? 0, sliding: false, longAccel: 0, latAccel: 0 };
-  const target = clamp(input.steer, -1, 1);
-  const steerRate = Math.abs(target) > Math.abs(s.steer) ? STEER_IN : STEER_OUT;
-  const steer = s.steer + (target - s.steer) * Math.min(1, steerRate * dt);
+  if (!(dt > 0)) return idle(s);
+  const steer = smoothSteer(s.steer, input.steer, dt);
 
-  // Velocity in the kart's frame: forward and sideways components.
+  // Velocity in the kart's frame: forward and leftward (+) components, and the yaw rate.
   const f = forwardFromYaw(s.yaw);
-  const r = rightFromYaw(s.yaw);
+  const rt = rightFromYaw(s.yaw);
   const vf0 = s.vx * f.x + s.vz * f.z;
-  const vr0 = s.vx * r.x + s.vz * r.z;
+  const vl0 = -(s.vx * rt.x + s.vz * rt.z);
+  const r0 = s.yawRate ?? 0;
+  const speed = Math.hypot(vf0, vl0);
+  const w = smoothstep(KINEMATIC_BELOW, DYNAMIC_ABOVE, speed); // 0 = kinematic, 1 = full dynamics
 
-  let vf = vf0;
-  if (input.throttle > 0) {
-    if (vf >= -0.3) vf += ENGINE_ACCEL * input.throttle * Math.max(0, 1 - (vf / TOP_SPEED) ** 2) * dt;
-    else vf = Math.min(0, vf + BRAKE_DECEL * input.throttle * dt); // throttle while rolling back
-  }
-  if (input.brake > 0) {
-    if (vf > 0.3) vf = Math.max(0, vf - BRAKE_DECEL * input.brake * dt);
-    else if (!input.throttle) vf = Math.max(-REVERSE_MAX, vf - REVERSE_ACCEL * input.brake * dt);
-  }
-  const drag = AERO_DRAG * (1 - DRAFT_DRAG_CUT * (input.draft || 0));
-  const resist = (ROLLING_DECEL + drag * vf * vf + (input.handbrake ? HANDBRAKE_DECEL : 0)) * dt;
+  const base = wheelAngle(steer, speed);
+  const travel = Math.atan2(vl0, Math.max(Math.abs(vf0), SLIP_SPEED_MIN)); // CoG direction of travel
+  const delta = vf0 > 0 ? assisted(base, bodySlipOf(vf0, vl0), travel, input.assist) : base;
+  const vlFront = vl0 + CG_TO_FRONT * r0;
+  const load = axleLoads(s.loadAccel ?? 0);
+  const pedal = pedals(vf0, input);
+  const front = frontAxle(vf0, vlFront, delta, load.front, dt);
+  const rear = rearAxle(vf0, vl0 - CG_TO_REAR * r0, load.rear, pedal, !!input.handbrake, dt);
+
+  // Longitudinal: drive and steering scrub, then resistances that can stop but never reverse the kart.
+  let vf = vf0 + ((rear.drive + front.fx) / MASS) * dt;
+  const resist = (pedal.resist + rear.brake / MASS) * dt;
   vf = Math.abs(vf) <= resist ? 0 : vf - Math.sign(vf) * resist;
 
-  // Tyres scrub sideways velocity; once sliding (or on the handbrake) they hold far less.
-  const sliding = Math.abs(vr0) > SLIDE_THRESHOLD;
-  const grip = input.handbrake ? GRIP_HANDBRAKE : sliding ? GRIP_SLIDING : GRIP;
-  const vr = vr0 * Math.exp(-grip * dt);
+  // Lateral and yaw: tyre forces at speed, rolling without slip at walking pace.
+  const fy = front.fy + rear.lateral;
+  const rKin = (vf * Math.tan(base)) / WHEELBASE;
+  const vlKin = CG_TO_REAR * rKin + (vl0 - CG_TO_REAR * rKin) * Math.exp(-LOW_SPEED_SCRUB * dt);
+  const vl = lerp(vlKin, vl0 + (fy / MASS) * dt, w);
+  const yawRate = lerp(rKin, r0 + ((CG_TO_FRONT * front.fy - CG_TO_REAR * rear.lateral) / YAW_INERTIA) * dt, w);
 
-  const speed = Math.abs(vf);
-  const authority =
-    Math.min(1, speed / STEER_FULL_SPEED) * (1 - STEER_HIGH_SPEED_CUT * Math.min(1, speed / TOP_SPEED));
-  const boost = input.handbrake && speed > 3 ? DRIFT_YAW_BOOST : 1;
-  const yawRate = steer * STEER_RATE * authority * boost * (vf < 0 ? -1 : 1);
-  const yaw = s.yaw + yawRate * dt;
-
-  const vx = f.x * vf + r.x * vr;
-  const vz = f.z * vf + r.z * vr;
+  const vx = f.x * vf - rt.x * vl;
+  const vz = f.z * vf - rt.z * vl;
+  const longAccel = (vf - vf0) / dt;
+  const drift = w * driftOf(rear.slip);
   return {
     x: s.x + vx * dt,
     z: s.z + vz * dt,
-    yaw,
+    yaw: s.yaw + yawRate * dt,
     vx,
     vz,
     steer,
-    forwardSpeed: vf,
-    slip: Math.abs(vr),
-    sliding: sliding || (!!input.handbrake && speed > 3),
-    longAccel: (vf - vf0) / dt,
-    latAccel: vf * yawRate,
+    yawRate,
+    loadAccel: damp(s.loadAccel ?? 0, longAccel, PITCH_RATE, dt),
+    forwardSpeed: vf, // m/s along the nose
+    slip: Math.abs(vl), // sideways speed, m/s
+    sliding: drift > 0.05 || (!!input.handbrake && speed > 3),
+    longAccel, // m/s², + = speeding up
+    latAccel: lerp(vf * rKin, fy / MASS, w), // m/s², + = toward the left
+    slipAngle: bodySlipOf(vf, vl), // body slip angle, rad (+ = moving left of the nose)
+    frontSlip: w * front.slip, // axle slip angles, rad
+    rearSlip: w * rear.slip,
+    drift, // 0..1, how far the rear is past its grip peak
+  };
+}
+
+function idle(s) {
+  return {
+    ...s, yawRate: s.yawRate ?? 0, forwardSpeed: s.forwardSpeed ?? 0, slip: s.slip ?? 0, sliding: false,
+    longAccel: 0, latAccel: 0, slipAngle: s.slipAngle ?? 0, frontSlip: 0, rearSlip: 0, drift: 0,
   };
 }

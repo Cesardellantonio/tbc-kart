@@ -3,6 +3,12 @@
 export const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 export const lerp = (a, b, t) => a + (b - a) * t;
 
+// Smooth 0..1 ramp as v goes from a to b (Hermite).
+export function smoothstep(a, b, v) {
+  const t = clamp((v - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 // Frame-rate independent exponential smoothing toward `target`.
 export const damp = (current, target, rate, dt) => lerp(current, target, 1 - Math.exp(-rate * dt));
 
