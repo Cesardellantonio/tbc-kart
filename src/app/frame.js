@@ -4,6 +4,7 @@ import { handleActions } from './actions.js';
 import { stepField } from './field.js';
 import { updateSound } from './sound.js';
 import { FINISH_COOLDOWN } from '../config/race.js';
+import { rampThrottle } from '../physics/controls.js';
 
 const HOLD = { throttle: 0, brake: 0, steer: 0, handbrake: false };
 const IMPACT_MIN = 1.5; // m/s into a barrier before it counts as a hit
@@ -17,6 +18,15 @@ export function controlsFor(game, state) {
   if (state === 'title') return game.autopilot.controls(game.kart.state, speed);
   if (state === 'finished') return game.autopilot.controls(game.kart.state, speed, FINISH_COOLDOWN.maxSpeed);
   return state === 'racing' ? game.input.controls() : HOLD;
+}
+
+// An on/off (key or touch) throttle opens at a rate (physics/controls.js rampThrottle); an analog pad
+// trigger is the driver's own ramp and passes straight through, as do the computer drivers' pedals.
+function shapePlayer(game, c, state, dt) {
+  if (state !== 'racing' || !c.throttleDigital) return (game.playerThrottle = c.throttle), c;
+  const { kart } = game;
+  game.playerThrottle = rampThrottle(game.playerThrottle ?? 0, c.throttle, kart.state.slipAngle, dt, kart.telemetry.speed);
+  return { ...c, throttle: game.playerThrottle };
 }
 
 // requestAnimationFrame loop with a clamped timestep.
@@ -55,7 +65,7 @@ export function stepGame(game, dt) {
   const grandPrix = session.mode === 'race' || state === 'title';
   let wallHit = 0;
   if (!paused) {
-    kart.update(game.controlsFor(state), dt);
+    kart.update(shapePlayer(game, game.controlsFor(state), state, dt), dt);
     wallHit = kart.telemetry.impact; // barrier only: kart-to-kart contacts are added by the field below
     if (grandPrix) stepField(game, dt, state !== 'countdown');
     game.trackIndex = world.path.nearest(kart.state.x, kart.state.z, game.trackIndex);

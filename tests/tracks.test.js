@@ -5,6 +5,8 @@ import { describe, it, expect } from 'vitest';
 import { ALL_TRACKS, TRACKS } from '../src/tracks/index.js';
 import { validateTrack } from '../src/track/validate.js';
 import { simulateRace } from '../tools/simulate.js';
+import { AI } from '../src/config/race.js';
+import { seededRandom } from '../src/core/math.js';
 
 describe('track registry', () => {
   it('has unique ids and the metadata the menus need', () => {
@@ -20,8 +22,20 @@ describe.each(TRACKS.map((t) => [t.id, t]))('%s', (id, track) => {
     expect(validateTrack(track).problems).toEqual([]);
   });
 
-  it('can be raced: six AI karts finish two laps without getting stuck', () => {
-    const sim = simulateRace(track, { laps: 2 });
+  it('can be raced: six AI karts finish two laps without getting stuck, and a GP lasts ~2–2.5 min', () => {
+    const sim = simulateRace(track, { laps: 2, random: seededRandom(1) });
+    expect(sim.allFinished).toBe(true);
+    expect(sim.resets).toBe(0);
+    // Race distance: the lap count (3–8) that brings the winner's race closest to 140 s.
+    const lap = Math.min(...sim.results.map((r) => r.finishTime)) / 2;
+    const off = (laps) => Math.abs(laps * lap - 140);
+    expect(track.laps).toBeGreaterThanOrEqual(3);
+    expect(track.laps).toBeLessThanOrEqual(8);
+    for (let laps = 3; laps <= 8; laps++) expect(off(track.laps), `${laps} laps would be closer`).toBeLessThanOrEqual(off(laps) + 5);
+  }, 30000);
+
+  it('stays drivable with every rival pushed to the full pack pull', () => {
+    const sim = simulateRace(track, { laps: 2, pace: 1 + AI.catchUp, random: seededRandom(3) });
     expect(sim.allFinished).toBe(true);
     expect(sim.resets).toBe(0);
   }, 30000);

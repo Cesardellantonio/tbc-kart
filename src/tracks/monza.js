@@ -97,7 +97,7 @@ export default {
   location: 'Italy',
   inspiredBy: 'Autodromo Nazionale Monza',
   blurb: 'Temple of speed: slipstream duels on two long straights, late braking into the Rettifilo and the Parabolica.',
-  laps: 4,
+  laps: 5,
   waypoints,
   startIndex: 0,
   width: 7,

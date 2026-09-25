@@ -66,7 +66,7 @@ export default {
   location: 'Canada',
   inspiredBy: 'Circuit Gilles Villeneuve',
   blurb: 'Island blast: long straights, late braking into the hairpin and chicanes — and the Wall of Champions.',
-  laps: 3,
+  laps: 4,
   waypoints,
   startIndex: 0,
   width: 6.5,

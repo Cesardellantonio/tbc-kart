@@ -8,7 +8,7 @@ import { stepKart } from '../src/physics/kartPhysics.js';
 import tbc from '../src/tracks/tbc.js';
 import { pathOf } from '../src/track/validate.js';
 import { BARRIER_GAP } from '../src/config/track.js';
-import { KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE } from '../src/config/physics.js';
+import { KART_RADIUS, WALL_RESTITUTION, WALL_FRICTION } from '../src/config/physics.js';
 
 const path = pathOf(tbc);
 const hw = path.halfWidth;
@@ -50,9 +50,22 @@ describe('barriers', () => {
     let s = { x: path.x[i], z: path.z[i], yaw, vx: 0, vz: 0, steer: 0 };
     for (let k = 0; k < 600; k++) {
       s = stepKart(s, { throttle: 1, brake: 0, steer: 0, handbrake: false }, 1 / 120);
-      collider.resolve(s, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE);
+      collider.resolve(s, KART_RADIUS, WALL_RESTITUTION, WALL_FRICTION);
     }
     const lateral = Math.abs(path.lateral(s.x, s.z, path.nearest(s.x, s.z, i)));
     expect(lateral).toBeLessThan(hw + BARRIER_GAP);
+  });
+
+  it('take along-wall speed in proportion to the hit: a brush costs little, a hard hit a lot', () => {
+    const collider = new BarrierCollider([[{ x: -50, z: 1 }, { x: 50, z: 1 }]], 4);
+    const hit = (deg) => {
+      const a = (deg * Math.PI) / 180;
+      const body = { x: 0, z: 1 - KART_RADIUS + 0.01, vx: 15 * Math.cos(a), vz: 15 * Math.sin(a) };
+      collider.resolve(body, KART_RADIUS, WALL_RESTITUTION, WALL_FRICTION);
+      return Math.abs(body.vx);
+    };
+    expect(hit(3)).toBeGreaterThan(14); // a 3° brush at 15 m/s keeps >93 % of its speed along the wall
+    expect(hit(20)).toBeLessThan(10); // a 20° hit loses over a quarter of it
+    expect(hit(20)).toBeGreaterThan(8);
   });
 });

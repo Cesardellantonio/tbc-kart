@@ -36,7 +36,10 @@ export class BarrierCollider {
 
   // Pushes `body` ({x, z, vx, vz}) out of any barrier and bounces its velocity.
   // Returns the strongest impact speed into a wall (m/s); `contact` holds where it happened.
-  resolve(body, radius, restitution, scrapePerMs) {
+  // friction: sliding friction coefficient of the barrier face (Coulomb): the along-wall speed lost is
+  // friction × the normal speed change, so a glancing brush costs little and a hard hit or a kart
+  // pressed along the wall (wall-riding) costs a lot.
+  resolve(body, radius, restitution, friction) {
     this._frame++;
     let impact = 0;
     const cx0 = Math.floor(body.x / this.cell);
@@ -48,14 +51,14 @@ export class BarrierCollider {
         for (const id of list) {
           if (this._stamp[id] === this._frame) continue;
           this._stamp[id] = this._frame;
-          impact = Math.max(impact, this._collide(id * 4, body, radius, restitution, scrapePerMs));
+          impact = Math.max(impact, this._collide(id * 4, body, radius, restitution, friction));
         }
       }
     }
     return impact;
   }
 
-  _collide(o, body, radius, restitution, scrapePerMs) {
+  _collide(o, body, radius, restitution, friction) {
     const s = this.segs;
     const abx = s[o + 2] - s[o];
     const abz = s[o + 3] - s[o + 1];
@@ -68,9 +71,11 @@ export class BarrierCollider {
     [body.x, body.z] = [qx + nx * radius, qz + nz * radius];
     const vn = body.vx * nx + body.vz * nz;
     if (vn >= 0) return 0;
-    const keep = 1 - Math.min(0.6, scrapePerMs * -vn); // harder hits scrub more speed
-    const tx = (body.vx - vn * nx) * keep;
-    const tz = (body.vz - vn * nz) * keep;
+    const [tx0, tz0] = [body.vx - vn * nx, body.vz - vn * nz];
+    const vt = Math.hypot(tx0, tz0);
+    const keep = vt > 1e-9 ? Math.max(0, 1 - (friction * (1 + restitution) * -vn) / vt) : 0;
+    const tx = tx0 * keep;
+    const tz = tz0 * keep;
     body.vx = tx - vn * restitution * nx;
     body.vz = tz - vn * restitution * nz;
     Object.assign(this.contact, { x: qx, z: qz, nx, nz });

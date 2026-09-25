@@ -19,6 +19,11 @@ export const TYRE_SHAPE = 1.7; // Pacejka C (dimensionless): past the peak the f
 export const TYRE_SLIDE_MIN = 0.7; // …down to this share of peak μ for a tyre sliding well sideways
 export const LONG_GRIP = 1.1; // longitudinal peak μ relative to lateral (friction ellipse aspect)
 export const LOCKED_GRIP = 0.78; // share of peak μ a locked (sliding) rear axle keeps
+export const BRAKE_SLIP = 0.1; // slip ratio of a rear braked to its limit: sets the way it slides, so it
+// keeps a side force against any sideways speed instead of giving all its grip to the brake
+// Drift button: a press locks the rear for a short kick (above DYNAMIC_ABOVE); holding it longer gives
+// the rear back to the pedals, so a held button can never stop the kart dead or hold it on the grid.
+export const HANDBRAKE_KICK = 0.3; // s the rear stays locked after a press
 export const SLIP_SPEED_MIN = 1.5; // m/s, floor on the slip-angle denominator
 export const LOAD_MIN = 0.15; // share of static axle load an axle never drops below
 
@@ -37,6 +42,8 @@ export const ROLLING_DECEL = 0.6; // m/s², rolling resistance
 export const AERO_DRAG = 0.008; // 1/m, drag deceleration = AERO_DRAG·v²
 export const DRAFT_DRAG_CUT = 0.55; // share of aero drag removed in a full slipstream
 export const CREEP_SPEED = 0.3; // m/s, below this the brake pedal selects reverse
+export const THROTTLE_RISE = 5; // 1/s, how fast the player's (keyboard / touch 0-1) throttle can open…
+export const THROTTLE_RAMP_SLIP = 0.25; // …unless body slip (rad) is past this: in a slide it acts at once
 
 // Steering
 export const STEER_IN = 7; // 1/s, input smoothing toward full lock
@@ -52,5 +59,7 @@ export const ASSIST_STEER_SHARE = 0.4; // share of the driver's lock kept on top
 // Collisions
 export const KART_RADIUS = 0.8; // m
 export const WALL_RESTITUTION = 0.3;
-export const WALL_SCRAPE = 0.05; // share of along-wall speed lost per m/s of impact
+// A barrier is no rail: sliding friction along its face (Coulomb) takes friction × the normal speed
+// change off the along-wall speed, so a brush costs little, a hard hit or wall-riding costs a lot.
+export const WALL_FRICTION = 0.8;
 export const COLLISION_CELL = 4; // m, spatial hash cell size

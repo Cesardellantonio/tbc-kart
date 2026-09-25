@@ -4,7 +4,8 @@
 import { describe, it, expect } from 'vitest';
 import { stepKart } from '../src/physics/kartPhysics.js';
 import { axleLoads } from '../src/physics/tyres.js';
-import { frontAxle } from '../src/physics/axles.js';
+import { frontAxle, rearAxle } from '../src/physics/axles.js';
+import { rampThrottle } from '../src/physics/controls.js';
 import { TYRE_PEAK_SLIP } from '../src/config/physics.js';
 import { seededRandom, wrapAngle } from '../src/core/math.js';
 
@@ -60,6 +61,28 @@ describe('kartPhysics — straight line', () => {
     expect(Math.abs(s.yaw)).toBeLessThan(1e-9);
   });
 
+  it('stays straight under a stamped brake pedal when nudged off line', () => {
+    for (const start of [{ yawRate: 0.05 }, { vx: -0.2 }]) {
+      let worst = 0;
+      run({ ...moving(14), ...start }, input({ brake: 1 }), 1.4, (s) => (worst = Math.max(worst, Math.abs(s.slipAngle))));
+      expect(worst).toBeLessThan(0.05);
+    }
+  });
+
+  it('a full brake pedal still leaves the rear some cornering grip', () => {
+    // rear at its braking limit, sliding sideways: it must push back, not give all its grip to the brake
+    const r = rearAxle(12, 0.3, 640, { drive: 0, brake: 1100 }, false, DT);
+    expect(r.lateral).toBeLessThan(-150);
+    expect(r.brake).toBeGreaterThan(700);
+    for (const v of [8, 11, 14]) {
+      let s = run(moving(16), input({ brake: 1 }), 0.1);
+      while (s.forwardSpeed > v) s = stepKart(s, input({ brake: 1 }), DT);
+      let worst = 0;
+      run(s, (_, t) => input({ brake: 1, steer: t < 0.15 ? 1 : 0 }), 1.5, (st) => speedOf(st) > 3 && (worst = Math.max(worst, Math.abs(st.slipAngle))));
+      expect(worst, `steer tap braking at ${v} m/s`).toBeLessThan(0.3);
+    }
+  });
+
   it('then reverses slowly, capped at about 4 m/s, and steers in reverse', () => {
     const stopped = run(run(rest(), input({ throttle: 1 }), 5), input({ brake: 1 }), 2.5);
     const reversing = run(stopped, input({ brake: 1 }), 3);
@@ -107,6 +130,36 @@ describe('kartPhysics — standstill and numerics', () => {
       if (speedOf(st) > 20 || Math.abs(st.yawRate) > 12) throw new Error('unbounded motion');
     });
     expect(Number.isFinite(s.x)).toBe(true);
+  });
+});
+
+describe('player throttle rise limiter', () => {
+  it('opens a digital throttle over ~0.2 s, closes it at once, and passes through in a slide', () => {
+    let t = 0;
+    for (let i = 0; i < 6; i++) t = rampThrottle(t, 1, 0, 1 / 60);
+    expect(t).toBeGreaterThan(0.45);
+    expect(t).toBeLessThan(0.55);
+    expect(rampThrottle(0.5, 0, 0, 1 / 60)).toBe(0);
+    expect(rampThrottle(0, 1, 0.4, 1 / 60)).toBe(1);
+    expect(rampThrottle(0, 1, -0.4, 1 / 60)).toBe(1);
+  });
+
+  it('does not hold back a launch from the grid or from walking pace', () => {
+    expect(rampThrottle(0, 1, 0, 1 / 60, 0)).toBe(1);
+    expect(rampThrottle(0, 1, 0, 1 / 60, 2.5)).toBe(1);
+    expect(rampThrottle(0, 1, 0, 1 / 60, 6)).toBeLessThan(0.2);
+  });
+
+  it('stops a floored exit from a tight corner snapping the rear', () => {
+    const s0 = run(moving(6), holdSpeed(6, 1), 3);
+    const peak = (ramped) => {
+      let [thr, beta] = [0, 0];
+      const c = (s) => input({ steer: 1, throttle: ramped ? (thr = rampThrottle(thr, 1, s.slipAngle, DT, speedOf(s))) : 1 });
+      run(s0, c, 0.5, (st) => (beta = Math.max(beta, Math.abs(st.slipAngle))));
+      return beta;
+    };
+    expect(peak(false)).toBeGreaterThan(0.5); // a raw 0.9 g step spins the rear out
+    expect(peak(true)).toBeLessThan(0.45);
   });
 });
 
@@ -173,6 +226,16 @@ describe('kartPhysics — drifting', () => {
     expect(-s.slipAngle).toBeGreaterThan(0.15); // tail out to the right in a left-hander
   });
 
+  it('holding the drift button never stops the kart: the lock is a short kick, then drive returns', () => {
+    const fromRest = run(rest(), input({ throttle: 1, handbrake: true }), 2);
+    expect(fromRest.forwardSpeed).toBeGreaterThan(10);
+    const held = run(moving(12), input({ throttle: 1, handbrake: true }), 2);
+    expect(held.forwardSpeed).toBeGreaterThan(12);
+    const cornering = run(moving(12), input({ throttle: 0.5, steer: 1, handbrake: true }), 2);
+    expect(cornering.forwardSpeed).toBeGreaterThan(7);
+    expect(Math.abs(cornering.slipAngle)).toBeLessThan(0.3);
+  });
+
   it('countersteer assist catches a slide instead of spinning', () => {
     const s0 = stabbed();
     let worst = 0;
@@ -187,26 +250,42 @@ describe('kartPhysics — drifting', () => {
     expect(spun).toBe(true);
   });
 
-  it('a keyboard driver can hold a drift by feathering the throttle', () => {
-    let c = input();
-    let n = 0;
-    let held = 0;
-    let spun = false;
-    const keys = (s) => {
-      if (n++ % 8 === 0) {
-        // 15 decisions a second on digital keys, reading the slide and where it is heading
-        const angle = -s.slipAngle + 0.12 * (s.yawRate - s.latAccel / Math.max(3, speedOf(s)));
-        c = input({ steer: angle > 0.45 ? 0 : 1, throttle: angle > 0.3 ? 0 : 1 });
+  // A human on keys: sees the body angle 110 ms late with its trend over the last 50 ms, holds a key at
+  // least 60 ms, keeps full lock, lifts when the angle 0.2 s ahead passes 26° and floors it below 17°.
+  // The throttle goes through the game's rise limiter, as the player's does.
+  function keyboardDrift(v, tap) {
+    const lag = Math.round(0.11 / DT);
+    const trendN = Math.round(0.05 / DT);
+    const seen = [];
+    let [s, key, want, since, thr, cur, best, spun] = [moving(v), 1, 1, -1, 1, 0, 0, false];
+    for (let i = 0; i < 4 / DT; i++) {
+      const t = i * DT;
+      seen.push(-s.slipAngle);
+      if (t >= tap) {
+        const k = Math.max(0, seen.length - 1 - lag);
+        const ahead = seen[k] + (0.2 * (seen[k] - seen[Math.max(0, k - trendN)])) / (trendN * DT);
+        want = ahead > 0.45 ? 0 : ahead < 0.3 ? 1 : want;
+        if (want !== key && t - since >= 0.06) [key, since] = [want, t];
       }
-      return c;
-    };
-    const end = run(stabbed(), keys, 3, (s) => {
-      if (-s.slipAngle > 0.15 && -s.slipAngle < 0.7) held += DT;
-      spun ||= Math.abs(s.slipAngle) > 1.2;
-    });
-    expect(spun).toBe(false);
-    expect(held).toBeGreaterThan(2.5);
-    expect(end.forwardSpeed).toBeGreaterThan(5);
+      thr = rampThrottle(thr, key, s.slipAngle, DT);
+      s = stepKart(s, input({ steer: 1, throttle: thr, handbrake: t < tap }), DT);
+      cur = t > tap && -s.slipAngle > 0.175 && -s.slipAngle < 0.61 ? cur + DT : 0; // 10–35°
+      best = Math.max(best, cur);
+      spun ||= Math.abs(s.slipAngle) > 1.2 || s.forwardSpeed < 0;
+    }
+    return { best, spun, end: s.forwardSpeed };
+  }
+
+  it('a keyboard driver with human reaction time can hold a drift by feathering the throttle', () => {
+    for (const tap of [0.2, 0.25, 0.3]) {
+      for (const v of [11, 12, 13, 14]) {
+        const r = keyboardDrift(v, tap);
+        expect(r.spun, `tap ${tap} s at ${v} m/s`).toBe(false);
+        expect(r.best, `tap ${tap} s at ${v} m/s`).toBeGreaterThan(2);
+        expect(r.end).toBeGreaterThan(4);
+      }
+    }
+    expect(keyboardDrift(12, 0.12).best).toBeLessThan(0.6); // a brush of the button is not a drift
   });
 
   it('throttle sets the drift angle, and flooring it from a big slide spins the kart', () => {

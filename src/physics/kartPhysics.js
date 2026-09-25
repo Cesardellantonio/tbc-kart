@@ -4,6 +4,7 @@
 
 import {
   MASS, WHEELBASE, YAW_INERTIA, PITCH_RATE, SLIP_SPEED_MIN, KINEMATIC_BELOW, DYNAMIC_ABOVE, LOW_SPEED_SCRUB,
+  HANDBRAKE_KICK,
 } from '../config/physics.js';
 import { damp, lerp, smoothstep, forwardFromYaw, rightFromYaw } from '../core/math.js';
 import { CG_TO_FRONT, CG_TO_REAR, axleLoads, driftOf } from './tyres.js';
@@ -12,9 +13,11 @@ import { smoothSteer, wheelAngle, assisted, pedals } from './controls.js';
 
 const bodySlipOf = (vf, vl) => (Math.hypot(vf, vl) > 0.3 ? Math.atan2(vl, Math.abs(vf)) : 0);
 
-// state: { x, z, yaw, vx, vz, steer, yawRate (rad/s, + = left), loadAccel (m/s², drives load transfer) }
-// input: { throttle 0..1, brake 0..1, steer -1..1 (+ = left), handbrake bool (drift button: locks the
-// rear), draft 0..1 (slipstream), assist 0..1 (optional, overrides STEER_ASSIST) }
+// state: { x, z, yaw, vx, vz, steer, yawRate (rad/s, + = left), loadAccel (m/s², drives load transfer),
+// handbrakeTime (s the drift button has been held) }
+// input: { throttle 0..1, brake 0..1, steer -1..1 (+ = left), handbrake bool (drift button: a press locks
+// the rear for HANDBRAKE_KICK at speed), draft 0..1 (slipstream), assist 0..1 (optional, overrides
+// STEER_ASSIST) }
 // Returns the next state plus telemetry for camera, FX, audio and HUD (see the bottom of the step).
 export function stepKart(s, input, dt) {
   if (!(dt > 0)) return idle(s);
@@ -36,7 +39,9 @@ export function stepKart(s, input, dt) {
   const load = axleLoads(s.loadAccel ?? 0);
   const pedal = pedals(vf0, input);
   const front = frontAxle(vf0, vlFront, delta, load.front, dt);
-  const rear = rearAxle(vf0, vl0 - CG_TO_REAR * r0, load.rear, pedal, !!input.handbrake, dt);
+  const handbrakeTime = input.handbrake ? (s.handbrakeTime ?? 0) + dt : 0;
+  const locked = handbrakeTime > 0 && handbrakeTime <= HANDBRAKE_KICK + 1e-9 && speed > DYNAMIC_ABOVE;
+  const rear = rearAxle(vf0, vl0 - CG_TO_REAR * r0, load.rear, pedal, locked, dt);
 
   // Longitudinal: drive and steering scrub, then resistances that can stop but never reverse the kart.
   let vf = vf0 + ((rear.drive + front.fx) / MASS) * dt;
@@ -63,9 +68,10 @@ export function stepKart(s, input, dt) {
     steer,
     yawRate,
     loadAccel: damp(s.loadAccel ?? 0, longAccel, PITCH_RATE, dt),
+    handbrakeTime,
     forwardSpeed: vf, // m/s along the nose
     slip: Math.abs(vl), // sideways speed, m/s
-    sliding: drift > 0.05 || (!!input.handbrake && speed > 3),
+    sliding: drift > 0.05 || locked,
     longAccel, // m/s², + = speeding up
     latAccel: lerp(vf * rKin, fy / MASS, w), // m/s², + = toward the left
     slipAngle: bodySlipOf(vf, vl), // body slip angle, rad (+ = moving left of the nose)
