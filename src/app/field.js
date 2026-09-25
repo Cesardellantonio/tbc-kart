@@ -8,8 +8,8 @@ import { resolveContacts, drafts } from '../physics/kartContacts.js';
 import { gridSpot } from '../race/grid.js';
 import { trafficFor } from '../race/traffic.js';
 import { KerbFeel } from '../fx/KerbFeel.js';
-import { RIVALS, GRID, AI, DRAFT, CONTACT } from '../config/race.js';
-import { clamp } from '../core/math.js';
+import { catchUpPace, rivalSlots } from '../race/pack.js';
+import { RIVALS, GRID, DRAFT, CONTACT } from '../config/race.js';
 
 export function createRivals(scene) {
   return RIVALS.map((profile) => {
@@ -39,7 +39,7 @@ export function placeField(game, race) {
   const spot = race ? gridSpot(path, startIndex, GRID.playerSlot) : { x: path.x[gridIndex], z: path.z[gridIndex], yaw: path.heading(gridIndex), i: gridIndex };
   game.kart.place(spot.x, spot.z, spot.yaw);
   game.trackIndex = spot.i;
-  const slots = [0, 1, 2, 3, 4, 5].filter((s) => s !== GRID.playerSlot);
+  const slots = rivalSlots(game.rivals.length, GRID.playerSlot);
   game.rivals.forEach((r, k) => {
     const g = gridSpot(path, startIndex, slots[k]);
     r.kart.place(g.x, g.z, g.yaw);
@@ -63,7 +63,7 @@ export function stepField(game, dt, go) {
     const s = r.kart.state;
     const traffic = trafficFor(path, r, all.filter((o) => o !== r).map(view));
     const gap = (lead - (game.field.entries.find((e) => e.profile === r.profile)?.progress ?? lead)) * path.spacing;
-    const pace = 1 + clamp(gap / 60, -1, 1) * AI.catchUp; // behind the player → a touch quicker
+    const pace = catchUpPace(gap); // behind the player → a touch quicker
     const c = r.driver.controls(s, r.kart.telemetry.speed, traffic, pace, dt, go);
     if (c.reset) respawnRival(game, r);
     else r.kart.update(c, dt);

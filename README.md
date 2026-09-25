@@ -24,7 +24,7 @@ npm run build    # production bundle in dist/
 
 Pick a mode on the title screen (`←` `→`, then **Enter** — or click / tap a mode):
 
-- **Grand Prix** — 5 laps against five rivals from 5th on the grid. Tuck in behind a kart to catch its slipstream (the speedo shows **SLIPSTREAM**), then pull out and pass. Rubbing is racing: karts bump and shove each other. The timing tower shows the running order and real time gaps; the results card fills in as the field takes the flag.
+- **Grand Prix** — a race of about two and a half minutes (each circuit sets its lap count) against five rivals, from 5th on the grid. Tuck in behind a kart to catch its slipstream (the speedo shows **SLIPSTREAM**), then pull out and pass. Rubbing is racing: karts bump and shove each other. The timing tower shows the running order and real time gaps; the results card fills in as the field takes the flag.
 - **Time Attack** — alone on track against the clock. Your best lap is saved in the browser (shown in purple) along with a translucent **ghost** of that lap to chase.
 
 On a phone or tablet, on-screen buttons appear: steer bottom-left, gas / brake / drift bottom-right, camera and pause at the top.
@@ -34,7 +34,7 @@ On a phone or tablet, on-screen buttons appear: steer bottom-left, gas / brake /
 | `W` / `↑` | Throttle |
 | `S` / `↓` | Brake, then reverse once stopped |
 | `A` `D` / `←` `→` | Steer |
-| `Space` / `Shift` | Handbrake — tap into tight corners to drift |
+| `Space` / `Shift` | Handbrake — tap into tight corners to drift (a press locks the rear for a moment; holding it on does not) |
 | `C` | Camera: chase → far → cockpit |
 | `R` | Reset kart onto the track (restart when paused) |
 | `M` | Sound on/off |
@@ -52,7 +52,7 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 - **Look**: ACES tone mapping, a custom reflection environment of the hall itself, soft shadows, tight bloom, a colour grade with vignette, and 4× MSAA.
 - **Feel**: speed-driven FOV, a chase camera that swings to show your drift angle, impact shake, tyre smoke, skid marks, and sparks.
 - **Race**: title attract mode with TV-style trackside cameras, F1-style start lights (gantry and HUD), lap timing with sub-frame line crossing, a live delta to your best lap, and a persisted record.
-- **Rivals**: five AI drivers with their own liveries, pace, preferred line and start reactions. They follow a racing line that clips the inside of each corner, brake for corner speed from the track curvature, pull out to pass slower karts, back off when boxed in, and reset themselves if stuck. A light pack pull keeps races close, and a random form factor changes the order from race to race.
+- **Rivals**: five AI drivers with their own liveries, pace, preferred line and start reactions. They follow a racing line that clips the inside of each corner, brake as late as a speed plan along that line allows (`race/speedPlan.js`), tuck into a slower kart's slipstream and then pull out to pass it (`race/passing.js`), back off when boxed in, and reset themselves if stuck. A light pack pull keeps races close, and a shuffled grid plus a random form factor change the order from race to race.
 - **Race physics**: equal-mass kart-to-kart contacts (push apart, trade momentum, sparks and shake), and slipstream that cuts up to 55% of aero drag within 9 m behind another kart.
 - **Sound** (all synthesized with WebAudio, no files): a single-cylinder rental-kart engine behind a centrifugal clutch (lumpy idle, revs hang at the bite point on launch then climb with road speed, flare when the rear steps out, pops and crackles on a high-rev lift), tyre squeal that grows with cornering load and slip, a juddering scrub under hard braking, a scrape when grinding a barrier, a kerb rumble, impacts, start beeps, and lap chimes.
 - **Kerbs you can feel**: ride a kerb and the kart hops and tilts over the ribs, the camera judders and the rumble plays at the rib rate. A per-sample kerb table (`track/curbTable.js`) keeps the check O(1) per frame.
@@ -132,7 +132,9 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `fin
 | Kart colours / number | `config/kart.js` → `LIVERY`, `KART_NUMBER` |
 | Track shape | `config/trackWaypoints.js` (keep radii ≥ 3.5 m; `npm test` checks the barriers) |
 | Banner texts, neon colours, lights | `config/venue.js` |
-| Race length, grid slot, rival names / colours / pace | `config/race.js` → `RACE_LAPS`, `GRID`, `RIVALS` |
+| Race length | the track file's `laps` (about 140 s of racing; `tests/tracks.test.js` checks it) |
+| Grid slot, rival names / colours / pace | `config/race.js` → `GRID`, `RIVALS` |
+| AI pace (difficulty) | `config/race.js` → `AUTOPILOT.latAccel`, `planDecel` |
 | AI line, passing, pack pull, slipstream, contact | `config/race.js` → `AI`, `DRAFT`, `CONTACT` |
 
 ## Where to add X

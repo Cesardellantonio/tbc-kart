@@ -8,7 +8,7 @@ import { stepKart } from '../src/physics/kartPhysics.js';
 import tbc from '../src/tracks/tbc.js';
 import { pathOf } from '../src/track/validate.js';
 import { BARRIER_GAP } from '../src/config/track.js';
-import { KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE } from '../src/config/physics.js';
+import { KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE, WALL_SCRAPE_MAX } from '../src/config/physics.js';
 
 const path = pathOf(tbc);
 const hw = path.halfWidth;
@@ -50,7 +50,7 @@ describe('barriers', () => {
     let s = { x: path.x[i], z: path.z[i], yaw, vx: 0, vz: 0, steer: 0 };
     for (let k = 0; k < 600; k++) {
       s = stepKart(s, { throttle: 1, brake: 0, steer: 0, handbrake: false }, 1 / 120);
-      collider.resolve(s, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE);
+      collider.resolve(s, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE, WALL_SCRAPE_MAX);
     }
     const lateral = Math.abs(path.lateral(s.x, s.z, path.nearest(s.x, s.z, i)));
     expect(lateral).toBeLessThan(hw + BARRIER_GAP);

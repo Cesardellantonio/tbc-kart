@@ -36,7 +36,8 @@ export class BarrierCollider {
 
   // Pushes `body` ({x, z, vx, vz}) out of any barrier and bounces its velocity.
   // Returns the strongest impact speed into a wall (m/s); `contact` holds where it happened.
-  resolve(body, radius, restitution, scrapePerMs) {
+  // scrapePerMs: share of along-wall speed lost per m/s of impact, up to scrapeMax.
+  resolve(body, radius, restitution, scrapePerMs, scrapeMax = 0.6) {
     this._frame++;
     let impact = 0;
     const cx0 = Math.floor(body.x / this.cell);
@@ -48,14 +49,14 @@ export class BarrierCollider {
         for (const id of list) {
           if (this._stamp[id] === this._frame) continue;
           this._stamp[id] = this._frame;
-          impact = Math.max(impact, this._collide(id * 4, body, radius, restitution, scrapePerMs));
+          impact = Math.max(impact, this._collide(id * 4, body, radius, restitution, scrapePerMs, scrapeMax));
         }
       }
     }
     return impact;
   }
 
-  _collide(o, body, radius, restitution, scrapePerMs) {
+  _collide(o, body, radius, restitution, scrapePerMs, scrapeMax) {
     const s = this.segs;
     const abx = s[o + 2] - s[o];
     const abz = s[o + 3] - s[o + 1];
@@ -68,7 +69,7 @@ export class BarrierCollider {
     [body.x, body.z] = [qx + nx * radius, qz + nz * radius];
     const vn = body.vx * nx + body.vz * nz;
     if (vn >= 0) return 0;
-    const keep = 1 - Math.min(0.6, scrapePerMs * -vn); // harder hits scrub more speed
+    const keep = 1 - Math.min(scrapeMax, scrapePerMs * -vn); // harder hits scrub more speed
     const tx = (body.vx - vn * nx) * keep;
     const tz = (body.vz - vn * nz) * keep;
     body.vx = tx - vn * restitution * nx;

@@ -3,7 +3,9 @@
 // the headless race simulator.
 
 import { stepKart } from './kartPhysics.js';
-import { FIXED_STEP, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE } from '../config/physics.js';
+import {
+  FIXED_STEP, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE, WALL_SCRAPE_MAX,
+} from '../config/physics.js';
 
 // Returns { state, impact (strongest wall hit, m/s), contact ({x, z, nx, nz} or null) }.
 export function advanceKart(state, input, dt, collider) {
@@ -14,7 +16,7 @@ export function advanceKart(state, input, dt, collider) {
   let s = state;
   for (let k = 0; k < steps; k++) {
     const next = stepKart(s, input, h);
-    const hit = collider.resolve(next, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE);
+    const hit = collider.resolve(next, KART_RADIUS, WALL_RESTITUTION, WALL_SCRAPE, WALL_SCRAPE_MAX);
     if (hit > impact) {
       impact = hit;
       contact = { ...collider.contact };

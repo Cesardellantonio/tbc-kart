@@ -1,5 +1,5 @@
 // Track designer's report: validation rules, a full 6-kart AI race, and a top-down SVG map.
-//   node tools/track-report.mjs <trackId> [--svg out.svg] [--laps N]
+//   node tools/track-report.mjs <trackId> [--svg out.svg] [--laps N] [--pace game|<rival skill multiplier>]
 // Exit code 0 only when the layout passes every rule and all six AI karts finish cleanly.
 
 import { writeFileSync } from 'node:fs';
@@ -30,8 +30,9 @@ if (svgPath) console.log(`map written to ${svgPath}`);
 let ok = problems.length === 0;
 if (stats) {
   const laps = Number(opt('--laps')) || Math.min(3, track.laps);
-  const sim = simulateRace(track, { laps });
-  console.log(`race sim: ${laps} laps, all finished: ${sim.allFinished}, stuck resets: ${sim.resets}, spins: ${sim.spins}, wall hits: ${sim.wallHits}`);
+  const pace = opt('--pace') && opt('--pace') !== 'game' ? Number(opt('--pace')) : 'game';
+  const sim = simulateRace(track, { laps, pace });
+  console.log(`race sim: ${laps} laps, rival pace ${pace}, all finished: ${sim.allFinished}, stuck resets: ${sim.resets}, spins: ${sim.spins}, wall hits: ${sim.wallHits}`);
   console.log(`best lap ${sim.bestLap?.toFixed(2)} s, avg ${sim.avgSpeedKmh} km/h, sim time ${sim.simTime.toFixed(1)} s`);
   for (const r of sim.results) {
     console.log(`  P${r.position} ${r.code}  finish ${r.finishTime?.toFixed(2) ?? 'DNF'}  best ${r.bestLap?.toFixed(2)}  resets ${r.resets}  spins ${r.spins}  walls ${r.wallHits}  top ${r.topSpeedKmh} km/h`);
