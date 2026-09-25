@@ -1,23 +1,16 @@
-// Engine drive curve and the player's digital (keyboard / touch) throttle shaping. Both are eager where
-// the kart runs straight and hold back where it is turning: a keyboard's on/off throttle in a corner is
+// The player's digital (keyboard / touch) throttle shaping — a driver aid, like a sim's input filter. Eager
+// where the kart runs straight, held back where it is turning: a keyboard's on/off throttle in a corner is
 // the commonest way to step the rear out.
 
 import {
-  ENGINE_ACCEL, TOP_SPEED, LOW_SPEED_PULL, LOW_SPEED_END, LOW_SPEED_FADE, LOW_SPEED_TURN, THROTTLE_RISE,
-  THROTTLE_RISE_LOW, THROTTLE_LOW_SLIP, THROTTLE_JUMP, THROTTLE_JUMP_FROM, THROTTLE_JUMP_FULL, THROTTLE_JUMP_SLIP,
-  THROTTLE_RAMP_SLIP, DYNAMIC_ABOVE,
+  LOW_SPEED_END, LOW_SPEED_FADE, THROTTLE_RISE, THROTTLE_RISE_LOW, THROTTLE_LOW_SLIP, THROTTLE_JUMP,
+  THROTTLE_JUMP_FROM, THROTTLE_JUMP_FULL, THROTTLE_JUMP_SLIP, THROTTLE_RAMP_SLIP, DYNAMIC_ABOVE,
 } from '../config/physics.js';
 import { clamp, lerp, smoothstep } from '../core/math.js';
+import { driveAccel } from './engine.js';
 
 const lowSpeed = (v) => 1 - smoothstep(LOW_SPEED_END, LOW_SPEED_FADE, v); // 1 at walking pace, 0 from _FADE
 const calm = (x, full) => 1 - smoothstep(0, full, Math.abs(x || 0)); // 1 at 0, 0 from `full` up
-
-// Engine drive per unit throttle at forward speed vf (m/s²): strongest off the line, fading to zero at
-// TOP_SPEED (a single fixed ratio behind a centrifugal clutch), plus LOW_SPEED_PULL at walking pace
-// while the kart isn't rotating (yawRate rad/s): off the line and out of a hairpin once it points
-// straight, never while it is still swinging round (the rear has no grip to spare there).
-export const engineAccel = (vf, yawRate = 0) =>
-  ENGINE_ACCEL * Math.max(0, 1 - (vf / TOP_SPEED) ** 2) + LOW_SPEED_PULL * lowSpeed(vf) * calm(yawRate, LOW_SPEED_TURN);
 
 // Throttle a key press opens at once (share 0-1): enough for THROTTLE_JUMP m/s² of drive, phased in
 // with speed between THROTTLE_JUMP_FROM and _FULL, and gone once the body slips THROTTLE_JUMP_SLIP
@@ -25,7 +18,7 @@ export const engineAccel = (vf, yawRate = 0) =>
 // none, so the shove lands on straights and exits, not on a keyboard's taps mid-corner.
 function shove(speed, bodySlip) {
   const phase = smoothstep(THROTTLE_JUMP_FROM, THROTTLE_JUMP_FULL, speed);
-  return (THROTTLE_JUMP * phase * calm(bodySlip, THROTTLE_JUMP_SLIP)) / Math.max(engineAccel(speed), 1e-6);
+  return (THROTTLE_JUMP * phase * calm(bodySlip, THROTTLE_JUMP_SLIP)) / Math.max(driveAccel(speed), 1e-6);
 }
 
 // The player's on/off throttle: a 0→1 step low in the rev range is a 0.9 g jolt that unloads the front

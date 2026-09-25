@@ -23,7 +23,8 @@ describe.each(TRACKS.map((t) => [t.id, t]))('rival pace on %s', (id, track) => {
   }, 30000);
 
   it('gets quicker with every step of skill across the whole field (form, pack pull and attack included)', () => {
-    const skills = [0.9, 0.94, 0.98, 1, 1.02, 1.06, 1.1, 1.15];
+    // Up to the most a rival ever gets: 1.02 skill × 1.025 form × 1.03 attack × 1.035 pack pull ≈ 1.115.
+    const skills = [0.9, 0.94, 0.98, 1, 1.02, 1.06, 1.1, 1.12];
     const laps = skills.map((skill) => soloLap(track, pace, skill));
     for (let k = 1; k < laps.length; k++) expect(laps[k], `skill ${skills[k]}`).toBeLessThan(laps[k - 1]);
   }, 30000);

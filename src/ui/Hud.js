@@ -4,6 +4,7 @@
 import { el } from './dom.js';
 import { LapPanel } from './LapPanel.js';
 import { Speedo } from './Speedo.js';
+import { TyreTemps } from './TyreTemps.js';
 import { Minimap } from './Minimap.js';
 import { StartLights } from './StartLights.js';
 import { Toasts } from './Toasts.js';
@@ -20,6 +21,7 @@ export class Hud {
     this.lap = new LapPanel(this.root);
     this.standings = new Standings(this.root);
     this.speedo = new Speedo(this.root);
+    this.tyres = new TyreTemps(this.root);
     this.minimap = null; // built by setTrack
     this.lights = new StartLights(this.root);
     this.toasts = new Toasts(this.root);
@@ -85,6 +87,7 @@ export class Hud {
     const race = this.mode === 'race';
     this.lap.update(view);
     this.speedo.update(kart.telemetry.speed, kart.draft);
+    this.tyres.update(kart.telemetry.tyreTemp);
     if (race) this.standings.update(game.field, game.session.clock);
     if (this._minimapShown) this.minimap.update(kart.state, this._rivalDots(race ? game.rivals : []));
     this.lights.update(view);

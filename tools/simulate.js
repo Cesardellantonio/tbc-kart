@@ -4,6 +4,8 @@
 // an AI stand-in at skill 1, so positions and gaps are indicative, not a real race.
 
 import { barrierFaces } from '../src/track/barrierLines.js';
+import { curbTable } from '../src/track/curbTable.js';
+import { SurfaceGrip } from '../src/track/surfaceGrip.js';
 import { boundsOf, wallLoop } from '../src/track/bounds.js';
 import { pathOf } from '../src/track/validate.js';
 import { BarrierCollider } from '../src/physics/BarrierCollider.js';
@@ -32,6 +34,7 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
   const faces = barrierFaces(path);
   const collider = new BarrierCollider([...faces, wallLoop(boundsOf(faces, VENUE_MARGIN + BARRIER_THICKNESS))], COLLISION_CELL);
   const line = racingLine(path, AI);
+  const surface = new SurfaceGrip(path, line, curbTable(path)); // same track grip as the game
   const startIndex = path.nearest(...track.waypoints[track.startIndex]);
   const profiles = [{ code: 'YOU', skill: 1, line: 0, react: 0.2, ...you }, ...RIVALS];
   const used = field === 'solo' ? profiles.slice(0, 1) : profiles;
@@ -47,6 +50,7 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
       state: { x: g.x, z: g.z, yaw: g.yaw, vx: 0, vz: 0, steer: 0, yawRate: 0 },
       index: g.i,
       draft: 0,
+      grip: [1, 1, 1, 1],
       resets: 0,
       wallHits: 0,
       spins: 0,
@@ -71,8 +75,10 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
         k.driver.stuck = 0;
         k.resets++;
       } else {
-        const r = advanceKart(k.state, { ...c, draft: k.draft }, dt, collider);
+        surface.wheels(k.state, k.index, k.grip);
+        const r = advanceKart(k.state, { ...c, draft: k.draft, grip: k.grip }, dt, collider);
         k.state = r.state;
+        surface.addDistance(Math.hypot(r.state.vx, r.state.vz) * dt);
         if (r.impact > 1.5) k.wallHits++;
       }
       k.index = path.nearest(k.state.x, k.state.z, k.index);

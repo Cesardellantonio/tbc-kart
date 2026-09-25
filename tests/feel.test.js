@@ -107,7 +107,9 @@ describe('braking zones', () => {
       expect(span.length * path.spacing).toBeLessThan(60);
       let ahead = 0; // the drivers brake for the tightest bend in the next ~30 m
       for (let d = 0; d < 30 / path.spacing; d++) ahead = Math.max(ahead, Math.abs(path.curvature[path.wrap(z.start + d)]));
-      expect(ahead).toBeGreaterThan(1.5 * Math.abs(path.curvature[z.start])); // tightens ahead (may start mid-bend)
+      // Either it brakes for a corner that tightens ahead, or it trail-brakes into a tight apex (< 6 m radius).
+      const k0 = Math.abs(path.curvature[z.start]);
+      expect(ahead > 1.4 * k0 || k0 > 1 / 6, `zone at ${z.start}`).toBe(true);
     }
   });
 

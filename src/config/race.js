@@ -74,7 +74,7 @@ export const AI = {
   catchUp: 0.035, // skill added/removed at a catchUpGap gap to the player (race/pack.js)
   catchUpGap: 60, // m
   formSpread: 0.05, // random ± share of skill each race (with the shuffled grid, so the order changes)
-  paceMargin: 0.06, // a skill-1 driver's lap is this share slower than the circuit's reference lap
+  paceMargin: 0.075, // a skill-1 driver's lap is this share slower than the circuit's reference lap
 };
 
 // Per-circuit multiplier on the computer drivers' corner and braking pace (race/pack.js trackPace), so
@@ -82,28 +82,28 @@ export const AI = {
 // any skill) everywhere: difficulty does not depend on the circuit. Regenerate with
 // node tools/ai-pace.mjs after changing a layout, the physics or the driver.
 export const TRACK_PACE = {
-  tbc: 1.07,
-  monaco: 1.023,
-  monza: 1.024,
-  silverstone: 1.03,
-  spa: 1.025,
-  interlagos: 0.986,
-  montreal: 1.003,
-  austin: 1.029,
-  spielberg: 1.054,
-  singapore: 1.031,
+  tbc: 0.939,
+  monaco: 0.885,
+  monza: 0.949,
+  silverstone: 0.921,
+  spa: 0.914,
+  interlagos: 0.891,
+  montreal: 0.888,
+  austin: 0.898,
+  spielberg: 0.939,
+  singapore: 0.888,
 };
 
 // Rival level, picked on the title card: scales every rival's corner and braking pace (their straights
 // stay flat out). Calibrated against a scripted skilled keyboard driver (100 ms reaction, 60 ms key holds,
 // digital steering, best clean lap of a corner-speed sweep, straights capped at 16 m/s) over all ten
 // circuits, rival field averaged over three race seeds: it laps ~10% quicker than the fastest rival on
-// Amateur, level on Club and ~5% slower on Pro (-10.1 / -0.1 / +4.7%). Re-derive after changing the
-// physics or TRACK_PACE.
+// Amateur, level on Club and ~5% slower on Pro (v5 physics: -9.4 / ≈0 / +5%). Re-derive after changing
+// the physics or TRACK_PACE.
 export const DIFFICULTY = {
-  amateur: { label: 'AMATEUR', pace: 0.65 },
-  club: { label: 'CLUB', pace: 0.75 },
-  pro: { label: 'PRO', pace: 0.8 },
+  amateur: { label: 'AMATEUR', pace: 0.66 },
+  club: { label: 'CLUB', pace: 0.74 },
+  pro: { label: 'PRO', pace: 0.79 },
 };
 export const DEFAULT_DIFFICULTY = 'club';
 

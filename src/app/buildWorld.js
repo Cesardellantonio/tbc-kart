@@ -10,6 +10,7 @@ import { createTrackSurface } from '../world/TrackSurface.js';
 import { createCurbs } from '../world/Curbs.js';
 import { createRubberLine } from '../world/RubberLine.js';
 import { curbTable } from '../track/curbTable.js';
+import { SurfaceGrip } from '../track/surfaceGrip.js';
 import { racingLine } from '../race/racingLine.js';
 import { createBarriers } from '../world/Barriers.js';
 import { createVenue } from '../world/Venue.js';
@@ -87,5 +88,6 @@ export function buildWorld(track, anisotropy) {
 
   const collider = new BarrierCollider([...barriers.faces, wallLoop(bounds)], COLLISION_CELL);
   const curbs = curbTable(path); // per-sample kerb lookup for the kerb feel
-  return { track, group, path, line, curbs, startIndex, gridIndex, bounds, collider, gantry, rig, lighting, anchors: broadcastAnchors(path) };
+  const surface = new SurfaceGrip(path, line, curbs); // tyre grip: rubbered line, dust, kerbs
+  return { track, group, path, line, curbs, surface, startIndex, gridIndex, bounds, collider, gantry, rig, lighting, anchors: broadcastAnchors(path) };
 }

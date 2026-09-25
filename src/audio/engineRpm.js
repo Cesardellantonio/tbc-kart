@@ -21,6 +21,13 @@ export class EngineRpm {
 
   // tel: kart telemetry ({forwardSpeed | speed, slip, sliding}); throttle 0..1. Returns rpm.
   step(tel, throttle, dt) {
+    if (Number.isFinite(tel.rpm)) {
+      // The v5 physics runs a real engine (torque curve, centrifugal clutch, axle spin): just follow it.
+      this.rpm = damp(this.rpm, tel.rpm, 30, dt);
+      this.load = damp(this.load, throttle, 9, dt);
+      this._detectLift(throttle, dt);
+      return this.rpm;
+    }
     const c = this.cfg;
     const road = this.roadRpm(tel.forwardSpeed ?? tel.speed ?? 0);
     const spin = throttle * clamp(((tel.slip || 0) - 1.2) / 4, 0, 1) * (tel.sliding ? 1 : 0.6) * c.slipFlare;

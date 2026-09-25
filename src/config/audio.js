@@ -9,7 +9,7 @@ export const ENGINE = {
   biteRpm: 2600, // clutch starts to grab
   lockRpm: 3000, // clutch fully locked; above this the engine is tied to the rear axle
   dropRpm: 2000, // off the throttle the clutch stays engaged (engine braking) down to here
-  maxRpm: 5400, // governed top end
+  maxRpm: 5600, // top of the rev range the voice spans (the physics' engine reaches ~5500 at top speed)
   topSpeed: 17, // m/s the kart reaches at maxRpm (single fixed ratio; its flat-out top, config/physics.js)
   slipFlare: 650, // rpm added when the rear tyres spin / slide under power
   revRate: 9, // 1/s how fast free revs chase the throttle (clutch open)

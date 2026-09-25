@@ -130,7 +130,7 @@ export default {
   location: 'Great Britain',
   inspiredBy: 'Silverstone Circuit',
   blurb: 'Flat-out Copse, the Maggotts–Becketts snake and the long Hangar blast: fast, flowing, brave.',
-  laps: 4,
+  laps: 3,
   waypoints,
   startIndex: 0,
 };

@@ -1022,3 +1022,62 @@ kbd {
   margin-left: 4px;
   font-size: 10px;
 }
+
+/* ---- v5: tyre temperature gauge (left of the speedometer) ---- */
+.hud-tyres {
+  position: absolute;
+  right: 244px;
+  bottom: 30px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--hud-dim);
+}
+.hud-tyres span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  margin-right: 2px;
+}
+.hud-tyres i {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 38px;
+  padding: 6px 0 5px;
+  font-style: normal;
+  border-radius: 6px;
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-edge);
+  border-bottom: 3px solid currentColor;
+  transition: color 0.4s;
+}
+.hud-tyres b {
+  font-size: 14px;
+  letter-spacing: 0;
+  color: var(--hud-text);
+  font-variant-numeric: tabular-nums;
+}
+.hud-tyres em {
+  font-style: normal;
+}
+.hud-tyres .is-cold {
+  color: #4fa3ff;
+}
+.hud-tyres .is-good {
+  color: var(--hud-green);
+}
+.hud-tyres .is-hot {
+  color: #ff9f1c;
+}
+.hud-tyres .is-cooked {
+  color: var(--hud-red);
+}
+@media (max-width: 760px), (max-height: 520px) {
+  .hud-tyres {
+    display: none; /* phones: no room beside the speedo */
+  }
+}

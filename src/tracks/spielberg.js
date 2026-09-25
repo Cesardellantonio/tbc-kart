@@ -103,7 +103,7 @@ export default {
   location: 'Austria',
   inspiredBy: 'Red Bull Ring',
   blurb: 'Short and punchy: three big straights, three big stops, and the Remus hairpin begging for a late lunge.',
-  laps: 5,
+  laps: 4,
   waypoints,
   startIndex: 0,
 };

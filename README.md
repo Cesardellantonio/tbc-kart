@@ -8,14 +8,15 @@ A kart racing game set in indoor karting halls: the **TBC Indoor Racing** layout
 - **v0.3–v0.7** — collision, HUD, shadows, spinning wheels, bloom, audio, tests
 - **v1.0** — look & feel overhaul: real-scale track with barriers, drift physics, detailed kart + driver, lap timing with live delta, start lights, title attract mode, venue lighting, particles, synthesized sound
 - **v2.0** — Grand Prix: 5-lap races against five AI rivals, kart-to-kart contact, slipstream, live timing tower, results screen, best-lap ghost in time attack, touch controls for phones
-- **v3.0** — Circuits (current): nine F1-inspired tracks with a track picker, a single-track tyre model (rear-only brakes, load transfer, holdable drifts), smarter rivals with three difficulty levels, kerbs you can feel, a clutch-engine sound, cockpit head motion and a rubbered-in racing line
+- **v3.0** — Circuits: nine F1-inspired tracks with a track picker, a single-track tyre model (rear-only brakes, load transfer, holdable drifts), smarter rivals with three difficulty levels, kerbs you can feel, a clutch-engine sound, cockpit head motion and a rubbered-in racing line
+- **v4.0** — Real physics (current): four-contact-patch kart model (per-wheel load transfer, caster jacking, solid rear axle), Pacejka-style tyres with load sensitivity, combined slip and relaxation length, an engine torque curve with a centrifugal clutch, tyre temperature, and a track surface that rubbers in; a realistic kart and helmeted driver; rivals and levels recalibrated
 
 ## Run
 
 ```bash
 npm install
 npm run dev      # open the URL Vite prints (usually http://localhost:5173)
-npm test         # 177 unit tests: physics, tracks (rules + a six-kart AI race on every circuit), race logic, feel, flow
+npm test         # 194 unit tests: physics (engine, brakes, load transfer, tyres, temperature, surface), zip feel, tracks (rules + a six-kart AI race on every circuit), AI pace, race logic, flow
 node tools/track-report.mjs monza --svg monza.svg   # design check + AI race + map for one circuit
 npm run build    # production bundle in dist/
 ```
@@ -51,7 +52,7 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 ## What's in it
 
 - **Tracks**: ten circuits, each 6 m (up to 7 m) wide asphalt with edge lines, red/white curbs on the inside of tight corners, a checkered start/finish line and a six-kart grid, lined with rounded plastic barriers that actually stop you, inside a hall sized to the layout — TBC Indoor (Vancouver, the home track) · Monte Carlo (Monaco) · Monza · Silverstone · Spa · Interlagos · Montréal · Austin (COTA) · Spielberg (Red Bull Ring) · Marina Bay (Singapore). The F1 layouts are scaled to kart size (390–612 m) and keep each circuit's direction, silhouette and corner sequence; every one was reviewed corner by corner against the real map. Best laps and ghosts are saved per track.
-- **Physics**: a single-track (bicycle) model of a ~160 kg rental kart: a saturating tyre curve per axle with longitudinal load transfer, a driven solid rear axle carrying the only brakes (so trail braking and lifting rotate the kart, and too much throttle or brake at the limit steps the rear out), a drift button that kicks the rear loose, and a countersteer assist so a slide can be held and caught on a keyboard. Fixed 1/120 s substeps; barriers bounce and scrape with Coulomb friction.
+- **Physics (v5)** — built from the standard racing-sim ingredients (see *Physics notes* below): four contact patches with per-wheel loads (longitudinal and lateral load transfer plus **caster jacking**, which lifts the inside rear so a kart with no differential can turn); a Pacejka-style tyre with **load sensitivity**, **combined slip** (drive/brake and cornering share one friction ellipse) and a **relaxation length**; a **solid, driven rear axle** that scrubs in corners, spun by a ~20 hp engine **torque curve** through a **centrifugal clutch** (it slips at ~3000 rpm off the line, locks up, gives engine braking) and stopped by **rear-only brakes**; **tyre temperature** per axle (cold on lap one, best at ~55 °C, cooked by long slides — shown on the HUD); and a **track surface** with a rubbered racing line, dusty off-line, slippery painted kerbs and rubber that builds up as karts lap. Driver aids for keyboards / touch (as sims use): throttle shaping, a threshold-braking assist and a countersteer assist. Fixed 1/240 s substeps; barriers bounce and scrape with Coulomb friction.
 - **Kart**: a modern indoor rental kart — tubular steel frame (rails, kingpins, tie rods, bumper loops, nerf bars), wide nose fairing and front panel with number roundels, side pods, full-width rear bumper, moulded bucket seat, fuel tank between the driver's legs, pedals, a Honda GX-style engine (finned cylinder, red fan shroud and recoil starter, air box, silencer, chain guard) and the rear axle with brake disc and sprocket. Slick tyres are lathed from a real cross-section on spoked 5-inch rims. The driver lies back ~20° in the seat in a race suit with the kart's colour on its chest-side panels, a stand-up collar and a neck brace; skinned arms keep the gloves on the rim at quarter to three as the wheel turns; the full-face helmet has a broad egg-shaped shell with a nearly level lower edge and a deep chin bar with a vent grille, a tinted visor on side pivots, a brow peak, vents, a livery stripe and a neck roll. Wheels spin and steer, the body rolls and pitches with load, and the driver's head leans into corners. The best-lap ghost draws as one lit translucent shell (a depth-only pass first, so no inner parts show through).
 - **Venue**: concrete floor with slab joints, ribbed-metal walls with an accent stripe and neon, banners, roof trusses, LED panels with floor light pools, and a start gantry with real start lights.
 - **Look**: ACES tone mapping, a custom reflection environment of the hall itself, soft shadows, tight bloom, a colour grade with vignette, and 4× MSAA.
@@ -63,6 +64,16 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 - **Kerbs you can feel**: ride a kerb and the kart hops and tilts over the ribs, the camera judders and the rumble plays at the rib rate. A per-sample kerb table (`track/curbTable.js`) keeps the check O(1) per frame.
 - **Cockpit head**: in the cockpit view the driver's head sways and tilts against lateral g, surges and nods under braking, and looks into the corner with the steering. Chase views get a fine speed-dependent engine buzz.
 - **Rubbered-in line**: a soft, streaky darker band follows the AI racing line (darker where it's loaded hardest), with faint rear-tyre marks where the rivals actually brake (darker where they brake harder).
+
+## Physics notes
+
+The v5 model follows how racing simulators build car physics, scaled to a rental kart:
+
+- **Tyres** — force from a Pacejka "magic formula" style curve on the *combined* normalised slip, so a tyre that is driving or braking has less left for cornering; friction falls as load rises (load sensitivity), so moving load off an axle costs it grip overall; side force builds over a relaxation length (~0.25 m) instead of instantly, which also keeps the model stable at low speed.
+- **Karts have no differential** — the solid rear axle drives both rear wheels at one speed, so in a corner they scrub against each other. Real karts turn because lateral load transfer and caster jacking (the steering geometry lifts the chassis on the inside front) unload the inside rear wheel until it lifts. Both are modelled per wheel, which is where the kart's understeer at low speed, rotation at the limit and power oversteer come from.
+- **Driveline** — a performance rental engine (torque plateau ~39 N·m at 3000–3800 rpm, falling to the limiter) through a centrifugal clutch that bites at ~2200 rpm, a 4.7:1 chain drive and a rear axle whose spin is integrated implicitly against the tyres' grip; wheelspin and lock-ups emerge from it (and the engine sound follows its rpm).
+- **Brakes** — rear only, as on real karts, so under braking the load goes forward and the rear lets go early; a threshold-braking assist holds it at the edge for keyboard players, and the drift button deliberately locks it.
+- **Temperature and track** — tyres heat with slip power and cool with speed (grip window ~25–85 °C, best ~55 °C), and the surface has a rubbered-in racing line, dust off-line and kerbs, with rubber building up over the session — like rFactor 2's "Real Road".
 
 ## Architecture
 
@@ -93,7 +104,7 @@ src/
     bounds             venue size from the barriers + a wall loop collider
     validate           the design rules every circuit must pass (length, radius, separation, straight grid, footprint)
     barrierLines       barrier geometry shared by the scene, collider, simulator and tests
-  physics/             kartPhysics (pure single-track step) · tyres · axles · controls · throttle (engine curve, keyboard throttle) · BarrierCollider (circle vs segments, grid)
+  physics/             kartPhysics (four-patch step) · wheelLoads · patches · tyreForce · rearAxle · engine · thermal · pointMass · controls · throttle · BarrierCollider (circle vs segments, grid)
                        kartContacts (kart vs kart, slipstream)
   entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts (merged per material: 18 draws, ~11.8k triangles a kart)
                        model/: shapes + primitives (surface helpers) · frame · bodywork · cockpit · engine · wheels · driver + suit · arms (skinned, IK) · helmet + helmetShell · ghostShell
@@ -130,8 +141,9 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `fin
 
 | Want to change… | Edit |
 |---|---|
-| Top speed, acceleration, braking | `config/physics.js` → `ENGINE_ACCEL`, `TOP_SPEED`, `BRAKE_FORCE` (rear brakes only) |
-| How grippy / drifty it feels | `config/physics.js` → `MU_FRONT` / `MU_REAR`, `TYRE_SHAPE`, `TYRE_SLIDE_MIN`, `COG_HEIGHT`, `REAR_WEIGHT` (single-track tyre model) |
+| Engine, gearing, brakes | `config/physics.js` → `TORQUE_CURVE`, `CLUTCH_*`, `GEAR_RATIO`, `BRAKE_TORQUE`, `AERO_DRAG` (rear brakes only) |
+| Tyres and balance | `config/physics.js` → `MU_LAT_FRONT` / `MU_LAT_REAR`, `LOAD_SENSITIVITY`, `PEAK_SLIP_*`, `RELAXATION`, `COG_HEIGHT`, `FRONT_ROLL_SHARE`, `JACKING` |
+| Tyre temperature, track grip | `config/physics.js` → `TYRE_OPTIMUM`, `TYRE_WINDOW`, …; `config/track.js` → `SURFACE` |
 | Steering and drift help | `config/physics.js` → `STEER_LOCK`, `STEER_LIMIT_*`, `STEER_IN` / `STEER_OUT`, `STEER_ASSIST` (countersteer assist 0..1) |
 | Camera distance, FOV kick, shake | `config/camera.js` |
 | Cockpit head motion, engine / kerb vibration | `config/camera.js` → `HEAD`, `VIBE` |

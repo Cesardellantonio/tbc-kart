@@ -11,6 +11,9 @@ export class Kart {
     this.collider = collider;
     this.model = new KartModel(look);
     this.draft = 0; // 0..1 slipstream from a kart ahead, set each frame by kartContacts
+    this.surface = null; // track/surfaceGrip for the current track (set with the collider)
+    this.grip = [1, 1, 1, 1]; // surface grip under each tyre this frame
+    this._surfaceIndex = -1;
     this.state = { x: 0, z: 0, yaw: 0, vx: 0, vz: 0, steer: 0, yawRate: 0 };
     this.telemetry = {};
     this.contact = { x: 0, z: 0, nx: 0, nz: 0 };
@@ -25,19 +28,28 @@ export class Kart {
     Object.assign(this.telemetry, {
       speed: 0, forwardSpeed: 0, slip: 0, sliding: false, longAccel: 0, latAccel: 0,
       yawRate: 0, slipAngle: 0, drift: 0, impact: 0, throttle: 0, brake: 0, steer: 0,
+      rpm: 1700, clutch: 1, wheelSpeed: 0, wheelSpin: 0, tyreTemp: [22, 22], loads: [0, 0, 0, 0],
     });
   }
 
   place(x, z, yaw) {
-    this.state = { x, z, yaw, vx: 0, vz: 0, steer: 0, yawRate: 0 };
+    this.state = { x, z, yaw, vx: 0, vz: 0, steer: 0, yawRate: 0 }; // engine idling, tyres at hall temperature
     this.draft = 0;
+    this._surfaceIndex = -1;
     this._resetTelemetry();
     this.model.update(this.state, this.telemetry, 0, true);
   }
 
   // Advance by dt (fixed substeps + barrier collisions, see physics/advanceKart).
   update(controls = IDLE, dt) {
-    const { state, impact, contact } = advanceKart(this.state, { ...controls, draft: this.draft }, dt, this.collider);
+    if (this.surface) {
+      const { x, z } = this.state;
+      this._surfaceIndex = this.surface.path.nearest(x, z, this._surfaceIndex);
+      this.surface.wheels(this.state, this._surfaceIndex, this.grip);
+    }
+    const input = { ...controls, draft: this.draft, grip: this.grip };
+    const { state, impact, contact } = advanceKart(this.state, input, dt, this.collider);
+    this.surface?.addDistance(Math.hypot(state.vx, state.vz) * dt);
     if (contact) Object.assign(this.contact, contact);
     this.state = state;
     const s = state;
@@ -51,6 +63,12 @@ export class Kart {
       yawRate: s.yawRate,
       slipAngle: s.slipAngle,
       drift: s.drift,
+      rpm: s.rpm, // engine
+      clutch: s.clutch,
+      wheelSpeed: s.omega, // rear axle, rad/s (spins up / locks)
+      wheelSpin: s.wheelSpin,
+      tyreTemp: [s.tempF, s.tempR], // °C, front and rear axle
+      loads: s.loads,
       impact,
       throttle: controls.throttle,
       brake: controls.brake,

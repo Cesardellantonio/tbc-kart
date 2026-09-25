@@ -45,7 +45,7 @@ export default {
   location: 'Vancouver, Canada',
   inspiredBy: 'TBC Indoor Racing — the home track',
   blurb: 'The original hall layout: sweeper, the "ear" hairpin, a long back straight and a tight chicane.',
-  laps: 8,
+  laps: 7,
   waypoints,
   startIndex: 0,
   samples: 1000, // the v1 sampling, so best laps saved before multi-track still count

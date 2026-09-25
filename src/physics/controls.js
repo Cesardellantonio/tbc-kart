@@ -1,15 +1,14 @@
-// Driver inputs → kart commands: steering smoothing, speed-sensitive lock, countersteer assist,
-// and the pedals' longitudinal demands (engine, rear brakes, reverse, drag).
+// Driver inputs → kart commands: steering smoothing, speed-sensitive lock, countersteer assist, and the
+// pedals (engine throttle, rear brake torque, the push-back helper).
 
 import {
   STEER_IN, STEER_OUT, STEER_LOCK, STEER_LIMIT_ACCEL, STEER_LIMIT_SLIP, WHEELBASE, STEER_ASSIST,
-  ASSIST_SLIP_START, ASSIST_SLIP_FULL, ASSIST_STEER_SHARE, MASS, BRAKE_FORCE, REVERSE_ACCEL, REVERSE_MAX,
-  ROLLING_DECEL, AERO_DRAG, DRAFT_DRAG_CUT, CREEP_SPEED,
+  ASSIST_SLIP_START, ASSIST_SLIP_FULL, ASSIST_STEER_SHARE, MASS, BRAKE_TORQUE, REVERSE_ACCEL, REVERSE_MAX,
+  CREEP_SPEED,
 } from '../config/physics.js';
 import { clamp, lerp, smoothstep } from '../core/math.js';
-import { engineAccel } from './throttle.js';
 
-export { engineAccel, rampThrottle } from './throttle.js'; // app/frame.js shapes the player's throttle
+export { rampThrottle } from './throttle.js'; // app/frame.js shapes the player's throttle
 
 // Steering input eased toward the target (faster back to centre than out to lock).
 export function smoothSteer(current, target, dt) {
@@ -33,21 +32,17 @@ export function assisted(delta, bodySlip, travel, strength = STEER_ASSIST) {
   return lerp(delta, travel + delta * ASSIST_STEER_SHARE, w);
 }
 
-// Pedals at forward speed vf: rear-tyre drive (N, + forward), rear brake (N, opposing motion)
-// and rolling + aero resistance (m/s², opposing motion).
-export function pedals(vf, input, yawRate = 0) {
+// Driver pedals → the engine's throttle, rear brake torque (N·m) and the push-back helper's force (N).
+// A rental kart has no reverse gear: stopped, the brake pedal rolls it back (as a marshal would), and the
+// throttle while it rolls back brakes first. locked: the drift button's stab of full rear brake.
+export function pedalCommands(vf, input, locked) {
   const throttle = input.throttle || 0;
   const pedal = input.brake || 0;
-  let drive = 0;
-  let brake = 0;
-  if (throttle > 0) {
-    if (vf >= -CREEP_SPEED) drive = MASS * engineAccel(vf, yawRate) * throttle;
-    else brake = BRAKE_FORCE * throttle; // throttle while rolling back brakes first
-  }
-  if (pedal > 0) {
-    if (vf > CREEP_SPEED) brake = Math.max(brake, BRAKE_FORCE * pedal);
-    else if (!throttle) drive = -MASS * REVERSE_ACCEL * pedal * clamp((REVERSE_MAX + vf) / 0.25, 0, 1);
-  }
-  const drag = AERO_DRAG * (1 - DRAFT_DRAG_CUT * (input.draft || 0));
-  return { drive, brake, resist: ROLLING_DECEL + drag * vf * vf };
+  let brake = locked ? BRAKE_TORQUE : 0;
+  let engine = throttle;
+  let reverse = 0;
+  if (vf > CREEP_SPEED) brake = Math.max(brake, BRAKE_TORQUE * pedal);
+  else if (pedal > 0 && !throttle) reverse = -MASS * REVERSE_ACCEL * pedal * clamp((REVERSE_MAX + vf) / 0.25, 0, 1);
+  if (vf < -CREEP_SPEED && throttle > 0) [brake, engine] = [Math.max(brake, BRAKE_TORQUE * throttle), 0];
+  return { throttle: engine, brake, reverse };
 }

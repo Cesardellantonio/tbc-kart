@@ -59,7 +59,9 @@ export class KartModel {
     this.root.rotation.y = state.yaw;
     this._steer = snap ? state.steer : damp(this._steer, state.steer, STEER_VISUAL_RATE, dt) || 0;
     for (const w of this.wheels) {
-      w.spin.rotation.x -= (tel.forwardSpeed * dt) / w.radius;
+      // Rear wheels turn with the physics' axle (they visibly spin up and lock); fronts just roll.
+      const rate = !w.front && Number.isFinite(tel.wheelSpeed) ? tel.wheelSpeed : tel.forwardSpeed / w.radius;
+      w.spin.rotation.x -= rate * dt;
       if (w.front) w.steer.rotation.y = this._steer * MAX_STEER_ANGLE;
     }
     const ease = 1 - STEER_EASE.share * smoothstep(0, STEER_EASE.speed, Math.abs(tel.forwardSpeed));

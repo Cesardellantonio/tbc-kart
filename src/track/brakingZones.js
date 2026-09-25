@@ -1,14 +1,13 @@
 // Where karts brake hard (pure): a point-mass lap chasing the computer drivers' own speed plan for
 // the racing line (race/speedPlan: drivingPlan + plannedSpeed, as race/AiDriver uses it), pedals from
-// race/speedControl, forces from physics/controls — and the stretches where it presses the brake
+// race/speedControl, accelerations from physics/pointMass — and the stretches where it presses the brake
 // firmly. The rivals and the autopilot are the karts the player watches, so the tyre marks go where
 // they actually brake (well before the corner, not at the apex).
 
 import { AUTOPILOT } from '../config/race.js';
-import { MASS } from '../config/physics.js';
 import { speedControl } from '../race/speedControl.js';
 import { drivingPlan, plannedSpeed } from '../race/speedPlan.js';
-import { pedals } from '../physics/controls.js';
+import { pointMassAccel } from '../physics/pointMass.js';
 
 // Mean brake pedal and speed per sample over a settled lap (the first lap only gets up to pace).
 // line: the racing line (race/racingLine) the drivers follow.
@@ -24,8 +23,7 @@ export function brakeProfile(path, line, { dt = 1 / 60, laps = 2 } = {}) {
   while (s < path.length * laps) {
     const i = path.wrap(Math.floor(s / path.spacing));
     const c = speedControl(v, plannedSpeed(plan, path, i, v, drive));
-    const p = pedals(v, c);
-    v = Math.max(0.5, v + ((p.drive - p.brake) / MASS - p.resist) * dt);
+    v = Math.max(0.5, v + pointMassAccel(v, c) * dt);
     s += v * dt;
     if (s < path.length * (laps - 1)) continue;
     [time[i], brake[i], speed[i]] = [time[i] + dt, brake[i] + c.brake * dt, speed[i] + v * dt];

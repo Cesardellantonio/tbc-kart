@@ -24,10 +24,12 @@ export function createRivals(scene) {
 
 // Point every kart and driver at a newly built world.
 export function setFieldTrack(game) {
-  const { path, collider, line, track } = game.world; // line: racing line built with the world
+  const { path, collider, line, track, surface } = game.world; // line: racing line built with the world
   game.kart.collider = collider;
+  game.kart.surface = surface;
   for (const r of game.rivals) {
     r.kart.collider = collider;
+    r.kart.surface = surface;
     r.driver.setTrack(path, line, trackPace(track.id));
     r.driver.difficulty = DIFFICULTY[game.difficulty].pace;
   }

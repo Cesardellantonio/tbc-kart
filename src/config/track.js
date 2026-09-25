@@ -53,3 +53,16 @@ export const BRAKE_MARKS = {
   opacity: 0.22,
   rearTrack: 1.12, // m between the rear tyres (≈ config/kart.js REAR_TRACK)
 };
+
+// Track surface grip (track/surfaceGrip.js), like a sim's "real road": multipliers on tyre friction.
+export const SURFACE = {
+  green: 0.965, // whole-track grip before any rubber is down…
+  rubberStart: 0.35, // …how rubbered-in a hall is when you arrive (0..1)…
+  rubberLaps: 40, // …and kart-laps of running to rubber it in completely
+  lineGain: 0.04, // extra grip on the rubbered racing line (at full rubber)…
+  lineWidth: 0.9, // m, …falling off this far either side of it (gaussian)
+  dust: 0.05, // grip lost off-line, where dust and rubber marbles collect…
+  dustFrom: 1.6, // m from the racing line where it starts…
+  dustFull: 2.8, // m …and where it is fully there
+  kerb: 0.86, // painted kerb: smooth paint over ribs, and the tyre bounces over them
+};
