@@ -897,8 +897,10 @@ kbd {
 }
 /* Portrait phone: one row of steer + pedals only fits ~410 px at full size, so the buttons shrink
    (clears at 360 px wide); the speedo, which would sit under them, moves to the top right below
-   CAM / pause, which move off the lap panel. */
-@media (orientation: portrait) {
+   CAM / pause, which move off the lap panel. Phones only (same width limit that hides the minimap):
+   on a portrait tablet the minimap owns the top right, and the default touch layout (speedo bottom
+   centre, CAM / pause top centre) already fits. */
+@media (orientation: portrait) and (max-width: 760px) {
   .is-touch .touch-left,
   .is-touch .touch-right {
     width: 72px;
@@ -932,5 +934,56 @@ kbd {
   /* The top of a portrait screen is full (lap panel, standings, speedo): lights go mid-screen. */
   .is-touch .hud-lights {
     top: max(40%, calc(330px + env(safe-area-inset-top, 0px)));
+  }
+}
+/* Portrait tablet: at 11% the lights sit on the lap panel, standings and minimap (the left column
+   ends ~400 px down and the lights are too wide to fit beside it below 1000 px): mid-screen, as on phones. */
+@media (orientation: portrait) and (min-width: 761px) {
+  .is-touch .hud-lights {
+    top: max(40%, calc(410px + env(safe-area-inset-top, 0px)));
+  }
+}
+/* Narrow portrait phones: the top-right CAM / pause / speedo cluster starts at (width - 112 px), so
+   the lap panel (306 px wide unscaled) shrinks and tucks left to stay clear of it. */
+@media (orientation: portrait) and (max-width: 380px) {
+  .is-touch .hud-lap {
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    transform: scale(0.72);
+  }
+}
+/* Below 360 px the pedals and steer buttons no longer fit side by side at 72 / 64 px either. */
+@media (orientation: portrait) and (max-width: 359px) {
+  .is-touch .hud-lap {
+    transform: scale(0.62);
+  }
+  .is-touch .touch-left,
+  .is-touch .touch-right {
+    width: 60px;
+    height: 60px;
+    font-size: 19px;
+  }
+  .is-touch .touch-left {
+    left: calc(10px + env(safe-area-inset-left, 0px));
+  }
+  .is-touch .touch-right {
+    left: calc(76px + env(safe-area-inset-left, 0px));
+  }
+  .is-touch .touch-gas {
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    width: 80px;
+    height: 80px;
+  }
+  .is-touch .touch-brake {
+    right: calc(96px + env(safe-area-inset-right, 0px));
+    width: 56px;
+    height: 56px;
+  }
+  .is-touch .touch-drift {
+    right: calc(18px + env(safe-area-inset-right, 0px));
+    bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  }
+  /* The smaller lap panel lets the standings end ~320 px down; the lights fit between them and DRIFT. */
+  .is-touch .hud-lights {
+    top: max(40%, calc(322px + env(safe-area-inset-top, 0px)));
   }
 }
