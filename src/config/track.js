@@ -42,12 +42,11 @@ export const RUBBER_LINE = {
   color: 0x0b0b0d,
   roughness: 0.62, // rubber polishes the asphalt a little
 };
-// Light tyre marks laid down where karts brake hard for a corner
+// Light tyre marks laid down where the computer drivers brake hard for a corner (track/brakingZones)
 export const BRAKE_MARKS = {
-  latAccel: 12, // m/s² corner grip used to find the corner speed (≈ AUTOPILOT.latAccel)
-  maxSpeed: 15.5, // m/s straight-line speed
-  decel: 11, // m/s² braking used to find where braking starts
-  minDrop: 2.5, // m/s of speed lost before a zone counts
+  minBrake: 0.3, // peak brake pedal (0..1) that counts as braking hard enough to mark the concrete
+  minDrop: 1, // m/s of speed lost before a zone counts (light dabs leave lighter marks: alpha follows the pedal)
+  mergeGap: 3, // m of coasting between two brake applications that still counts as one zone
   streaks: 3, // karts' worth of marks per zone (2 wheels each)
   spread: 0.28, // m lateral scatter between karts
   width: 0.16, // m per tyre mark

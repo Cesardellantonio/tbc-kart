@@ -1,6 +1,7 @@
 // Seated driver: suit, arms reaching the steering wheel, helmet with visor and a coloured crown.
 
 import * as THREE from 'three';
+import { mergeStatic } from './merge.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -50,7 +51,10 @@ export function buildDriver(mats) {
     mats.visor,
   );
   visor.position.y = 0.17;
+  neck.userData.small = visor.userData.small = true;
   head.add(neck, shell, crown, visor);
   group.add(head);
+  mergeStatic(head, { alias: new Map([[mats.stripe, mats.helmet]]) });
+  mergeStatic(group, { keep: [head], alias: new Map([[mats.glove, mats.suit]]) });
   return { group, head };
 }

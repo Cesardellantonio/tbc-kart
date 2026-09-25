@@ -3,10 +3,13 @@
 
 import { VIBE } from '../config/camera.js';
 import { clamp } from './math.js';
+import { FrameSines } from './FrameSines.js';
+
+const BUZZ_HZ = 157 / (2 * Math.PI); // engine tremble fundamental (25 Hz); partials at 25, 38 and 32 Hz
 
 export class CameraVibe {
   constructor() {
-    this._t = 0;
+    this._buzz = new FrameSines([1, 241 / 157, 199 / 157], [0, 1.3, 0.7]);
     this.offset = { x: 0, y: 0, z: 0 };
     this._aim = { x: 0, y: 0, z: 0 };
   }
@@ -14,21 +17,21 @@ export class CameraVibe {
   // view: 'chase' | 'far' | 'cockpit'; tel: kart telemetry; kerb: fx/KerbFeel (or null).
   // Returns this.offset (metres). See shake() to apply it.
   update(dt, view, tel, kerb) {
-    this._t += dt;
     const o = this.offset;
     o.x = o.y = o.z = 0;
     if (dt <= 0) return o;
-    const t = this._t;
     const cockpit = view === 'cockpit';
     const pace = clamp((tel.speed || 0) / 16, 0, 1);
     const buzz = (cockpit ? VIBE.engineCockpit : VIBE.engine) * (0.25 + 0.75 * pace);
-    // Incommensurate high frequencies → a fine, non-repeating tremble at any frame rate.
-    o.y += buzz * (0.6 * Math.sin(t * 157) + 0.4 * Math.sin(t * 241 + 1.3));
-    o.x += buzz * 0.5 * Math.sin(t * 199 + 0.7);
+    // Incommensurate high frequencies → a fine, non-repeating tremble (capped below Nyquist at low fps).
+    const [b0, b1, b2] = this._buzz.update(BUZZ_HZ, dt);
+    o.y += buzz * (0.6 * b0 + 0.4 * b1);
+    o.x += buzz * 0.5 * b2;
     if (kerb && kerb.amount > 0.01) {
       const amp = (cockpit ? VIBE.kerbCockpit : VIBE.kerb) * kerb.amount * clamp((tel.speed || 0) / 8, 0.2, 1);
-      o.y += amp * (0.7 * Math.sin(kerb.phase) + 0.3 * Math.sin(kerb.phase * 2.3 + 0.4));
-      o.x += amp * 0.45 * kerb.tilt * Math.sin(kerb.phase * 0.5 + 1.7);
+      const [rib, over, rock] = kerb.rib.value; // band-limited to the frame rate, so it can't alias
+      o.y += amp * (0.7 * rib + 0.3 * over);
+      o.x += amp * 0.45 * kerb.tilt * rock;
     }
     return o;
   }

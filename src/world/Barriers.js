@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { barrierFaces, barrierCentres } from '../track/barrierLines.js';
 import { BARRIER_LENGTH, BARRIER_HEIGHT, BARRIER_THICKNESS, BARRIER_COLORS } from '../config/track.js';
+import { BARRIER_SHADOWS } from '../config/render.js';
 
 // Evenly spaced block centres + directions along a polyline run.
 function placeBlocks(run, out) {
@@ -44,7 +45,7 @@ export function createBarriers(path) {
     mesh.setMatrixAt(i, m.compose(new THREE.Vector3(b.x, BARRIER_HEIGHT / 2, b.z), q, one));
     mesh.setColorAt(i, colors[i % colors.length]);
   });
-  mesh.castShadow = true;
+  mesh.castShadow = BARRIER_SHADOWS;
   mesh.receiveShadow = true;
   return { mesh, faces, blocks };
 }

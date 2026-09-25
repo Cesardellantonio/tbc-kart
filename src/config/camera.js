@@ -47,4 +47,6 @@ export const VIBE = {
   kerb: 0.028, // m at full kerb contact (chase / far)
   kerbCockpit: 0.014,
   aim: -2.5, // share of the offset applied to the aim point in reverse → a little angular judder
+  nyquist: 0.4, // vibration partials stay below this share of the frame rate (no aliasing into slow wobbles)
+  fpsSmoothing: 0.05, // per-frame blend of the frame-rate estimate that sets that cap
 };
