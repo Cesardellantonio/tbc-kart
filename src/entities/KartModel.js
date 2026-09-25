@@ -5,6 +5,7 @@ import { kartMaterials } from './model/materials.js';
 import { buildChassis } from './model/chassis.js';
 import { buildWheels } from './model/wheels.js';
 import { buildDriver } from './model/driver.js';
+import { ghostShell } from './model/ghostShell.js';
 import { blobTexture } from '../world/textures/markings.js';
 import {
   MAX_STEER_ANGLE, STEERING_WHEEL_TURN, BODY_ROLL, BODY_PITCH, BODY_MOTION_LIMIT, DRIVER_LEAN,
@@ -33,7 +34,10 @@ export class KartModel {
     });
     this._roll = 0;
     this._pitch = 0;
-    if (ghost) return; // no contact shadow under a ghost
+    if (ghost) {
+      ghostShell(this.root); // one clean translucent shell, and no contact shadow under it
+      return;
+    }
 
     const shadow = new THREE.Mesh(
       new THREE.PlaneGeometry(1.9, 2.6).rotateX(-Math.PI / 2),

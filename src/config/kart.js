@@ -39,14 +39,14 @@ export const DRIVER_LEAN = 0.35; // share of body roll the driver leans into
 // Cockpit layout the driver is posed around (kart space: −Z forward, +Y up, x = right; metres).
 // The gloves stay on the rim at quarter to three and the arms follow the wheel as it turns.
 export const COCKPIT = {
-  wheelCentre: [0, 0.445, -0.17], // steering wheel hub
+  wheelCentre: [0, 0.45, -0.15], // steering wheel hub
   wheelTilt: 0.76, // rad the wheel face leans back toward the driver
   wheelRadius: 0.15, // m to the middle of the rim (a ~300 mm rental wheel)
-  shoulder: [0.185, 0.575, 0.33], // right shoulder joint (the left one is mirrored)
-  upperArm: 0.28, // m shoulder → elbow
-  forearm: 0.3, // m elbow → middle of the glove on the rim
+  shoulder: [0.185, 0.551, 0.413], // right shoulder joint (the left one is mirrored), torso reclined ~20°
+  upperArm: 0.29, // m shoulder → elbow
+  forearm: 0.32, // m elbow → middle of the glove on the rim
   elbowOut: [1, -0.8, 0.3], // direction the right elbow bends toward (x mirrored for the left)
-  headPivot: [0, 0.675, 0.27], // neck joint the helmet leans about
+  headPivot: [0, 0.66, 0.372], // neck joint the helmet leans about
 };
 
 // Riding a kerb: the kart hops over the ribs and tilts toward the side that is up on the kerb

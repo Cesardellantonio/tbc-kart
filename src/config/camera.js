@@ -10,7 +10,7 @@ export const FOV_DAMP = 3;
 export const VIEWS = {
   chase: { distance: 5.2, height: 2.0, lookAhead: 4.5, lookHeight: 0.75 },
   far: { distance: 8.8, height: 3.6, lookAhead: 6, lookHeight: 0.4 },
-  cockpit: { distance: 0.22, height: 0.9, lookAhead: 12, lookHeight: 0.5 }, // driver's eyes
+  cockpit: { distance: 0.22, height: 0.8, lookAhead: 12, lookHeight: -0.9 }, // eyes, ~8° down: wheel in view
 };
 export const VIEW_ORDER = ['chase', 'far', 'cockpit'];
 

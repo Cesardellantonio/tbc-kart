@@ -91,8 +91,8 @@ describe('kart model merging', () => {
   it('stays inside the triangle budget and the physics footprint', () => {
     const model = new KartModel({ ghost: true }); // same geometry, no canvas textures
     let tris = 0;
-    model.root.traverse((o) => {
-      if (o.isMesh) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+    model.root.traverse((o) => { // the ghost's depth-only twins share the visible meshes' geometry
+      if (o.isMesh && o.material.colorWrite) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
     });
     expect(tris).toBeLessThan(12000);
     const box = worldBox(model.root);

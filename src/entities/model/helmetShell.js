@@ -5,10 +5,10 @@
 import { v3 } from './primitives.js';
 import { smoothstep } from '../../core/math.js';
 
-const HALF_WIDTH = 0.123; // m
-const [TOP, BOTTOM] = [0.146, 0.185]; // m above / below the centre
+const HALF_WIDTH = 0.132; // m: ~0.9 of the height seen from behind, like a real full-face shell
+const [TOP, BOTTOM] = [0.138, 0.185]; // m above / below the centre
 const [FRONT, BACK] = [0.154, 0.171]; // m: longer at the back than the front
-const [DOME, SKIRT] = [2, 3.4]; // section power above / below the centre: a round dome over straighter sides
+const [DOME, SKIRT] = [2.3, 3.4]; // section power above / below the centre: a broad crown over straighter sides
 const CHIN = 0.03; // m the chin bar pushes forward of the egg
 
 export const dir = (az, el) => v3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
@@ -40,9 +40,11 @@ export function elevationAt(az, y) {
 
 export const at = (az, y, lift = 0) => surface(az, elevationAt(az, y), lift);
 
-// Height of the shell's lower edge: the chin bar sits highest, the back comes down over the nape.
+// Height of the shell's lower edge: nearly level all round (the chin bar is the lowest point at the
+// front, the nape about level with it), rising a little under the ears.
 export function hemY(az) {
-  return -0.112 - 0.062 * smoothstep(0.2, 1, Math.abs(Math.atan2(Math.sin(az), Math.cos(az))) / Math.PI);
+  const a = Math.abs(Math.atan2(Math.sin(az), Math.cos(az))) / Math.PI; // 0 front … 1 back
+  return -0.15 - 0.003 * smoothstep(0.5, 1, a) + 0.014 * Math.sin(az) ** 2;
 }
 
 // Visor edges at azimuth fraction u (−1..1 → pivot to pivot): a straight top, a lower edge that

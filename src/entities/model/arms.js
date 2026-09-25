@@ -11,22 +11,18 @@ import { rod, v3 } from './primitives.js';
 const { upperArm: A, forearm: B, wheelRadius: R } = COCKPIT;
 const SLIDE = 0.07; // m a shoulder may reach forward when the grip is past arm's length (full lock)
 
-function ball(r, sx, sy, sz, y, mat) {
-  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), mat);
-  m.scale.set(sx, sy, sz);
-  m.position.y = y;
-  return m;
-}
+const ball = (r, [sx, sy, sz], y, mat) =>
+  new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6).scale(sx, sy, sz).translate(0, y, 0), mat);
 
 // Segment parts along +Y from the joint: upper arm (sleeve) or forearm with gauntlet and glove.
 function segment(mats, fore) {
   const parts = fore
     ? [rod(v3(), v3(0, B - 0.1, 0), 0.043, mats.suit, 8, 0.036),
       rod(v3(0, B - 0.115, 0), v3(0, B - 0.045, 0), 0.041, mats.glove, 8, 0.047, false),
-      ball(1, 0.047, 0.058, 0.038, B - 0.008, mats.glove)]
+      ball(1, [0.047, 0.058, 0.038], B - 0.008, mats.glove)]
     : [rod(v3(), v3(0, A, 0), 0.054, mats.suit, 8, 0.044),
-      ball(0.06, 1, 1, 1, 0, mats.suit),
-      ball(0.046, 1, 1, 1, A, mats.suit)];
+      ball(0.06, [1, 1, 1], 0, mats.suit),
+      ball(0.046, [1, 1, 1], A, mats.suit)];
   new THREE.Group().add(...parts).updateMatrixWorld(true);
   return bakeParts(parts, mats.suit, undefined, true);
 }
@@ -42,7 +38,8 @@ export function buildArms(mats) {
   const mesh = new THREE.SkinnedMesh(geo, baked[0][1]);
   mesh.add(...bones);
   mesh.bind(new THREE.Skeleton(bones, bones.map(() => new THREE.Matrix4())), new THREE.Matrix4());
-  mesh.frustumCulled = false; // bones move it; it never leaves the kart
+  // Bones never move the arms out of this sphere round the cockpit: off-screen karts' arms get culled
+  mesh.boundingSphere = new THREE.Sphere(v3(0, 0.5, 0.12), 0.5);
   return { mesh, update: reach(bones) };
 }
 

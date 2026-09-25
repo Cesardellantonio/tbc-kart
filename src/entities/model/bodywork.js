@@ -60,12 +60,16 @@ function rearBumper() {
   }, 0.06);
 }
 
+// Rear number board: its top leans forward so the face tips up toward the chase camera.
+export const BOARD = { centre: [0, 0.3, 0.86], tilt: -0.18, thickness: 0.012 }; // m, rad
+
 export function buildBodywork(mats) {
-  const board = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.012), mats.body);
-  board.position.set(0, 0.3, 0.86);
-  board.rotation.x = 0.18; // rear number board, leaning back
+  const board = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, BOARD.thickness), mats.body);
+  board.position.set(...BOARD.centre);
+  board.rotation.x = BOARD.tilt;
   return [
-    mesh(nose(), mats.body), mesh(frontPanel(), mats.body), mesh(sidePod(-1), mats.body), mesh(sidePod(1), mats.body),
+    mesh(nose(), mats.body), mesh(frontPanel(), mats.body),
+    mesh(sidePod(-1), mats.body), mesh(sidePod(1), mats.body),
     mesh(rearBumper(), mats.accent), board,
   ];
 }

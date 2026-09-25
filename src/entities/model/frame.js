@@ -41,8 +41,9 @@ export function buildFrame(mats) {
   // Rear bumper frame behind the wheels
   both([v3(0.28, Y, 0.74), v3(0.4, 0.12, 0.84), v3(0.6, 0.14, 0.86), v3(0.66, 0.16, 0.8)], 0.012, 8);
   parts.push(rod(v3(-0.4, 0.12, 0.84), v3(0.4, 0.12, 0.84), 0.012, m));
-  // Seat stays from the back of the seat down to the frame
-  both([v3(0.16, 0.44, 0.47), v3(0.3, 0.2, 0.56), v3(0.34, Y, 0.62)], 0.009, 6);
+  // Seat stays: from the seat shell's back face, down inboard of the chain guard and behind the
+  // axle, to the rear cross member (clear of the engine on the right)
+  both([v3(0.15, 0.44, 0.485), v3(0.16, 0.26, 0.6), v3(0.24, Y, 0.66)], 0.009, 6);
   // Floor tray under the driver's feet
   const tray = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.006, 0.62), mats.frame);
   tray.position.set(0, Y - 0.012, -0.4);
@@ -50,7 +51,9 @@ export function buildFrame(mats) {
   // Rear axle, bearing hangers, brake disc and sprocket
   const ay = REAR_WHEEL.radius;
   parts.push(rod(v3(-REAR_TRACK / 2 + 0.06, ay, RZ), v3(REAR_TRACK / 2 - 0.06, ay, RZ), 0.02, m, 8));
-  for (const s of [-1, 1]) parts.push(rod(v3(s * 0.34, Y, RZ), v3(s * 0.34, ay + 0.03, RZ), 0.022, m, 6, 0.03, false));
+  for (const s of [-1, 1]) {
+    parts.push(rod(v3(s * 0.34, Y, RZ), v3(s * 0.34, ay + 0.03, RZ), 0.022, m, 6, 0.03, false));
+  }
   const disc = rod(v3(-0.13, ay, RZ), v3(-0.12, ay, RZ), 0.085, mats.engine, 16, 0.085, false);
   const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.05, 0.06), mats.shroud);
   caliper.position.set(-0.125, ay + 0.07, RZ - 0.03);

@@ -4,7 +4,6 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-
 import { v3 } from './primitives.js';
 
 function flip(g) {
@@ -28,20 +27,16 @@ export function gridSurface(rows, { wrap = false, out = null } = {}) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setIndex(idx);
   g.computeVertexNormals();
-  if (out) {
-    const nrm = g.attributes.normal;
-    let s = 0;
-    rows.forEach((row, i) => row.forEach((p, j) => (s += out(i, j).dot(v3().fromBufferAttribute(nrm, i * n + j)))));
-    if (s < 0) flip(g);
-  }
+  if (!out) return g;
+  const facing = (i, j) => out(i, j).dot(v3().fromBufferAttribute(g.attributes.normal, i * n + j));
+  if (rows.reduce((s, row, i) => row.reduce((t, _, j) => t + facing(i, j), s), 0) < 0) flip(g);
   return g;
 }
 
 // Closed thin solid between an outer grid and an inner grid of the same shape: both faces plus the
 // four rim strips, each with its own vertices so the edges stay crisp.
 export function solid(outer, inner) {
-  const last = outer.length - 1;
-  const lastCol = outer[0].length - 1;
+  const [last, lastCol] = [outer.length - 1, outer[0].length - 1];
   const parts = [
     gridSurface(outer, { out: (i, j) => outer[i][j].clone().sub(inner[i][j]) }),
     gridSurface(inner, { out: (i, j) => inner[i][j].clone().sub(outer[i][j]) }),
@@ -53,7 +48,9 @@ export function solid(outer, inner) {
     [col(outer, 0), col(inner, 0), col(outer, 1)],
     [col(outer, lastCol), col(inner, lastCol), col(outer, lastCol - 1)],
   ];
-  for (const [o, i, next] of rims) parts.push(gridSurface([o, i], { out: (r, k) => o[k].clone().sub(next[k]) }));
+  for (const [o, i, next] of rims) {
+    parts.push(gridSurface([o, i], { out: (r, k) => o[k].clone().sub(next[k]) }));
+  }
   return mergeGeometries(parts);
 }
 

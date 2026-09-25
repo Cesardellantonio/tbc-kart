@@ -26,7 +26,10 @@ const BASES = ['body', 'accent', 'frame', 'rim', 'tyre', 'suit', 'helmet', 'viso
 
 export function kartMaterials(livery = LIVERY, ghost = false) {
   if (ghost) {
-    const glass = new THREE.MeshBasicMaterial({ color: 0xb388ff, transparent: true, opacity: 0.28, depthWrite: false });
+    // Lit, so the one translucent shell (ghostShell.js) still shows its form rather than a flat cut-out
+    const glass = new THREE.MeshStandardMaterial({
+      color: 0xb388ff, emissive: 0x3c2470, roughness: 0.45, transparent: true, opacity: 0.4, depthWrite: false,
+    });
     const all = Object.fromEntries([...BASES, ...Object.keys(TINTS)].map((k) => [k, glass]));
     return { ...all, alias: new Map() };
   }

@@ -7,10 +7,10 @@ import { solid, ring, cap, gridSurface } from './shapes.js';
 import { rod, mesh, v3 } from './primitives.js';
 import { COCKPIT } from '../../config/kart.js';
 
-// Seat stations up the bucket: [y, z] of the inner surface's centre line (fits the torso's back)
+// Seat stations up the bucket: [y, z] of the inner centre line, fitting the reclined back
 const SEAT = [
-  [0.095, 0.03], [0.07, 0.14], [0.068, 0.25], [0.1, 0.345],
-  [0.25, 0.378], [0.37, 0.41], [0.47, 0.43], [0.565, 0.445],
+  [0.095, 0.03], [0.07, 0.14], [0.068, 0.25], [0.082, 0.338],
+  [0.223, 0.398], [0.335, 0.452], [0.429, 0.491], [0.519, 0.524],
 ];
 
 function seat(mat) {
@@ -31,8 +31,8 @@ function seat(mat) {
 function tank(mats) {
   const rows = [-0.43, -0.415, -0.17, -0.155].map((z, i) =>
     ring(v3(0, 0.1, z), v3(1, 0, 0), v3(0, 1, 0), i % 3 ? 0.062 : 0.05, i % 3 ? 0.048 : 0.036, 12, 3.5));
-  const inside = v3(0, 0.1, -0.3);
-  return [mesh(gridSurface(rows, { wrap: true, out: (i, j) => rows[i][j].clone().sub(v3(0, 0.1, rows[i][j].z)) }), mats.tank),
+  const [inside, out] = [v3(0, 0.1, -0.3), (i, j) => rows[i][j].clone().sub(v3(0, 0.1, rows[i][j].z))];
+  return [mesh(gridSurface(rows, { wrap: true, out }), mats.tank),
     mesh(cap(rows[0], inside), mats.tank), mesh(cap(rows[3], inside), mats.tank),
     rod(v3(0, 0.14, -0.25), v3(0, 0.165, -0.25), 0.02, mats.accent, 10, 0.02, false)];
 }
@@ -75,7 +75,6 @@ export function buildCockpit(mats) {
   const steering = new THREE.Group(); // tilted to face the driver; the wheel turns on its own axis
   steering.position.copy(hub);
   steering.rotation.x = -COCKPIT.wheelTilt;
-  const wheel = steeringWheel(mats);
-  steering.add(wheel);
-  return { parts, steering, wheel };
+  steering.add(steeringWheel(mats));
+  return { parts, steering, wheel: steering.children[0] };
 }
