@@ -17,10 +17,9 @@ function shell(mat) {
   const rows = range(ROWS - 1, 1 / ROWS, 1).map((t) => azs.map((az, k) => surface(az, lat(t, k))));
   const g = gridSurface(rows, { wrap: true, out: (i, j) => rows[i][j] });
   const roll = rows[ROWS - 1].map((p) => p.clone().multiply(v3(0.9, 1, 0.9)).add(v3(0, -0.004, 0)));
-  const neckRoll = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roll, true), AZ, 0.016, 5, true);
+  const neckRoll = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roll, true), AZ, 0.016, 4, true);
   const lining = cap(roll, v3()); // closes the opening seen from below
-  const [helmet, trim] = [(geo) => mesh(geo, mat.helmet), (geo) => mesh(geo, mat.trim)];
-  return [helmet(g), helmet(cap(rows[0], v3())), trim(neckRoll), trim(lining)];
+  return [mesh(g, mat.helmet), mesh(cap(rows[0], v3()), mat.helmet), mesh(neckRoll, mat.trim), mesh(lining, mat.trim)];
 }
 
 // Raised panel over the shell: grid of (azimuth, height) → lifted `lift` above an inner copy.
@@ -31,7 +30,8 @@ function panel(us, ys, point, lift, base = 0.0008) {
 
 function visor(mat) {
   const us = range(14, -1, 1);
-  const point = (u, v, lift) => at(u * VISOR_AZ, visorBottom(u) + (visorTop(u) - visorBottom(u)) * v, lift);
+  const y = (u, v) => visorBottom(u) + (visorTop(u) - visorBottom(u)) * v;
+  const point = (u, v, lift) => at(u * VISOR_AZ, y(u, v), lift * (0.625 + 0.375 * v)); // 5 mm proud at the chin
   const parts = [mesh(panel(us, range(3, 0, 1), point, 0.008), mat.visor)];
   parts[0].userData.small = true; // the shell under it casts the same shadow
   for (const s of [-1, 1]) { // pivot plates
@@ -67,7 +67,6 @@ function stripe(mat) {
 function vents(mat) {
   const slot = (az, y, w, h) => panel(range(4, az - w, az + w), [y - h, y + h], at, 0.005);
   const geos = [slot(-0.42, 0.118, 0.07, 0.008), slot(0.42, 0.118, 0.07, 0.008)];
-  for (const s of [-1, 1]) geos.push(slot(s * (Math.PI - 0.5), 0.07, 0.12, 0.01)); // rear exhaust vents
   for (const y of [-0.084, -0.1]) geos.push(slot(0, y, 0.13, 0.0045)); // chin-bar grille: two slots
   return geos.map((g) => mesh(g, mat.trim));
 }

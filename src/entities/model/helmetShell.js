@@ -9,15 +9,22 @@ const HALF_WIDTH = 0.132; // m: ~0.9 of the height seen from behind, like a real
 const [TOP, BOTTOM] = [0.138, 0.185]; // m above / below the centre
 const [FRONT, BACK] = [0.154, 0.171]; // m: longer at the back than the front
 const [DOME, SKIRT] = [2.3, 3.4]; // section power above / below the centre: a broad crown over straighter sides
-const CHIN = 0.03; // m the chin bar pushes forward of the egg
+const TAPER = 0.14; // share the half-width narrows from the ears to the hem: an inverted egg from behind
+const CHIN = 0.05; // m the chin bar juts forward of the egg, past the visor's lower edge
+const [CHIN_Y, CHIN_H] = [-0.56, 0.2]; // centre and spread of the chin bar (direction y): a defined underside
 
 export const dir = (az, el) => v3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
 
-export function radius(d) {
+const egg = (d, hw) => {
   const q = d.y > 0 ? DOME : SKIRT;
-  const flat = Math.hypot(d.x / HALF_WIDTH, d.z / (d.z < 0 ? FRONT : BACK));
-  const r = (flat ** q + Math.abs(d.y / (d.y > 0 ? TOP : BOTTOM)) ** q) ** (-1 / q);
-  const chin = smoothstep(0.3, 0.95, -d.z) * Math.exp(-(((d.y + 0.45) / 0.3) ** 2));
+  const flat = Math.hypot(d.x / hw, d.z / (d.z < 0 ? FRONT : BACK));
+  return (flat ** q + Math.abs(d.y / (d.y > 0 ? TOP : BOTTOM)) ** q) ** (-1 / q);
+};
+
+export function radius(d) {
+  let r = egg(d, HALF_WIDTH);
+  if (d.y < 0) r = egg(d, HALF_WIDTH * (1 - TAPER * smoothstep(0, BOTTOM, -d.y * r))); // skirt tapers in
+  const chin = smoothstep(0.3, 0.95, -d.z) * Math.exp(-(((d.y - CHIN_Y) / CHIN_H) ** 2));
   return r + CHIN * chin;
 }
 

@@ -8,9 +8,10 @@ import { buildDriver } from './model/driver.js';
 import { ghostShell } from './model/ghostShell.js';
 import { blobTexture } from '../world/textures/markings.js';
 import {
-  MAX_STEER_ANGLE, STEERING_WHEEL_TURN, BODY_ROLL, BODY_PITCH, BODY_MOTION_LIMIT, DRIVER_LEAN,
+  MAX_STEER_ANGLE, STEERING_WHEEL_TURN, STEER_EASE, STEER_VISUAL_RATE, BODY_ROLL, BODY_PITCH,
+  BODY_MOTION_LIMIT, HEAD_LEAN,
 } from '../config/kart.js';
-import { clamp, damp } from '../core/math.js';
+import { clamp, damp, smoothstep } from '../core/math.js';
 
 export class KartModel {
   // livery: colour overrides (see config/kart.js LIVERY); ghost: translucent, casts no shadow.
@@ -32,8 +33,7 @@ export class KartModel {
       o.receiveShadow = !ghost;
       o.castShadow = !ghost && !o.userData.small; // plates, steering wheel: too small to matter
     });
-    this._roll = 0;
-    this._pitch = 0;
+    [this._roll, this._pitch, this._lean, this._steer] = [0, 0, 0, 0];
     if (ghost) {
       ghostShell(this.root); // one clean translucent shell, and no contact shadow under it
       return;
@@ -57,11 +57,13 @@ export class KartModel {
   update(state, tel, dt, snap = false) {
     this.root.position.set(state.x, 0, state.z);
     this.root.rotation.y = state.yaw;
+    this._steer = snap ? state.steer : damp(this._steer, state.steer, STEER_VISUAL_RATE, dt) || 0;
     for (const w of this.wheels) {
       w.spin.rotation.x -= (tel.forwardSpeed * dt) / w.radius;
-      if (w.front) w.steer.rotation.y = state.steer * MAX_STEER_ANGLE;
+      if (w.front) w.steer.rotation.y = this._steer * MAX_STEER_ANGLE;
     }
-    this.steeringWheel.rotation.z = state.steer * STEERING_WHEEL_TURN;
+    const ease = 1 - STEER_EASE.share * smoothstep(0, STEER_EASE.speed, Math.abs(tel.forwardSpeed));
+    this.steeringWheel.rotation.z = this._steer * STEERING_WHEEL_TURN * ease;
     this.driver.arms.update(this.steeringWheel.rotation.z); // gloves stay on the rim
 
     const lim = BODY_MOTION_LIMIT;
@@ -70,6 +72,8 @@ export class KartModel {
     this._roll = snap ? roll : damp(this._roll, roll, 7, dt) || 0;
     this._pitch = snap ? pitch : damp(this._pitch, pitch, 7, dt) || 0;
     this.body.rotation.set(this._pitch, 0, this._roll);
-    this.driver.head.rotation.z = -this._roll * (1 + DRIVER_LEAN) * 2;
+    const lean = clamp(tel.latAccel * HEAD_LEAN.perAccel, -HEAD_LEAN.max, HEAD_LEAN.max) || 0;
+    this._lean = snap ? lean : damp(this._lean, lean, HEAD_LEAN.rate, dt) || 0;
+    this.driver.head.rotation.z = this._lean;
   }
 }

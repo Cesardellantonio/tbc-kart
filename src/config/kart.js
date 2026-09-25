@@ -31,10 +31,16 @@ export const KART_NUMBER = '07';
 
 export const MAX_STEER_ANGLE = 0.45; // front wheel visual steer, rad
 export const STEERING_WHEEL_TURN = 1.8; // steering wheel rotation at full lock, rad
+// At speed the wheel turns less for the same lock (a driver's hands stay near quarter to three at
+// pace, and an AI's full lock no longer lifts a glove to twelve o'clock beside the helmet)
+export const STEER_EASE = { speed: 18, share: 0.35 }; // m/s by which the turn is cut by `share`
+export const STEER_VISUAL_RATE = 14; // 1/s: the wheel and front tyres follow the input this fast
 export const BODY_ROLL = 0.012; // rad per m/s² of lateral acceleration
 export const BODY_PITCH = 0.01; // rad per m/s² of longitudinal acceleration
 export const BODY_MOTION_LIMIT = 0.07; // rad clamp for roll/pitch
-export const DRIVER_LEAN = 0.35; // share of body roll the driver leans into
+// The driver's head leans with lateral g on its own spring, so it grows with the corner instead of
+// switching to the body-roll clamp
+export const HEAD_LEAN = { perAccel: 0.01, max: 0.12, rate: 5 }; // rad per m/s², rad clamp, 1/s
 
 // Cockpit layout the driver is posed around (kart space: −Z forward, +Y up, x = right; metres).
 // The gloves stay on the rim at quarter to three and the arms follow the wheel as it turns.
@@ -42,9 +48,9 @@ export const COCKPIT = {
   wheelCentre: [0, 0.45, -0.15], // steering wheel hub
   wheelTilt: 0.76, // rad the wheel face leans back toward the driver
   wheelRadius: 0.15, // m to the middle of the rim (a ~300 mm rental wheel)
-  shoulder: [0.185, 0.551, 0.413], // right shoulder joint (the left one is mirrored), torso reclined ~20°
-  upperArm: 0.29, // m shoulder → elbow
-  forearm: 0.32, // m elbow → middle of the glove on the rim
+  shoulder: [0.177, 0.551, 0.413], // right shoulder joint (left mirrored), set into the reclined torso
+  upperArm: 0.31, // m shoulder → elbow (adult proportions: elbows bent ~120° at quarter to three)
+  forearm: 0.35, // m elbow → middle of the glove on the rim
   elbowOut: [1, -0.8, 0.3], // direction the right elbow bends toward (x mirrored for the left)
   headPivot: [0, 0.66, 0.372], // neck joint the helmet leans about
 };

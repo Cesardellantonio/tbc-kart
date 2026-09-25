@@ -21,7 +21,7 @@ function segment(mats, fore) {
       rod(v3(0, B - 0.115, 0), v3(0, B - 0.045, 0), 0.041, mats.glove, 8, 0.047, false),
       ball(1, [0.047, 0.058, 0.038], B - 0.008, mats.glove)]
     : [rod(v3(), v3(0, A, 0), 0.054, mats.suit, 8, 0.044),
-      ball(0.06, [1, 1, 1], 0, mats.suit),
+      ball(0.052, [1, 1, 1], 0, mats.suit),
       ball(0.046, [1, 1, 1], A, mats.suit)];
   new THREE.Group().add(...parts).updateMatrixWorld(true);
   return bakeParts(parts, mats.suit, undefined, true);

@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { gridSurface, ring, cap } from './shapes.js';
 import { rod, mesh, v3 } from './primitives.js';
+import { bootGeometry, BOOT_PITCH } from './boot.js';
 
 // Torso sections, pelvis → neck: [y, z, half width, half depth front, half depth back] (m). The
 // centres lean back ~20° from the hips, as in a rental-kart seat; the last row is the suit's collar.
@@ -24,7 +25,7 @@ const X = v3(1, 0, 0);
 const Z = v3(0, 0, 1);
 
 function torso(mat) {
-  const rows = TORSO.map(([y, z, hw, df, db]) => ring(v3(0, y, z), X, Z, hw, db, 16, 2.6, df));
+  const rows = TORSO.map(([y, z, hw, df, db]) => ring(v3(0, y, z), X, Z, hw, db, 20, 2.6, df));
   const centre = v3(0, 0.35, 0.3);
   const out = (i, j) => rows[i][j].clone().sub(v3(0, rows[i][j].y, TORSO[i][1]));
   const body = gridSurface(rows, { wrap: true, out });
@@ -44,23 +45,28 @@ function panels(mat) {
   });
 }
 
+// Leg: thigh up to the knee, shin down to the ankle, and the boot flat on its pedal with the toes up
+// ~30° (pedals match, cockpit.js), low enough that the front panel hides the toes from the cockpit.
 function leg(side, mats) {
   const hip = v3(side * 0.085, 0.13, 0.19);
   const knee = v3(side * 0.125, 0.27, -0.15);
-  const ankle = v3(side * 0.11, 0.145, -0.53);
+  const ankle = v3(side * 0.108, 0.15, -0.512);
   const knob = new THREE.Mesh(new THREE.SphereGeometry(0.056, 8, 6), mats.suit);
   knob.position.copy(knee);
-  const boot = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), mats.boot);
-  boot.scale.set(0.046, 0.042, 0.12);
-  boot.position.set(side * 0.105, 0.16, -0.595);
-  boot.rotation.x = 0.85; // toes up on the pedal
-  return [rod(hip, knee, 0.074, mats.suit, 8, 0.058), knob, rod(knee, ankle, 0.052, mats.suit, 8, 0.04), boot];
+  const boot = bootGeometry().map((g) => {
+    const m = new THREE.Mesh(g, mats.boot);
+    m.position.set(side * 0.105, 0.055, -0.5); // heel on the floor tray
+    m.rotation.x = BOOT_PITCH;
+    return m;
+  });
+  return [rod(hip, knee, 0.074, mats.suit, 8, 0.058), knob, rod(knee, ankle, 0.052, mats.suit, 8, 0.04), ...boot];
 }
 
 export function buildSuit(mats) {
-  // Neck brace: a closed ring low on the collar, higher at the back like the shoulders' slope
-  const brace = new THREE.Mesh(new THREE.TorusGeometry(0.084, 0.019, 8, 18), mats.collar);
-  brace.rotation.x = Math.PI / 2 - 0.25;
-  brace.position.set(0, 0.6, 0.43);
+  // Neck brace: a closed oval ring resting on the collar, just under the helmet's hem at the back
+  const brace = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.018, 7, 24), mats.collar);
+  brace.scale.set(1, 0.86, 1); // deeper side to side than front to back, like the real thing
+  brace.rotation.x = Math.PI / 2 - 0.14;
+  brace.position.set(0, 0.603, 0.412);
   return [...torso(mats.suit), ...panels(mats.panel), ...leg(-1, mats), ...leg(1, mats), brace];
 }

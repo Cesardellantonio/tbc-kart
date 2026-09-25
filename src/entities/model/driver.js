@@ -14,7 +14,8 @@ export function buildDriver(mats) {
   const head = new THREE.Group(); // pivots at the neck so it can lean into corners
   head.position.set(...COCKPIT.headPivot);
   const helmet = buildHelmet(mats);
-  helmet.position.set(0, 0.125, -0.022); // shell centre above the neck joint
+  helmet.position.set(0, 0.119, -0.022); // shell centre above the neck joint
+  helmet.scale.setScalar(0.95); // ~0.33 m long: a size-L shell, not a bobble-head
   helmet.rotation.x = -0.06; // looking ahead over the reclined torso
   head.add(helmet);
   group.add(head);
