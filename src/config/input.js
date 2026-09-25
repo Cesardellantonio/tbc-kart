@@ -24,6 +24,7 @@ export const ACTIONS = {
   nextTrack: ['ArrowDown', 'KeyS', 'KeyN'],
   raceAgain: ['Enter'], // results card
   nextRace: ['KeyN'], // results card: on to the next track
+  level: ['KeyL'], // menu: rival level
   debug: ['Backquote', 'F3'],
 };
 
@@ -58,5 +59,6 @@ export const GAMEPAD = {
     nextRace: 13,
     left: 14,
     right: 15,
+    level: 2, // X
   },
 };

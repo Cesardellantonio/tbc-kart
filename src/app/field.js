@@ -9,7 +9,7 @@ import { gridSpot } from '../race/grid.js';
 import { trafficFor } from '../race/traffic.js';
 import { KerbFeel } from '../fx/KerbFeel.js';
 import { catchUpPace, rivalSlots, trackPace } from '../race/pack.js';
-import { RIVALS, GRID, DRAFT, CONTACT } from '../config/race.js';
+import { RIVALS, GRID, DRAFT, CONTACT, DIFFICULTY } from '../config/race.js';
 
 export function createRivals(scene) {
   return RIVALS.map((profile) => {
@@ -29,6 +29,7 @@ export function setFieldTrack(game) {
   for (const r of game.rivals) {
     r.kart.collider = collider;
     r.driver.setTrack(path, line, trackPace(track.id));
+    r.driver.difficulty = DIFFICULTY[game.difficulty].pace;
   }
   game.autopilot.setPath(path);
 }

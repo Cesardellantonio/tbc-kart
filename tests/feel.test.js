@@ -7,7 +7,7 @@ import tbc from '../src/tracks/tbc.js';
 import { pathOf } from '../src/track/validate.js';
 import { cornerRuns } from '../src/track/curbRuns.js';
 import { curbTable, wheelsOnCurb, wheelLayout } from '../src/track/curbTable.js';
-import { brakingZones, spanIndices } from '../src/track/brakingZones.js';
+import { brakeProfile, brakingZones, spanIndices } from '../src/track/brakingZones.js';
 import { EngineRpm } from '../src/audio/engineRpm.js';
 import { HeadMotion } from '../src/core/HeadMotion.js';
 import { ENGINE } from '../src/config/audio.js';
@@ -99,7 +99,7 @@ describe('engine rpm (centrifugal clutch)', () => {
 
 describe('braking zones', () => {
   it('finds a few real braking zones on the home track, each leading into a corner', () => {
-    const zones = brakingZones(path, BRAKE_MARKS);
+    const zones = brakingZones(path, BRAKE_MARKS, brakeProfile(path, racingLine(path, AI)));
     expect(zones.length).toBeGreaterThanOrEqual(2);
     for (const z of zones) {
       expect(z.drop).toBeGreaterThanOrEqual(BRAKE_MARKS.minDrop);
@@ -107,7 +107,7 @@ describe('braking zones', () => {
       expect(span.length * path.spacing).toBeLessThan(60);
       let ahead = 0; // the drivers brake for the tightest bend in the next ~30 m
       for (let d = 0; d < 30 / path.spacing; d++) ahead = Math.max(ahead, Math.abs(path.curvature[path.wrap(z.start + d)]));
-      expect(ahead).toBeGreaterThan(2 * Math.abs(path.curvature[z.start]));
+      expect(ahead).toBeGreaterThan(1.5 * Math.abs(path.curvature[z.start])); // tightens ahead (may start mid-bend)
     }
   });
 
@@ -119,10 +119,11 @@ describe('braking zones', () => {
     const faces = barrierFaces(p);
     const collider = new BarrierCollider([...faces, wallLoop(boundsOf(faces, VENUE_MARGIN + BARRIER_THICKNESS))], COLLISION_CELL);
     const g = gridSpot(p, p.nearest(...track.waypoints[track.startIndex]), 0);
-    const driver = new AiDriver(p, racingLine(p, AI), { skill: 1, line: 0, react: 0 });
+    const line = racingLine(p, AI);
+    const driver = new AiDriver(p, line, { skill: 1, line: 0, react: 0 });
     driver.form = 1;
     const marked = new Uint8Array(p.count);
-    for (const z of brakingZones(p, BRAKE_MARKS)) for (const i of spanIndices(p, z.start, z.end)) marked[i] = 1;
+    for (const z of brakingZones(p, BRAKE_MARKS, brakeProfile(p, line))) for (const i of spanIndices(p, z.start, z.end)) marked[i] = 1;
     let st = { x: g.x, z: g.z, yaw: g.yaw, vx: 0, vz: 0, steer: 0, yawRate: 0 };
     let [index, dist, onBrake, inMarks, lost, lostInMarks] = [g.i, 0, 0, 0, 0, 0];
     const dt = 1 / 60;

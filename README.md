@@ -2,27 +2,29 @@
 
 **▶ Play online: https://cesardellantonio.github.io/tbc-kart-play/**
 
-A kart racing game set in an indoor karting hall, on a layout traced from the **TBC Indoor Racing** track in Vancouver. Vanilla JavaScript + Three.js, no framework, built one session at a time as a learning project.
+A kart racing game set in indoor karting halls: the **TBC Indoor Racing** layout from Vancouver plus nine kart-scale circuits inspired by Formula 1 tracks. Vanilla JavaScript + Three.js, no framework, built one session at a time as a learning project.
 
 - **v0.1–v0.2** — outdoor box car → indoor kart on a painted TBC trace
 - **v0.3–v0.7** — collision, HUD, shadows, spinning wheels, bloom, audio, tests
 - **v1.0** — look & feel overhaul: real-scale track with barriers, drift physics, detailed kart + driver, lap timing with live delta, start lights, title attract mode, venue lighting, particles, synthesized sound
-- **v2.0** — Grand Prix (current): 5-lap races against five AI rivals, kart-to-kart contact, slipstream, live timing tower, results screen, best-lap ghost in time attack, touch controls for phones
+- **v2.0** — Grand Prix: 5-lap races against five AI rivals, kart-to-kart contact, slipstream, live timing tower, results screen, best-lap ghost in time attack, touch controls for phones
+- **v3.0** — Circuits (current): nine F1-inspired tracks with a track picker, a single-track tyre model (rear-only brakes, load transfer, holdable drifts), smarter rivals with three difficulty levels, kerbs you can feel, a clutch-engine sound, cockpit head motion and a rubbered-in racing line
 
 ## Run
 
 ```bash
 npm install
 npm run dev      # open the URL Vite prints (usually http://localhost:5173)
-npm test         # 25 unit tests: physics, track, barriers, lap timing, contacts, race order, AI line, ghost
+npm test         # 160 unit tests: physics, tracks (rules + a six-kart AI race on every circuit), race logic, feel, flow
+node tools/track-report.mjs monza --svg monza.svg   # design check + AI race + map for one circuit
 npm run build    # production bundle in dist/
 ```
 
-**Publishing:** this repo is private, so the playable build lives in the public repo `Cesardellantonio/tbc-kart-play` (GitHub Pages, `main` branch root). To update it, run `npm run build`, copy `dist/` over that repo's contents (keep its `README.md` and `.nojekyll`), commit and push.
+**Publishing:** the playable build lives in the repo `Cesardellantonio/tbc-kart-play` (GitHub Pages, `main` branch root). To update it, run `npm run build`, copy `dist/` over that repo's contents (keep its `README.md` and `.nojekyll`), commit and push.
 
 ## How to play
 
-Pick a track (`↑` `↓`) and a mode (`←` `→`) on the title screen, then **Enter** — or click / tap a mode:
+Pick a track (`↑` `↓` or the ◀ ▶ arrows), a mode (`←` `→`) and the rivals' level (`L`, or click **Amateur / Club / Pro**) on the title screen, then **Enter** — or click / tap a mode:
 
 - **Grand Prix** — a race of about two and a half minutes (each circuit sets its lap count) against five rivals, from 5th on the grid. Tuck in behind a kart to catch its slipstream (the speedo shows **SLIPSTREAM**), then pull out and pass. Rubbing is racing: karts bump and shove each other. The timing tower shows the running order and real time gaps; the results card fills in as the field takes the flag.
 - **Time Attack** — alone on track against the clock. Your best lap is saved in the browser (shown in purple) along with a translucent **ghost** of that lap to chase.
@@ -39,6 +41,8 @@ On a phone or tablet, on-screen buttons appear: steer bottom-left, gas / brake /
 | `R` | Reset kart onto the track (restart when paused) |
 | `M` | Sound on/off |
 | `Esc` / `P` | Pause (then `R` restart, `Q` menu) |
+| `↑` `↓` / `←` `→` / `L` | Title screen: track / mode / rivals' level |
+| `Enter` / `N` | Results: race again / next track |
 | `Enter` / `N` / `Esc` | Results card: race again / next track / menu (the driving keys do nothing there) |
 | `` ` `` / `F3` | Developer overlay |
 
@@ -46,8 +50,8 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 
 ## What's in it
 
-- **Track**: 249 m lap, 6 m wide asphalt with edge lines, red/white curbs on the inside of every tight corner, a checkered start/finish line, and a grid box. Rounded plastic barriers line both sides and actually stop you.
-- **Physics**: velocity-based kart model. Tyre grip scrubs sideways speed, and the handbrake lets the rear slide. Steering is speed-sensitive, braking is strong, and reverse is slow. It steps in fixed 1/120 s substeps, and barrier collisions bounce and slide with friction (a brush costs little, a hard hit or riding the wall a lot).
+- **Tracks**: ten circuits, each 6 m (up to 7 m) wide asphalt with edge lines, red/white curbs on the inside of tight corners, a checkered start/finish line and a six-kart grid, lined with rounded plastic barriers that actually stop you, inside a hall sized to the layout — TBC Indoor (Vancouver, the home track) · Monte Carlo (Monaco) · Monza · Silverstone · Spa · Interlagos · Montréal · Austin (COTA) · Spielberg (Red Bull Ring) · Marina Bay (Singapore). The F1 layouts are scaled to kart size (390–612 m) and keep each circuit's direction, silhouette and corner sequence; every one was reviewed corner by corner against the real map. Best laps and ghosts are saved per track.
+- **Physics**: a single-track (bicycle) model of a ~160 kg rental kart: a saturating tyre curve per axle with longitudinal load transfer, a driven solid rear axle carrying the only brakes (so trail braking and lifting rotate the kart, and too much throttle or brake at the limit steps the rear out), a drift button that kicks the rear loose, and a countersteer assist so a slide can be held and caught on a keyboard. Fixed 1/120 s substeps; barriers bounce and scrape with Coulomb friction.
 - **Kart**: low-poly chassis, nose cone with number plate, side pods, engine, and a driver in a helmet. Wheels spin and steer, the body rolls and pitches with load, and the driver's head leans into corners.
 - **Venue**: concrete floor with slab joints, ribbed-metal walls with an accent stripe and neon, banners, roof trusses, LED panels with floor light pools, and a start gantry with real start lights.
 - **Look**: ACES tone mapping, a custom reflection environment of the hall itself, soft shadows, tight bloom, a colour grade with vignette, and 4× MSAA.
@@ -73,8 +77,8 @@ src/
     wireEvents.js      event bus → sound, shake, saved record, screens
     anchors.js         trackside TV-camera positions for the title screen
     field.js           rival karts: grid, AI stepping, contacts and slipstream
+  tracks/              one data module per circuit (waypoints in metres, start, laps, blurb) + index.js registry
   config/              every tunable value, grouped by topic (no magic numbers elsewhere)
-    trackWaypoints.js  the TBC layout in metres (data only)
     track · physics · kart · camera · render · venue · audio · input · race
   core/                engine-level pieces, no game rules
     Renderer · PostFX · GradeShader · venueEnvironment
@@ -87,6 +91,8 @@ src/
     curbRuns · curbTable  where the curbs are, and a per-sample lookup for "which wheels are on a kerb"
     brakingZones       a point-mass lap driven by the AI's own speed rule → where karts brake (tyre marks)
     bounds             venue size from the barriers + a wall loop collider
+    validate           the design rules every circuit must pass (length, radius, separation, straight grid, footprint)
+    barrierLines       barrier geometry shared by the scene, collider, simulator and tests
   physics/             kartPhysics (pure single-track step) · tyres · axles · controls · BarrierCollider (circle vs segments, grid)
                        kartContacts (kart vs kart, slipstream)
   entities/            Kart (state + substeps) · KartModel (animation) · Ghost · model/ parts (merged per material: ~18 draws a kart)
@@ -101,7 +107,8 @@ src/
                        Screens · Results · TouchControls
                        DebugOverlay · format · dom · hud.css
   debug/topdown.js     overhead view of the whole hall (dev)
-tests/                 physics · track · race
+tools/                 simulate.js (headless six-kart race) · track-report.mjs (rules + race + SVG map) · ai-pace.mjs (TRACK_PACE)
+tests/                 physics · track · tracks · race · grandprix · feel · flow · ai · difficulty
 ```
 
 Each module has one job and stays at or under 80 lines, so when one grows past that it gets split. Data flows one way through `app/frame.js`:
@@ -131,17 +138,19 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `fin
 | Rubbered line and brake marks | `config/track.js` → `RUBBER_LINE`, `BRAKE_MARKS` |
 | Brightness, bloom, colour grade | `config/render.js` |
 | Kart colours / number | `config/kart.js` → `LIVERY`, `KART_NUMBER` |
-| Track shape | `config/trackWaypoints.js` (keep radii ≥ 3.5 m; `npm test` checks the barriers) |
+| Track shape | `src/tracks/<id>.js` → `waypoints` (then `node tools/track-report.mjs <id>`: the rules in `track/validate.js` + an AI race) |
 | Banner texts, neon colours, lights | `config/venue.js` |
 | Race length | the track file's `laps` (about 140 s of racing; `tests/tracks.test.js` checks it) |
 | Grid slot, rival names / colours / pace | `config/race.js` → `GRID`, `RIVALS` |
-| AI pace (difficulty) | `config/race.js` → `AI.paceMargin` (then `node tools/ai-pace.mjs` → `TRACK_PACE`), `RIVALS` skills |
+| Rival levels (Amateur / Club / Pro) | `config/race.js` → `DIFFICULTY` (corner + braking pace only), `DEFAULT_DIFFICULTY` |
+| AI base pace | `config/race.js` → `AI.paceMargin` (then `node tools/ai-pace.mjs` → `TRACK_PACE`), `RIVALS` skills |
 | AI line, passing, pack pull, slipstream, contact | `config/race.js` → `AI`, `DRAFT`, `CONTACT` |
 
 ## Where to add X
 
 | Want to add… | Touch these files |
 |---|---|
+| Another circuit | new `src/tracks/<id>.js` (same format as `tbc.js`), add it to `src/tracks/index.js`, iterate with `node tools/track-report.mjs <id> --svg map.svg` until it passes, then `node tools/ai-pace.mjs` for `TRACK_PACE` |
 | Another rival | add an entry to `RIVALS` in `config/race.js` (and a grid slot in `app/field.js`) |
 | New HUD widget | new file in `ui/`, compose it in `ui/Hud.js` |
 | New sound | method in `audio/Sfx.js`, subscribe in `app/wireEvents.js` |
@@ -161,4 +170,4 @@ __debug.teleport(x, z);    // move the kart
 
 ## Not yet
 
-No online multiplayer, no championship across several races, and no track editor. Each would be a good next session.
+No online multiplayer, no championship across several races, no elevation (Eau Rouge is flat indoors), and no track editor. Each would be a good next session.

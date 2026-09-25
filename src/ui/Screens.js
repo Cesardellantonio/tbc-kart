@@ -5,7 +5,7 @@ import { el, refs, setText, showScreen } from './dom.js';
 import { formatTime } from './format.js';
 import { Results } from './Results.js';
 import { drawTrackMap } from './trackMap.js';
-import { RIVALS } from '../config/race.js';
+import { RIVALS, DIFFICULTY } from '../config/race.js';
 
 const CONTROLS = [
   ['<kbd>W</kbd><kbd>↑</kbd>', 'throttle'],
@@ -46,6 +46,7 @@ export class Screens {
            <button class="tt-arrow" data-act="nextTrack" aria-label="Next track">▶</button>
          </div>
          <div class="title-modes">${MODES.map(([id, name]) => `<button class="mode" data-mode="${id}"><b>${name}</b><small data-sub="${id}"></small></button>`).join('')}</div>
+         <div class="title-level"><span>RIVALS</span>${Object.entries(DIFFICULTY).map(([id, d]) => `<button data-level="${id}">${d.label}</button>`).join('')}<kbd>L</kbd></div>
          <div class="title-press"><span class="key-hint">PRESS <kbd>ENTER</kbd> TO RACE · <kbd>↑</kbd><kbd>↓</kbd> TRACK · <kbd>←</kbd><kbd>→</kbd> MODE</span><span class="tap-hint">PICK A TRACK · TAP A MODE TO RACE</span></div>
          <div class="title-best" data-ref="best"></div>
          <div class="title-controls">${CONTROLS.map(([k, a]) => `<span>${k} ${a}</span>`).join('')}</div>
@@ -95,6 +96,24 @@ export class Screens {
     setText(r.meta, track.id === 'tbc' ? 'VANCOUVER HOME TRACK' : `INSPIRED BY ${track.inspiredBy.toUpperCase()}`);
     for (const [id, , sub] of MODES) setText(this.title.querySelector(`[data-sub="${id}"]`), sub(track.laps));
     this.setBest(best);
+  }
+
+  // Rival level buttons: onLevel(id) is called on a click; cycleLevel() steps through them (L key).
+  bindLevels(level, onLevel) {
+    this.levelButtons = [...this.title.querySelectorAll('[data-level]')];
+    for (const b of this.levelButtons) b.addEventListener('click', () => onLevel(this.setLevel(b.dataset.level)));
+    this.setLevel(level);
+  }
+
+  setLevel(level) {
+    this.level = level;
+    for (const b of this.levelButtons) b.classList.toggle('is-selected', b.dataset.level === level);
+    return level;
+  }
+
+  cycleLevel() {
+    const ids = Object.keys(DIFFICULTY);
+    return this.setLevel(ids[(ids.indexOf(this.level) + 1) % ids.length]);
   }
 
   setMode(mode) {

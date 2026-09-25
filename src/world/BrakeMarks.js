@@ -40,13 +40,13 @@ function streak(path, indices, load, centre, rnd, y) {
 }
 
 // Sample spans the marks cover: each braking zone, give or take where different karts hit the pedal.
-export function markSpans(path, profile = brakeProfile(path)) {
+export function markSpans(path, profile) {
   return brakingZones(path, B, profile).map((z) => spanIndices(path, z.start, z.end));
 }
 
 export function createBrakeMarks(path, line, y) {
   const rnd = seededRandom(path.count);
-  const profile = brakeProfile(path);
+  const profile = brakeProfile(path, line);
   const geoms = [];
   for (const all of markSpans(path, profile)) {
     if (all.length < 8) continue;

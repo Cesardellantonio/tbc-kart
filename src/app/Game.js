@@ -31,10 +31,11 @@ import { createRivals, setFieldTrack, placeField } from './field.js';
 import { stepGame, controlsFor, runLoop } from './frame.js';
 import { TRACKS } from '../tracks/index.js';
 import { chooseTrack, recordSignature } from './trackChoice.js';
-import { RIVALS, PLAYER } from '../config/race.js';
+import { RIVALS, PLAYER, DIFFICULTY, DEFAULT_DIFFICULTY } from '../config/race.js';
 import { LIVERY } from '../config/kart.js';
 
 const LAST_TRACK_KEY = 'tbc-kart.track';
+const LEVEL_KEY = 'tbc-kart.level';
 
 export class Game {
   constructor() {
@@ -59,6 +60,8 @@ export class Game {
     this.input = new Input();
     this.hud = new Hud(this.bus, this.input);
     this.screens = new Screens((name) => this.input.trigger(name));
+    this.difficulty = savedLevel();
+    this.screens.bindLevels(this.difficulty, (level) => this.setDifficulty(level));
     this.debug = new DebugOverlay();
     this.autopilot = new Autopilot(null);
     this.impactCooldown = 0;
@@ -99,6 +102,13 @@ export class Game {
 
   // Step through the track list (wraps around). The pick is remembered, and a ?track= in the URL
   // follows it, so a reload keeps the menu choice.
+  // Rival level (config/race.js DIFFICULTY) for every race from now on; remembered in the browser.
+  setDifficulty(level) {
+    this.difficulty = level;
+    for (const r of this.rivals) r.driver.difficulty = DIFFICULTY[level].pace;
+    store(LEVEL_KEY, level);
+  }
+
   selectTrack(offset) {
     const i = TRACKS.indexOf(this.track);
     this.loadTrack(TRACKS[(i + offset + TRACKS.length) % TRACKS.length]);
@@ -149,9 +159,23 @@ function initialTrack() {
 }
 
 function remember(id) {
+  store(LAST_TRACK_KEY, id);
+}
+
+function store(key, value) {
   try {
-    localStorage.setItem(LAST_TRACK_KEY, id);
+    localStorage.setItem(key, value);
   } catch {
     // storage unavailable
   }
+}
+
+function savedLevel() {
+  let level = null;
+  try {
+    level = localStorage.getItem(LEVEL_KEY);
+  } catch {
+    // storage unavailable
+  }
+  return DIFFICULTY[level] ? level : DEFAULT_DIFFICULTY;
 }

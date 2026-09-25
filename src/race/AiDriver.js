@@ -15,6 +15,7 @@ export class AiDriver {
   // profile: { skill, line, react } (see config/race.js RIVALS)
   constructor(path, line, profile, trackPace = 1) {
     this.profile = profile;
+    this.difficulty = 1; // rival level (config/race.js DIFFICULTY): scales corner and braking pace only
     this.setTrack(path, line, trackPace);
   }
 
@@ -59,7 +60,7 @@ export class AiDriver {
 
     const attack = Math.abs(this.pass) > 1 ? 1 + AI.attack : 1; // alongside a kart: brake later
     const planned = plannedSpeed(this.plan, p, this.index, speed, {
-      skill: skill * attack * this.trackPace, // corners and braking; the straights stay flat out
+      skill: skill * attack * this.trackPace * this.difficulty, // corners and braking; straights stay flat out
       ahead: AUTOPILOT.planAhead,
       maxSpeed: AUTOPILOT.maxSpeed * skill,
     });

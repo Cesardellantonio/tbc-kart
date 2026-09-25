@@ -56,6 +56,7 @@ export function handleActions(game) {
   const state = session.state;
   if (state === 'title') {
     if (input.action('left') || input.action('right')) screens.cycleMode();
+    if (input.action('level')) game.setDifficulty(screens.cycleLevel());
     if (input.action('prevTrack')) game.selectTrack(-1);
     if (input.action('nextTrack')) game.selectTrack(1);
     if (input.action('start')) startRace(game, screens.mode);

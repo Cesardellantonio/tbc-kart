@@ -25,9 +25,9 @@ import { wrapAngle } from '../src/core/math.js';
 // to YOU) or a fixed rival skill multiplier (e.g. 1 + AI.catchUp, the worst case), random (grid
 // shuffle, reactions, form), tweak (controls, kartIndex) → controls (e.g. a flat-out driver),
 // you (profile overrides for the YOU stand-in, e.g. { skill, line }), trackPace (override the circuit's
-// TRACK_PACE, e.g. 1 to calibrate it) }.
+// TRACK_PACE, e.g. 1 to calibrate it), difficulty (rival skill multiplier, config/race.js DIFFICULTY) }.
 // Returns a report per kart and overall.
-export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = null, field = 'full', pace = 'game', random = Math.random, tweak = null, you = {}, trackPace: trackPaceOverride = null } = {}) {
+export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = null, field = 'full', pace = 'game', random = Math.random, tweak = null, you = {}, trackPace: trackPaceOverride = null, difficulty = 1 } = {}) {
   const path = pathOf(track);
   const faces = barrierFaces(path);
   const collider = new BarrierCollider([...faces, wallLoop(boundsOf(faces, VENUE_MARGIN + BARRIER_THICKNESS))], COLLISION_CELL);
@@ -40,6 +40,7 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
     const g = gridSpot(path, startIndex, field === 'solo' ? 0 : slots[k]);
     const driver = new AiDriver(path, line, profile, trackPaceOverride ?? trackPace(track.id));
     driver.reset(random);
+    if (k > 0) driver.difficulty = difficulty;
     return {
       profile,
       driver,

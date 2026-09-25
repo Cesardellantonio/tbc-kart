@@ -66,7 +66,7 @@ export const AI = {
   passGiveUp: 8, // s pulled out without drawing alongside (within passAlongside m) before giving up…
   passAlongside: 1.5,
   passRetry: 1, // …and s back on the racing line before trying again
-  attack: 0.06, // extra skill while pulled out alongside a kart (braking later to make the move stick)
+  attack: 0.03, // extra skill while pulled out alongside a kart (braking later to make the move stick)
   blockAhead: 2.6, // a kart this close ahead…
   blockLateral: 1.3, // …and this close sideways blocks my lane: hold its speed
   offsetRate: 2.2, // how fast the target line moves sideways (1/s)
@@ -93,6 +93,16 @@ export const TRACK_PACE = {
   spielberg: 1.049,
   singapore: 1.021,
 };
+
+// Rival level, picked on the title card: scales every rival's corner and braking pace (their straights
+// stay flat out). Calibrated against a scripted skilled keyboard driver (100 ms reaction, digital
+// steering): about 10% quicker than the fastest rival on Amateur, level on Club, ~5% slower on Pro.
+export const DIFFICULTY = {
+  amateur: { label: 'AMATEUR', pace: 0.66 },
+  club: { label: 'CLUB', pace: 0.76 },
+  pro: { label: 'PRO', pace: 0.88 },
+};
+export const DEFAULT_DIFFICULTY = 'club';
 
 // Slipstream: following within `range` metres, closely in line (see DRAFT_DRAG_CUT in physics).
 export const DRAFT = { range: 9, lateral: 1.3 };

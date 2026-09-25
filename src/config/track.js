@@ -44,7 +44,7 @@ export const RUBBER_LINE = {
 };
 // Light tyre marks laid down where the computer drivers brake hard for a corner (track/brakingZones)
 export const BRAKE_MARKS = {
-  minBrake: 0.3, // peak brake pedal (0..1) that counts as braking hard enough to mark the concrete
+  minBrake: 0.2, // peak brake pedal (0..1) that counts as braking hard enough to mark the concrete
   minDrop: 1, // m/s of speed lost before a zone counts (light dabs leave lighter marks: alpha follows the pedal)
   mergeGap: 3, // m of coasting between two brake applications that still counts as one zone
   streaks: 3, // karts' worth of marks per zone (2 wheels each)
