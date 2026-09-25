@@ -1,9 +1,12 @@
 // Full-screen overlays: the title card with track + mode select (attract mode plays behind it), the
-// pause card and the results card. Buttons fire the same actions as the keys, so touch works too.
+// pause card and the results card, plus the online lobby and the online race's Esc card. Buttons
+// fire the same actions as the keys, so touch works too.
 
 import { el, refs, setText, showScreen } from './dom.js';
 import { formatTime } from './format.js';
 import { Results } from './Results.js';
+import { Lobby } from './Lobby.js';
+import { OnlinePause } from './OnlinePause.js';
 import { drawTrackMap } from './trackMap.js';
 import { RIVALS, DIFFICULTY } from '../config/race.js';
 
@@ -20,6 +23,7 @@ const CONTROLS = [
 const MODES = [
   ['race', 'GRAND PRIX', (laps) => `${laps} LAPS · ${RIVALS.length} RIVALS · SLIPSTREAM & CONTACT`],
   ['timeattack', 'TIME ATTACK', () => 'SOLO HOT LAPS · RACE YOUR BEST-LAP GHOST'],
+  ['online', 'ONLINE', () => 'RACE FRIENDS · ROOM CODE · UP TO 6 PLAYERS'],
 ];
 const MAP = [168, 112]; // track picker thumbnail, CSS px
 
@@ -66,6 +70,8 @@ export class Screens {
     document.body.append(this.title, this.pause);
     showScreen(this.pause, false);
     this.results = new Results(onAction);
+    this.lobby = new Lobby(offlineLobby(this)); // the online layer replaces these with lobby.bind()
+    this.onlinePause = new OnlinePause(onAction);
     this.r = refs(this.title);
     this.modeButtons = [...this.title.querySelectorAll('[data-mode]')];
     for (const b of this.modeButtons) {
@@ -121,8 +127,22 @@ export class Screens {
     for (const b of this.modeButtons) b.classList.toggle('is-selected', b.dataset.mode === mode);
   }
 
-  cycleMode() {
-    this.setMode(this.mode === 'race' ? 'timeattack' : 'race');
+  // step: +1 (→) or −1 (←) through the modes, wrapping around.
+  cycleMode(step = 1) {
+    const i = MODES.findIndex(([id]) => id === this.mode);
+    this.setMode(MODES[(i + step + MODES.length) % MODES.length][0]);
+  }
+
+  // The ONLINE mode, chosen on the title card: the lobby replaces it (the attract race runs on
+  // behind). code pre-fills the join field.
+  openLobby(code) {
+    this.showTitle(false);
+    this.lobby.open(code);
+  }
+
+  closeLobby() {
+    this.lobby.show(false);
+    this.showTitle(true);
   }
 
   showTitle(visible) {
@@ -131,6 +151,10 @@ export class Screens {
 
   showPause(visible) {
     showScreen(this.pause, visible);
+  }
+
+  showOnlinePause(visible) {
+    this.onlinePause.show(visible);
   }
 
   showResults(visible) {
@@ -144,4 +168,16 @@ export class Screens {
   setBest(best) {
     setText(this.r.best, best ? `BEST LAP  ${formatTime(best)}` : 'NO LAP TIME YET — SET THE BENCHMARK');
   }
+}
+
+// Lobby callbacks until the online layer binds its own: BACK closes the card, and creating or
+// joining explains that this build can't go online yet.
+function offlineLobby(screens) {
+  const offline = () => screens.lobby.render({ phase: 'error', error: 'offline' });
+  return {
+    onBack: () => screens.closeLobby(),
+    onLeave: () => screens.lobby.render({ phase: 'choose' }),
+    onCreate: offline,
+    onJoin: offline,
+  };
 }

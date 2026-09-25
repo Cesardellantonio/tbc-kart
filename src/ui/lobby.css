@@ -1,0 +1,391 @@
+/* Online lobby card, the online race's Esc card and the online results buttons. Same language as the
+   title / results cards in hud.css: dark glass, yellow accent, italic headings, angled panels. */
+
+.screen-lobby {
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  background: radial-gradient(ellipse at center, rgba(5, 6, 10, 0.8), rgba(5, 6, 10, 0.93));
+}
+/* The card takes text selection and taps (the invite link, the name field), unlike the title card. */
+.screen-lobby.is-visible {
+  pointer-events: auto;
+}
+.screen-lobby input {
+  font-family: var(--hud-font);
+  user-select: text;
+}
+.lobby-card {
+  width: min(900px, 100%);
+  margin: auto 0; /* centred, but scrolls from the top when taller than the screen */
+  text-align: center;
+}
+.lobby-panel[hidden],
+.res-actions[hidden],
+.lobby-spinner[hidden],
+.lobby-card .btn[hidden] {
+  display: none;
+}
+.lobby-card h2 {
+  margin: 8px 0 18px;
+  font-size: clamp(34px, 6vw, 64px);
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+/* ---- choose: name, create, join ---- */
+.lobby-choose {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.lobby-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: var(--hud-dim);
+}
+.lobby-card input {
+  min-width: 0;
+  padding: 10px 14px;
+  font-size: 18px; /* 16 px or more: iOS doesn't zoom the page into a focused field */
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--hud-text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  outline: none;
+}
+.lobby-card input:focus {
+  border-color: var(--hud-accent);
+  background: rgba(255, 194, 26, 0.08);
+}
+.lobby-name input {
+  width: 12em;
+}
+.lobby-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.lobby-option {
+  flex: 1 1 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px 20px;
+  text-align: left;
+  background: rgba(9, 11, 16, 0.6);
+  border: 1px solid var(--hud-edge);
+  border-left: 3px solid var(--hud-accent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+}
+.lobby-option b {
+  font-size: 22px;
+  font-style: italic;
+  letter-spacing: 0.08em;
+}
+.lobby-option small,
+.lobby-ai,
+.lobby-list-head,
+.lobby-code small {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--hud-dim);
+}
+.lobby-option > .btn,
+.lobby-join {
+  margin-top: 8px;
+}
+.lobby-join {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.lobby-join input {
+  width: 6.2em;
+  flex: 1 1 auto;
+  font-size: 22px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.lobby-card .btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---- status: connecting / error ---- */
+.lobby-status p {
+  max-width: 460px;
+  margin: 0 auto;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--hud-dim);
+}
+.lobby-spinner {
+  width: 38px;
+  height: 38px;
+  margin: 10px auto 4px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--hud-accent);
+  border-radius: 50%;
+  animation: lobby-spin 0.9s linear infinite;
+}
+@keyframes lobby-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- room: code + invite + drivers | track, rivals, start ---- */
+.lobby-room {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 28px;
+  text-align: left;
+}
+.lobby-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.lobby-code {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.lobby-code b {
+  font-size: clamp(40px, 6vw, 64px);
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  color: var(--hud-accent);
+  font-variant-numeric: tabular-nums;
+  user-select: text;
+}
+.lobby-share {
+  display: flex;
+  gap: 8px;
+}
+.lobby-share input {
+  flex: 1 1 auto;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--hud-dim);
+}
+.lobby-share .btn {
+  flex: none;
+  min-width: 8.5em;
+}
+.lobby-list-head {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--hud-edge);
+  letter-spacing: 0.25em;
+}
+.lobby-players {
+  margin: -6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+.lobby-players li {
+  display: grid;
+  grid-template-columns: 4px 3.2em minmax(0, 1fr) 3em;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.lobby-players em {
+  height: 16px;
+}
+.lobby-players li.is-you {
+  color: var(--hud-accent);
+  font-weight: 700;
+  background: rgba(255, 194, 26, 0.1);
+}
+.lobby-players li.is-ai {
+  color: var(--hud-dim);
+  opacity: 0.45;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+}
+.lobby-players li.is-ai em {
+  border-left: 1px dashed var(--hud-dim);
+}
+.lp-num {
+  font-style: italic;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.lp-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.lp-code {
+  text-align: right;
+  letter-spacing: 0.12em;
+  color: var(--hud-dim);
+}
+.lp-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  vertical-align: 2px;
+  border-radius: 3px;
+}
+.lp-host {
+  color: #111;
+  background: var(--hud-accent);
+}
+.lp-you {
+  color: var(--hud-text);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+.lobby-card.is-room .title-kicker {
+  margin-bottom: 12px;
+  text-align: left;
+}
+.lobby-track {
+  width: auto;
+  margin: 0;
+}
+.lobby-track .tt-info b {
+  font-size: 24px;
+}
+.lobby-level {
+  margin: 0;
+}
+.lobby-level button:disabled {
+  cursor: default; /* a client sees the host's pick; the selected one keeps its colour */
+}
+.lobby-start {
+  padding: 16px 20px;
+  font-size: 19px;
+}
+.lobby-wait,
+.res-wait {
+  padding: 14px 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-align: center;
+  color: var(--hud-dim);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.lobby-leave {
+  align-self: flex-start;
+}
+.lobby-card:not(.is-host) .host-only,
+.res-card:not(.is-host) .host-only,
+.is-host .client-only {
+  display: none;
+}
+
+/* ---- online race: Esc card over the running race, results buttons ---- */
+.screen-online-pause {
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(0deg, rgba(5, 6, 10, 0.55), rgba(5, 6, 10, 0.2));
+}
+.op-card {
+  padding: 22px 30px 12px;
+  text-align: center;
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-edge);
+  border-top: 3px solid var(--hud-accent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.op-card .op-kicker {
+  display: block; /* hud.css hides title kickers on short screens; this card has nothing else on top */
+}
+.op-card p {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--hud-dim);
+}
+.res-online .res-wait {
+  padding: 11px 8px;
+}
+
+/* ---- small screens ---- */
+/* A roomy screen: the lobby's track thumbnail is a little smaller than the title card's, so the
+   facts beside it fit in the right-hand column. */
+@media (min-width: 761px) and (min-height: 521px) {
+  .lobby-track .tt-map {
+    width: 132px;
+    height: 88px;
+  }
+}
+@media (max-width: 760px) {
+  .lobby-room {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .lobby-name {
+    flex-wrap: wrap;
+  }
+}
+/* Short landscape (phones): the room panel keeps two columns, everything tighter. */
+@media (max-height: 520px) {
+  .lobby-card h2 {
+    margin: 2px 0 10px;
+    font-size: 30px;
+  }
+  .lobby-card .title-kicker {
+    font-size: 11px;
+  }
+  .lobby-room {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+  .lobby-col {
+    gap: 7px;
+  }
+  .lobby-code b {
+    font-size: 34px;
+  }
+  .lobby-players li {
+    padding: 3px 8px;
+    font-size: 13px;
+  }
+  .lobby-players li.is-ai {
+    font-size: 11px;
+  }
+  .lobby-name {
+    margin-bottom: 10px;
+  }
+  .lobby-option {
+    padding: 10px 14px;
+  }
+  .lobby-card .res-actions {
+    margin: 12px 0 4px;
+  }
+  .lobby-start {
+    padding: 11px 20px;
+    font-size: 16px;
+  }
+  .lobby-wait {
+    padding: 6px 0;
+  }
+}

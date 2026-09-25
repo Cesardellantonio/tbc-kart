@@ -55,11 +55,16 @@ export function handleActions(game) {
   const session = game.session;
   const state = session.state;
   if (state === 'title') {
-    if (input.action('left') || input.action('right')) screens.cycleMode();
+    if (screens.lobby.visible) return; // the online lobby card owns the keys while it is open
+    if (input.action('left')) screens.cycleMode(-1);
+    if (input.action('right')) screens.cycleMode(1);
     if (input.action('level')) game.setDifficulty(screens.cycleLevel());
     if (input.action('prevTrack')) game.selectTrack(-1);
     if (input.action('nextTrack')) game.selectTrack(1);
-    if (input.action('start')) startRace(game, screens.mode);
+    if (input.action('start')) {
+      if (screens.mode === 'online') screens.openLobby();
+      else startRace(game, screens.mode);
+    }
   } else if (state === 'finished') {
     const choice = resultsChoice(input);
     if (choice === 'next') game.selectTrack(1);

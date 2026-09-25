@@ -105,6 +105,7 @@ src/
                        RaceField (order, gaps, finish) · AiDriver · racingLine · GhostRecorder
   ui/                  Hud · LapPanel · Standings · Speedo · Minimap · StartLights · Toasts
                        Screens · Results · TouchControls
+                       Lobby (online lobby card: LobbyChoose · LobbyRoom · pure lobbyView / lobbyText / lobbyErrors) · OnlinePause
                        DebugOverlay · format · dom · hud.css
   debug/topdown.js     overhead view of the whole hall (dev)
 tools/                 simulate.js (headless six-kart race) · track-report.mjs (rules + race + SVG map) · ai-pace.mjs (TRACK_PACE)

@@ -1,5 +1,6 @@
 // Chequered-flag card: your finishing position and the classification, filled in live as the
-// rest of the field crosses the line.
+// rest of the field crosses the line. Online (setOnline), the host picks what happens next for
+// everyone, and the other players wait for that choice.
 
 import { el, refs, setText, showScreen } from './dom.js';
 import { formatTime, formatGap, ordinal } from './format.js';
@@ -17,10 +18,16 @@ export class Results {
          <div class="res-verdict" data-ref="verdict"></div>
          <table><thead><tr><th>POS</th><th>DRIVER</th><th>TIME</th><th>BEST LAP</th></tr></thead>
            <tbody data-ref="rows"></tbody></table>
-         <div class="res-actions">
+         <div class="res-actions" data-ref="solo">
            <button class="btn btn-primary" data-act="raceAgain">RACE AGAIN <kbd>ENTER</kbd></button>
            <button class="btn" data-act="nextRace">NEXT TRACK <kbd>N</kbd></button>
            <button class="btn" data-act="quit">MENU <kbd>ESC</kbd></button>
+         </div>
+         <div class="res-actions res-online" data-ref="online" hidden>
+           <button class="btn btn-primary host-only" data-act="raceAgain">RACE AGAIN <kbd>ENTER</kbd></button>
+           <button class="btn host-only" data-act="nextRace">NEXT TRACK <kbd>N</kbd></button>
+           <div class="res-wait client-only">WAITING FOR THE HOST</div>
+           <button class="btn" data-act="quit">LEAVE <kbd>ESC</kbd></button>
          </div>
        </div>`,
     );
@@ -29,6 +36,13 @@ export class Results {
     this.el.inert = true;
     for (const b of this.el.querySelectorAll('[data-act]')) b.addEventListener('click', () => onAction(b.dataset.act));
     this._key = '';
+  }
+
+  // role: null (single player, the default) | 'host' | 'client'.
+  setOnline(role) {
+    this.r.solo.hidden = !!role;
+    this.r.online.hidden = !role;
+    this.el.firstElementChild.classList.toggle('is-host', role === 'host');
   }
 
   show(visible) {
