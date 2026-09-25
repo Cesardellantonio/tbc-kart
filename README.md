@@ -15,7 +15,7 @@ A kart racing game set in indoor karting halls: the **TBC Indoor Racing** layout
 ```bash
 npm install
 npm run dev      # open the URL Vite prints (usually http://localhost:5173)
-npm test         # 177 unit tests: physics, tracks (rules + a six-kart AI race on every circuit), race logic, feel, flow
+npm test         # 269 unit tests: physics, tracks (rules + a six-kart AI race on every circuit), race logic, feel, flow, online (protocol, clock, rooms, races over an in-memory network)
 node tools/track-report.mjs monza --svg monza.svg   # design check + AI race + map for one circuit
 npm run build    # production bundle in dist/
 ```
@@ -79,7 +79,7 @@ src/
     field.js           rival karts: grid, AI stepping, contacts and slipstream
   tracks/              one data module per circuit (waypoints in metres, start, laps, blurb) + index.js registry
   config/              every tunable value, grouped by topic (no magic numbers elsewhere)
-    track · physics · kart · camera · render · venue · audio · input · race
+    track · physics · kart · camera · render · venue · audio · input · race · lobby · net
   core/                engine-level pieces, no game rules
     Renderer · PostFX · GradeShader · venueEnvironment
     CameraRig → FollowCam (+ HeadMotion) · BroadcastCam · CameraShake · CameraVibe (+ pure cameraModes, FrameSines: per-frame sines that can't alias)
@@ -108,9 +108,16 @@ src/
                        Screens · Results · TouchControls
                        Lobby (online lobby card: LobbyChoose · LobbyRoom · pure lobbyView / lobbyText / lobbyErrors) · OnlinePause
                        DebugOverlay · format · dom · hud.css
+  net/                 online multiplayer, no THREE and no Game (unit-tested over LoopbackTransport)
+                       Transport (PeerJS: WebRTC data channels via the free PeerJS cloud broker, a star round the host) · LoopbackTransport (in-memory, tests) · linkShaper (?netlag / ?netloss)
+                       protocol + messages + schema (strict validation: malformed or oversized → dropped) · roomCode
+                       Room (+ roomHost · roomClient · roster): lobby, names / codes / liveries, 6-player cap, heartbeats, START roster
+                       NetRace (+ RemoteKarts · Interpolator · kartState · raceResults): 20 Hz kart / snapshot exchange, interpolation, finishes → results
+                       ClockSync: the host clock from ping / pong (median of the lowest-round-trip samples)
   debug/topdown.js     overhead view of the whole hall (dev)
+  debug/netTest.js     net-test.html (dev only, not built): the real network stack without the game, for two-browser tests
 tools/                 simulate.js (headless six-kart race) · track-report.mjs (rules + race + SVG map) · ai-pace.mjs (TRACK_PACE)
-tests/                 physics · track · tracks · race · grandprix · feel · flow · ai · difficulty
+tests/                 physics · track · tracks · race · grandprix · feel · flow · ai · difficulty · lobby · net · netroom · nettransport
 ```
 
 Each module has one job and stays at or under 80 lines, so when one grows past that it gets split. Data flows one way through `app/frame.js`:
@@ -148,6 +155,7 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `fin
 | Rival levels (Amateur / Club / Pro) | `config/race.js` → `DIFFICULTY` (corner + braking pace only), `DEFAULT_DIFFICULTY` |
 | AI base pace | `config/race.js` → `AI.paceMargin` (then `node tools/ai-pace.mjs` → `TRACK_PACE`), `RIVALS` skills |
 | AI line, passing, pack pull, slipstream, contact | `config/race.js` → `AI`, `DRAFT`, `CONTACT` |
+| Online send rates, timeouts, interpolation delay, other players' liveries | `config/net.js` (room-code alphabet / length and the player cap: `config/lobby.js`) |
 
 ## Where to add X
 
