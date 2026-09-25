@@ -5,8 +5,8 @@ import { describe, it, expect } from 'vitest';
 import { stepKart } from '../src/physics/kartPhysics.js';
 import { axleLoads } from '../src/physics/tyres.js';
 import { frontAxle, rearAxle } from '../src/physics/axles.js';
-import { rampThrottle } from '../src/physics/controls.js';
-import { TYRE_PEAK_SLIP } from '../src/config/physics.js';
+import { rampThrottle, engineAccel } from '../src/physics/controls.js';
+import { TYRE_PEAK_SLIP, THROTTLE_JUMP } from '../src/config/physics.js';
 import { seededRandom, wrapAngle } from '../src/core/math.js';
 
 const DT = 1 / 120;
@@ -41,10 +41,10 @@ describe('kartPhysics — straight line', () => {
     expect(Math.abs(s.x)).toBeLessThan(1e-6);
   });
 
-  it('tops out around 55–60 km/h on the flat', () => {
+  it('tops out around 60–63 km/h on the flat', () => {
     const s = run(rest(), input({ throttle: 1 }), 15);
-    expect(s.forwardSpeed * 3.6).toBeGreaterThan(55);
-    expect(s.forwardSpeed * 3.6).toBeLessThan(60);
+    expect(s.forwardSpeed * 3.6).toBeGreaterThan(59);
+    expect(s.forwardSpeed * 3.6).toBeLessThan(64);
   });
 
   it('stops from top speed on the rear brakes alone in about two seconds, straight and true', () => {
@@ -56,8 +56,8 @@ describe('kartPhysics — straight line', () => {
       t += DT;
     }
     expect(t).toBeGreaterThan(1.4); // rear-only brakes: ~0.75 g average including drag
-    expect(t).toBeLessThan(2.3);
-    expect(Math.hypot(s.x - start.x, s.z - start.z)).toBeLessThan(18);
+    expect(t).toBeLessThan(2.5);
+    expect(Math.hypot(s.x - start.x, s.z - start.z)).toBeLessThan(20);
     expect(Math.abs(s.yaw)).toBeLessThan(1e-9);
   });
 
@@ -133,21 +133,30 @@ describe('kartPhysics — standstill and numerics', () => {
   });
 });
 
-describe('player throttle rise limiter', () => {
-  it('opens a digital throttle over ~0.2 s, closes it at once, and passes through in a slide', () => {
-    let t = 0;
-    for (let i = 0; i < 6; i++) t = rampThrottle(t, 1, 0, 1 / 60);
-    expect(t).toBeGreaterThan(0.45);
-    expect(t).toBeLessThan(0.55);
-    expect(rampThrottle(0.5, 0, 0, 1 / 60)).toBe(0);
-    expect(rampThrottle(0, 1, 0.4, 1 / 60)).toBe(1);
-    expect(rampThrottle(0, 1, -0.4, 1 / 60)).toBe(1);
+describe('player throttle shaping', () => {
+  // Drive (m/s²) a throttle share asks for at speed v.
+  const drive = (thr, v) => thr * engineAccel(v);
+
+  it('answers a key press at once with a THROTTLE_JUMP shove, then opens fully within ~0.1 s', () => {
+    for (const v of [4, 6, 10, 14]) {
+      let t = rampThrottle(0, 1, 0, 1 / 60, v);
+      expect(drive(t, v), `${v} m/s`).toBeCloseTo(THROTTLE_JUMP, 5);
+      for (let i = 1; i < 7; i++) t = rampThrottle(t, 1, 0, 1 / 60, v); // 7 frames: 0.12 s
+      expect(t, `${v} m/s`).toBe(1);
+    }
+    expect(rampThrottle(0, 1, 0, 1 / 60, 16)).toBeGreaterThan(0.8); // near the top: all but instant
+  });
+
+  it('closes at once, and passes straight through in a slide', () => {
+    expect(rampThrottle(0.5, 0, 0, 1 / 60, 10)).toBe(0);
+    expect(rampThrottle(0, 1, 0.4, 1 / 60, 10)).toBe(1);
+    expect(rampThrottle(0, 1, -0.4, 1 / 60, 10)).toBe(1);
   });
 
   it('does not hold back a launch from the grid or from walking pace', () => {
     expect(rampThrottle(0, 1, 0, 1 / 60, 0)).toBe(1);
     expect(rampThrottle(0, 1, 0, 1 / 60, 2.5)).toBe(1);
-    expect(rampThrottle(0, 1, 0, 1 / 60, 6)).toBeLessThan(0.2);
+    expect(rampThrottle(0, 1, 0, 1 / 60, 6)).toBeLessThan(0.6);
   });
 
   it('stops a floored exit from a tight corner snapping the rear', () => {
@@ -267,7 +276,7 @@ describe('kartPhysics — drifting', () => {
         want = ahead > 0.45 ? 0 : ahead < 0.3 ? 1 : want;
         if (want !== key && t - since >= 0.06) [key, since] = [want, t];
       }
-      thr = rampThrottle(thr, key, s.slipAngle, DT);
+      thr = rampThrottle(thr, key, s.slipAngle, DT, speedOf(s));
       s = stepKart(s, input({ steer: 1, throttle: thr, handbrake: t < tap }), DT);
       cur = t > tap && -s.slipAngle > 0.175 && -s.slipAngle < 0.61 ? cur + DT : 0; // 10–35°
       best = Math.max(best, cur);

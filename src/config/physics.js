@@ -33,8 +33,8 @@ export const DYNAMIC_ABOVE = 3; // m/s, fully dynamic above this
 export const LOW_SPEED_SCRUB = 15; // 1/s, how fast sideways creep dies in the kinematic regime
 
 // Longitudinal
-export const ENGINE_ACCEL = 9.0; // m/s², drive force per kg from standstill
-export const TOP_SPEED = 19; // m/s, engine pull fades to zero here (drag caps real top ≈ 16 m/s)
+export const ENGINE_ACCEL = 8.5; // m/s², drive force per kg from standstill
+export const TOP_SPEED = 21; // m/s, engine pull fades to zero here (drag caps real top ≈ 17 m/s, 61 km/h)
 export const BRAKE_FORCE = 1100; // N, rear-only brakes at full pedal (just under the straight-line lock)
 export const REVERSE_ACCEL = 4; // m/s²
 export const REVERSE_MAX = 4; // m/s
@@ -42,12 +42,14 @@ export const ROLLING_DECEL = 0.6; // m/s², rolling resistance
 export const AERO_DRAG = 0.008; // 1/m, drag deceleration = AERO_DRAG·v²
 export const DRAFT_DRAG_CUT = 0.55; // share of aero drag removed in a full slipstream
 export const CREEP_SPEED = 0.3; // m/s, below this the brake pedal selects reverse
-export const THROTTLE_RISE = 5; // 1/s, how fast the player's (keyboard / touch 0-1) throttle can open…
+// Player's digital (keyboard / touch 0-1) throttle, physics/controls.js rampThrottle:
+export const THROTTLE_JUMP = 4; // m/s², drive a key press gives at once at any speed (~0.4 g: an instant shove)…
+export const THROTTLE_RISE = 6; // 1/s, …then the rest of the throttle opens at this rate…
 export const THROTTLE_RAMP_SLIP = 0.25; // …unless body slip (rad) is past this: in a slide it acts at once
 
 // Steering
-export const STEER_IN = 7; // 1/s, input smoothing toward full lock
-export const STEER_OUT = 11; // 1/s, input smoothing back to centre
+export const STEER_IN = 10; // 1/s, input smoothing toward full lock
+export const STEER_OUT = 18; // 1/s, input smoothing back to centre
 export const STEER_LOCK = 0.4; // rad, road-wheel angle at full lock
 export const STEER_LIMIT_ACCEL = 13; // m/s², full lock at speed aims at this lateral acceleration…
 export const STEER_LIMIT_SLIP = 0.13; // rad, …plus this front slip angle (speed-sensitive lock)

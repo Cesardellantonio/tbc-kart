@@ -1,9 +1,9 @@
 // Driving views (chase / far / cockpit): trails the kart with damped yaw, position and FOV.
 
 import * as THREE from 'three';
-import { FOV_BASE, FOV_SPEED_BOOST, FOV_DAMP, VIEW_ORDER, POSITION_DAMP, YAW_DAMP, VIEWS } from '../config/camera.js';
+import { FOV_BASE, FOV_DAMP, VIEW_ORDER, POSITION_DAMP, YAW_DAMP, VIEWS } from '../config/camera.js';
 import { damp, dampAngle } from './math.js';
-import { speedFactor, trailYaw, followTarget } from './cameraModes.js';
+import { followFov, trailYaw, followTarget } from './cameraModes.js';
 import { HeadMotion } from './HeadMotion.js';
 
 export class FollowCam {
@@ -48,7 +48,7 @@ export class FollowCam {
     out.pos.copy(this._pos);
     out.look.copy(this._target.look);
     out.roll = this._target.roll;
-    this._fov = damp(this._fov, FOV_BASE + FOV_SPEED_BOOST * speedFactor(telemetry.speed), FOV_DAMP, dt);
+    this._fov = damp(this._fov, followFov(telemetry.speed, telemetry.longAccel), FOV_DAMP, dt);
     return this._fov;
   }
 }

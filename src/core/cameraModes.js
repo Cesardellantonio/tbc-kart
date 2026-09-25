@@ -1,11 +1,16 @@
 // Pure camera target calculators: where each view wants the camera and what it aims at.
 
-import { VIEWS, DRIFT_SWING, SPEED_PULLBACK } from '../config/camera.js';
+import {
+  VIEWS, DRIFT_SWING, SPEED_PULLBACK, SPEED_FULL, FOV_BASE, FOV_SPEED_BOOST, FOV_ACCEL_KICK, FOV_ACCEL_MAX, FOV_BRAKE_MAX,
+} from '../config/camera.js';
 import { clamp, wrapAngle, forwardFromYaw } from './math.js';
 
-const SPEED_NORM = 16; // m/s treated as "full speed" for camera effects
+export const speedFactor = (speed) => clamp(speed / SPEED_FULL, 0, 1);
 
-export const speedFactor = (speed) => clamp(speed / SPEED_NORM, 0, 1);
+// Driving-view FOV the camera eases toward (degrees): wider with speed, plus a kick while the kart
+// surges (longAccel, m/s²) and a small narrowing under braking.
+export const followFov = (speed, longAccel = 0) =>
+  FOV_BASE + FOV_SPEED_BOOST * speedFactor(speed) + clamp(FOV_ACCEL_KICK * longAccel, -FOV_BRAKE_MAX, FOV_ACCEL_MAX);
 
 // Heading the chase camera trails: the kart's yaw, swung toward its travel direction when sliding.
 export function trailYaw(state, speed) {

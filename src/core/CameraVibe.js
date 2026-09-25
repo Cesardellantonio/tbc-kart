@@ -1,7 +1,7 @@
-// Continuous camera vibration: a fine engine buzz that grows with speed (chase views) and a
+// Continuous camera vibration: a fine engine buzz that grows with speed (a tremble near flat out) and a
 // rhythmic judder while the kart rides a kerb (every driving view). Small, and never accumulates.
 
-import { VIBE } from '../config/camera.js';
+import { VIBE, SPEED_FULL } from '../config/camera.js';
 import { clamp } from './math.js';
 import { FrameSines } from './FrameSines.js';
 
@@ -21,8 +21,8 @@ export class CameraVibe {
     o.x = o.y = o.z = 0;
     if (dt <= 0) return o;
     const cockpit = view === 'cockpit';
-    const pace = clamp((tel.speed || 0) / 16, 0, 1);
-    const buzz = (cockpit ? VIBE.engineCockpit : VIBE.engine) * (0.25 + 0.75 * pace);
+    const pace = clamp((tel.speed || 0) / SPEED_FULL, 0, 1);
+    const buzz = (cockpit ? VIBE.engineCockpit : VIBE.engine) * (0.25 + 0.75 * pace) + (cockpit ? VIBE.speedCockpit : VIBE.speed) * pace ** 3;
     // Incommensurate high frequencies → a fine, non-repeating tremble (capped below Nyquist at low fps).
     const [b0, b1, b2] = this._buzz.update(BUZZ_HZ, dt);
     o.y += buzz * (0.6 * b0 + 0.4 * b1);
