@@ -1,7 +1,7 @@
 // A computer driver's speed plan (pure): target speed per centreline sample at skill 1. Corner speed
 // comes from the curvature of the line actually driven — measured across a chord, the way the
 // pure-pursuit steering sees it, so a quick flick is not mistaken for a hairpin — then a backward
-// pass brakes for each corner as late as the rear brakes allow. Every speed scales with √skill.
+// pass brakes for each corner as late as the rear brakes allow. Every speed scales with skill.
 
 import { AUTOPILOT } from '../config/race.js';
 
@@ -56,7 +56,7 @@ function circleCurvature(x, z, a, b, c) {
 // driver of this skill, never above maxSpeed.
 export function plannedSpeed(plan, path, index, speed, { skill = 1, ahead, maxSpeed }) {
   const i = path.wrap(index + Math.round((speed * ahead) / path.spacing));
-  return Math.min(plan[i] * Math.sqrt(skill), maxSpeed);
+  return Math.min(plan[i] * skill, maxSpeed);
 }
 
 // The computer drivers' plan for a line, with the AUTOPILOT settings.

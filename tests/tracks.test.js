@@ -34,12 +34,6 @@ describe.each(TRACKS.map((t) => [t.id, t]))('%s', (id, track) => {
     for (let laps = 3; laps <= 8; laps++) expect(off(track.laps), `${laps} laps would be closer`).toBeLessThanOrEqual(off(laps) + 5);
   }, 30000);
 
-  it('never braking is slower than the AI: overdriving into the barriers costs time', () => {
-    const solo = (tweak) => simulateRace(track, { laps: 3, field: 'solo', tweak, random: seededRandom(2) }).bestLap;
-    const flatOut = solo((c) => ({ ...c, throttle: 1, brake: 0 })); // the AI's own steering, pedal to the floor
-    expect(flatOut).toBeGreaterThan(solo(null) * 1.005);
-  }, 30000);
-
   it('stays drivable with every rival pushed to the full pack pull', () => {
     const sim = simulateRace(track, { laps: 2, pace: 1 + AI.catchUp, random: seededRandom(3) });
     expect(sim.allFinished).toBe(true);

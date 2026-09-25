@@ -36,6 +36,7 @@ export class Input {
     const held = (codes) => codes.some((c) => this.down.has(c));
     const c = {
       throttle: held(BINDINGS.throttle) ? 1 : 0,
+      throttleDigital: false, // true when the throttle is an on/off key or touch button (see app/frame.js)
       brake: held(BINDINGS.brake) ? 1 : 0,
       steer: (held(BINDINGS.left) ? 1 : 0) - (held(BINDINGS.right) ? 1 : 0),
       handbrake: held(BINDINGS.handbrake),
@@ -49,6 +50,7 @@ export class Input {
       c.handbrake = c.handbrake || !!pad.buttons[GAMEPAD.handbrake]?.pressed;
     }
     const t = this.touch?.held;
+    c.throttleDigital = held(BINDINGS.throttle) || !!t?.throttle;
     if (t) {
       c.throttle = Math.max(c.throttle, t.throttle ? 1 : 0);
       c.brake = Math.max(c.brake, t.brake ? 1 : 0);

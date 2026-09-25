@@ -1,6 +1,6 @@
 // Race-field helpers shared by the game (app/field.js) and the headless simulator (tools/simulate.js).
 
-import { AI } from '../config/race.js';
+import { AI, TRACK_PACE } from '../config/race.js';
 import { clamp } from '../core/math.js';
 
 // Pack pull: a rival `gap` metres behind the player (negative = ahead) gets this skill multiplier.
@@ -16,3 +16,6 @@ export function rivalSlots(count, playerSlot, random = Math.random) {
   }
   return slots;
 }
+
+// A circuit's skill multiplier for the computer drivers' corner and braking speeds (config/race.js).
+export const trackPace = (id) => TRACK_PACE[id] ?? 1;

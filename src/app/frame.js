@@ -20,10 +20,12 @@ export function controlsFor(game, state) {
   return state === 'racing' ? game.input.controls() : HOLD;
 }
 
-// The player's throttle opens at a rate (physics/controls.js rampThrottle); computer drivers ease their own.
+// An on/off (key or touch) throttle opens at a rate (physics/controls.js rampThrottle); an analog pad
+// trigger is the driver's own ramp and passes straight through, as do the computer drivers' pedals.
 function shapePlayer(game, c, state, dt) {
-  if (state !== 'racing') return (game.playerThrottle = 0), c;
-  game.playerThrottle = rampThrottle(game.playerThrottle ?? 0, c.throttle, game.kart.state.slipAngle, dt);
+  if (state !== 'racing' || !c.throttleDigital) return (game.playerThrottle = c.throttle), c;
+  const { kart } = game;
+  game.playerThrottle = rampThrottle(game.playerThrottle ?? 0, c.throttle, kart.state.slipAngle, dt, kart.telemetry.speed);
   return { ...c, throttle: game.playerThrottle };
 }
 

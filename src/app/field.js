@@ -8,7 +8,7 @@ import { resolveContacts, drafts } from '../physics/kartContacts.js';
 import { gridSpot } from '../race/grid.js';
 import { trafficFor } from '../race/traffic.js';
 import { KerbFeel } from '../fx/KerbFeel.js';
-import { catchUpPace, rivalSlots } from '../race/pack.js';
+import { catchUpPace, rivalSlots, trackPace } from '../race/pack.js';
 import { RIVALS, GRID, DRAFT, CONTACT } from '../config/race.js';
 
 export function createRivals(scene) {
@@ -24,11 +24,11 @@ export function createRivals(scene) {
 
 // Point every kart and driver at a newly built world.
 export function setFieldTrack(game) {
-  const { path, collider, line } = game.world; // line: racing line built with the world
+  const { path, collider, line, track } = game.world; // line: racing line built with the world
   game.kart.collider = collider;
   for (const r of game.rivals) {
     r.kart.collider = collider;
-    r.driver.setTrack(path, line);
+    r.driver.setTrack(path, line, trackPace(track.id));
   }
   game.autopilot.setPath(path);
 }

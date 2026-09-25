@@ -144,11 +144,17 @@ describe('player throttle rise limiter', () => {
     expect(rampThrottle(0, 1, -0.4, 1 / 60)).toBe(1);
   });
 
+  it('does not hold back a launch from the grid or from walking pace', () => {
+    expect(rampThrottle(0, 1, 0, 1 / 60, 0)).toBe(1);
+    expect(rampThrottle(0, 1, 0, 1 / 60, 2.5)).toBe(1);
+    expect(rampThrottle(0, 1, 0, 1 / 60, 6)).toBeLessThan(0.2);
+  });
+
   it('stops a floored exit from a tight corner snapping the rear', () => {
     const s0 = run(moving(6), holdSpeed(6, 1), 3);
     const peak = (ramped) => {
       let [thr, beta] = [0, 0];
-      const c = (s) => input({ steer: 1, throttle: ramped ? (thr = rampThrottle(thr, 1, s.slipAngle, DT)) : 1 });
+      const c = (s) => input({ steer: 1, throttle: ramped ? (thr = rampThrottle(thr, 1, s.slipAngle, DT, speedOf(s))) : 1 });
       run(s0, c, 0.5, (st) => (beta = Math.max(beta, Math.abs(st.slipAngle))));
       return beta;
     };

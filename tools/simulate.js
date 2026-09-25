@@ -14,7 +14,7 @@ import { racingLine } from '../src/race/racingLine.js';
 import { RaceField } from '../src/race/RaceField.js';
 import { gridSpot } from '../src/race/grid.js';
 import { trafficFor } from '../src/race/traffic.js';
-import { catchUpPace, rivalSlots } from '../src/race/pack.js';
+import { catchUpPace, rivalSlots, trackPace } from '../src/race/pack.js';
 import { RIVALS, AI, DRAFT, CONTACT, GRID } from '../src/config/race.js';
 import { COLLISION_CELL } from '../src/config/physics.js';
 import { VENUE_MARGIN } from '../src/config/venue.js';
@@ -24,9 +24,10 @@ import { wrapAngle } from '../src/core/math.js';
 // opts: { laps, dt, maxTime, field: 'full' | 'solo', pace: 'game' (the game's pack pull from the gap
 // to YOU) or a fixed rival skill multiplier (e.g. 1 + AI.catchUp, the worst case), random (grid
 // shuffle, reactions, form), tweak (controls, kartIndex) → controls (e.g. a flat-out driver),
-// you (profile overrides for the YOU stand-in, e.g. { skill, line }) }.
+// you (profile overrides for the YOU stand-in, e.g. { skill, line }), trackPace (override the circuit's
+// TRACK_PACE, e.g. 1 to calibrate it) }.
 // Returns a report per kart and overall.
-export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = null, field = 'full', pace = 'game', random = Math.random, tweak = null, you = {} } = {}) {
+export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = null, field = 'full', pace = 'game', random = Math.random, tweak = null, you = {}, trackPace: trackPaceOverride = null } = {}) {
   const path = pathOf(track);
   const faces = barrierFaces(path);
   const collider = new BarrierCollider([...faces, wallLoop(boundsOf(faces, VENUE_MARGIN + BARRIER_THICKNESS))], COLLISION_CELL);
@@ -37,7 +38,7 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
   const slots = [GRID.playerSlot, ...rivalSlots(RIVALS.length, GRID.playerSlot, random)];
   const karts = used.map((profile, k) => {
     const g = gridSpot(path, startIndex, field === 'solo' ? 0 : slots[k]);
-    const driver = new AiDriver(path, line, profile);
+    const driver = new AiDriver(path, line, profile, trackPaceOverride ?? trackPace(track.id));
     driver.reset(random);
     return {
       profile,
@@ -90,6 +91,8 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
     const e = race.entries[i];
     return {
       code: k.profile.code,
+      slot: field === 'solo' ? 0 : slots[i],
+      pace: k.profile.skill * k.driver.form, // race-day skill (before the pack pull)
       finished: e.finishTime !== null,
       finishTime: e.finishTime,
       bestLap: e.bestLap,

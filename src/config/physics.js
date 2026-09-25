@@ -59,7 +59,7 @@ export const ASSIST_STEER_SHARE = 0.4; // share of the driver's lock kept on top
 // Collisions
 export const KART_RADIUS = 0.8; // m
 export const WALL_RESTITUTION = 0.3;
-// A barrier is no rail: hitting one flat out must cost more than braking for the corner would.
-export const WALL_SCRAPE = 0.2; // share of along-wall speed lost per m/s of impact…
-export const WALL_SCRAPE_MAX = 0.8; // …up to this share
+// A barrier is no rail: sliding friction along its face (Coulomb) takes friction × the normal speed
+// change off the along-wall speed, so a brush costs little, a hard hit or wall-riding costs a lot.
+export const WALL_FRICTION = 0.8;
 export const COLLISION_CELL = 4; // m, spatial hash cell size
