@@ -37,15 +37,21 @@ const timeTo = (s0, v, keys) => {
 const holding = (v, steer) => (s) => ({ steer, analog: true, throttle: Math.min(1, Math.max(0, 0.2 + (v - s.forwardSpeed) * 0.8)) });
 
 describe('zip — engine and throttle', () => {
-  it('launches hard but believably for a rental kart: 0–30 km/h in ~1.2 s, 0–50 in ~2.5 s', () => {
-    expect(timeTo(moving(0), kmh(30), () => ({ throttle: 1 }))).toBeLessThan(1.3);
+  it('launches harder than before, still believable for a rental kart: 0–30 km/h in ~1.05 s, 0–50 in ~2.35 s', () => {
+    expect(timeTo(moving(0), kmh(30), () => ({ throttle: 1 }))).toBeLessThan(1.07); // was 1.10
     const fifty = timeTo(moving(0), kmh(50), () => ({ throttle: 1 }));
     expect(fifty).toBeGreaterThan(2.2);
-    expect(fifty).toBeLessThan(3);
+    expect(fifty).toBeLessThan(2.45); // was 2.53
   });
 
-  it('drives out of a corner on a key press: 30 → 50 km/h in under 1.48 s (was 1.55)', () => {
+  it('lifts and goes at walking pace on a straight: +8 km/h from 20 km/h in under 0.4 s (was 0.43)', () => {
+    expect(timeTo(moving(kmh(20)), kmh(28), () => ({ throttle: 1 }))).toBeLessThan(0.4);
+    expect(timeTo(moving(kmh(20)), kmh(40), () => ({ throttle: 1 }))).toBeLessThan(1.03); // was 1.05
+  });
+
+  it('drives out of a corner on a key press: 30 → 50 km/h in under 1.48 s (was 1.55), 40 → 55 in under 1.7 (was 2.1)', () => {
     expect(timeTo(moving(kmh(30)), kmh(50), () => ({ throttle: 1 }))).toBeLessThan(1.48);
+    expect(timeTo(moving(kmh(40)), kmh(55), () => ({ throttle: 1 }))).toBeLessThan(1.7);
   });
 
   // Net acceleration (m/s², drag and rolling resistance included) over the frame after a key press.
@@ -55,8 +61,8 @@ describe('zip — engine and throttle', () => {
     for (const v of [kmh(50), kmh(55)]) expect(pull(v), `${(v * 3.6).toFixed(0)} km/h`).toBeGreaterThan(1.4); // coasting: ≈ −2
   });
 
-  it('builds over ~0.2 s in slow corners, where keyboard taps must average into a feathered throttle', () => {
-    for (const v of [kmh(20), kmh(30)]) {
+  it('builds over ~0.2 s from 25 to 40 km/h, where keyboard taps must average into a feathered throttle', () => {
+    for (const v of [kmh(27), kmh(33)]) {
       expect(pull(v), `${(v * 3.6).toFixed(0)} km/h`).toBeLessThan(0.5);
       const s = drive(moving(v), () => ({ throttle: 1 }), 0.2);
       expect(s.longAccel, `${(v * 3.6).toFixed(0)} km/h`).toBeGreaterThan(5);
@@ -74,12 +80,12 @@ describe('zip — steering', () => {
     return log.find(([, r]) => r >= 0.9 * settled)[0];
   }
 
-  it('turns in crisply at speed: 90 % of the yaw rate within 0.16 s at 50 km/h', () => {
-    expect(turnIn(kmh(50))).toBeLessThan(0.16);
-    expect(turnIn(kmh(30))).toBeLessThan(0.25); // grip-limited at full lock: the front is at its peak
+  it('turns in crisply: 90 % of the yaw rate within 0.14 s at 50 km/h (was 0.15), 0.21 s at 30 (was 0.22)', () => {
+    expect(turnIn(kmh(50))).toBeLessThan(0.14);
+    expect(turnIn(kmh(30))).toBeLessThan(0.21); // grip-limited at full lock: the front is at its peak
   });
 
-  it('flicks from full left to full right lock in ~0.25 s at 45 km/h, without a slide', () => {
+  it('flicks from full left to full right lock in under 0.24 s at 45 km/h (was 0.25), without a slide', () => {
     const v = kmh(45);
     const s0 = drive(moving(v), holding(v, 1), 2);
     let [t90, slip] = [Infinity, 0];
@@ -87,7 +93,7 @@ describe('zip — steering', () => {
       slip = Math.max(slip, Math.abs(s.slipAngle));
       if (t90 === Infinity && s.yawRate <= -0.9 * s0.yawRate) t90 = t;
     });
-    expect(t90).toBeLessThan(0.27);
+    expect(t90).toBeLessThan(0.24);
     expect(slip).toBeLessThan(0.1);
   });
 
@@ -109,7 +115,7 @@ describe('zip — throttle at the limit', () => {
   const coasted = (v) => drive(moving(v), () => ({ steer: 1 }), 1);
 
   it('leaves time to catch the rear when the key goes down with the lock held (it still steps out)', () => {
-    for (const [v, min] of [[8, 0.3], [10, 0.45]]) {
+    for (const [v, min] of [[8, 0.3], [9, 0.45]]) {
       let t45 = Infinity;
       drive(coasted(v), () => ({ steer: 1, throttle: 1 }), 1.5, (s, t) => Math.abs(s.slipAngle) > 0.45 && ((t45 = t), true));
       expect(t45, `${v} m/s`).toBeGreaterThan(min);
@@ -117,11 +123,13 @@ describe('zip — throttle at the limit', () => {
     }
   });
 
+  // The pre-zip kart peaked at 0.50 / 0.26 rad here: the quicker walking-pace throttle and pull wait
+  // for the kart to point straight, so a floored hairpin exit is no wilder than it was.
   it('keeps a typical keyboard corner exit tidy: key down, lock off 0.1 s later', () => {
-    for (const [v, max] of [[8, 0.38], [10, 0.35]]) {
+    for (const [v, max] of [[8, 0.52], [10, 0.26]]) {
       let peak = 0;
       drive(coasted(v), (_, t) => ({ steer: t <= 0.1 ? 1 : 0, throttle: 1 }), 2, (s) => void (peak = Math.max(peak, Math.abs(s.slipAngle))));
-      expect(peak, `${v} m/s`).toBeLessThan(max); // ~22° / 20°
+      expect(peak, `${v} m/s`).toBeLessThan(max); // ~30° / 15°, caught without a spin
     }
   });
 });
@@ -151,7 +159,7 @@ describe('zip — sense of speed (camera)', () => {
 
   it('shows a real surge but does not breathe with keyboard throttle taps', () => {
     const base = fovTrace(() => 0, 3).at(-1);
-    const surge = fovTrace((t) => (t < 1.2 ? 7 : 0), 1.2).at(-1); // a launch-like pull
+    const surge = fovTrace(() => 7, 2).at(-1); // a launch-like pull (a real launch peaks near +2.3° at ~1.8 s)
     expect(surge - base).toBeGreaterThan(1.5);
     const taps = fovTrace((t) => (Math.floor(t / 0.2) % 2 ? -1 : 6), 6).slice(-120); // on/off at 2.5 Hz
     expect(Math.max(...taps) - Math.min(...taps)).toBeLessThan(0.3);

@@ -6,7 +6,10 @@ import { stepKart } from '../src/physics/kartPhysics.js';
 import { axleLoads } from '../src/physics/tyres.js';
 import { frontAxle, rearAxle } from '../src/physics/axles.js';
 import { rampThrottle, engineAccel } from '../src/physics/controls.js';
-import { TYRE_PEAK_SLIP, THROTTLE_JUMP, THROTTLE_JUMP_FROM, THROTTLE_JUMP_FULL, THROTTLE_RISE } from '../src/config/physics.js';
+import {
+  TYRE_PEAK_SLIP, THROTTLE_JUMP, THROTTLE_JUMP_FROM, THROTTLE_JUMP_FULL, THROTTLE_JUMP_SLIP, THROTTLE_RISE, THROTTLE_RISE_LOW,
+  THROTTLE_LOW_SLIP, ENGINE_ACCEL, TOP_SPEED, LOW_SPEED_PULL, LOW_SPEED_TURN, LOW_SPEED_FADE,
+} from '../src/config/physics.js';
 import { seededRandom, wrapAngle } from '../src/core/math.js';
 
 const DT = 1 / 120;
@@ -137,18 +140,42 @@ describe('player throttle shaping', () => {
   // Drive (m/s²) a throttle share asks for at speed v.
   const drive = (thr, v) => thr * engineAccel(v);
 
-  it('opens over ~0.2 s in slow corners (a keyboard feathers there), with an instant shove at speed', () => {
-    for (const v of [4, 6, THROTTLE_JUMP_FROM]) {
-      let t = 0;
-      for (let i = 0; i < 6; i++) t = rampThrottle(t, 1, 0, 1 / 60, v); // 0.1 s
-      expect(t, `${v} m/s`).toBeCloseTo(0.5, 5);
-    }
+  const opened = (v, slip, frames = 6) => {
+    let t = 0;
+    for (let i = 0; i < frames; i++) t = rampThrottle(t, 1, slip, 1 / 60, v); // 0.1 s
+    return t;
+  };
+
+  it('opens over ~0.2 s in corners (a keyboard feathers there), with an instant shove at speed', () => {
+    const turning = THROTTLE_LOW_SLIP; // body slip of a kart turning at walking pace
+    for (const v of [4, 6, THROTTLE_JUMP_FROM]) expect(opened(v, turning), `${v} m/s`).toBeCloseTo(0.5, 5);
+    expect(opened(THROTTLE_JUMP_FROM, 0)).toBeCloseTo(0.5, 5); // 36 km/h, straight: still the ramp
     for (const v of [THROTTLE_JUMP_FULL, 15]) {
       expect(drive(rampThrottle(0, 1, 0, 1 / 60, v), v), `${v} m/s`).toBeCloseTo(THROTTLE_JUMP, 5);
     }
     const mid = (THROTTLE_JUMP_FROM + THROTTLE_JUMP_FULL) / 2; // phased in between
     expect(drive(rampThrottle(0, 1, 0, 1 / 60, mid), mid)).toBeCloseTo(THROTTLE_JUMP / 2, 5);
     expect(rampThrottle(0, 1, 0, 1 / 60, 16)).toBe(1); // near the top the engine has less than the shove to give
+  });
+
+  it('opens quicker at walking pace when the kart runs straight (lift and go), not while it turns', () => {
+    expect(opened(4, 0, 3)).toBeCloseTo(THROTTLE_RISE_LOW / 20, 5); // 0.05 s
+    expect(opened(4, THROTTLE_LOW_SLIP, 3)).toBeCloseTo(THROTTLE_RISE / 20, 5);
+    expect(opened(4, -THROTTLE_LOW_SLIP, 3)).toBeCloseTo(THROTTLE_RISE / 20, 5);
+  });
+
+  it('takes the shove away once the tail is out mid-corner', () => {
+    expect(rampThrottle(0, 1, THROTTLE_JUMP_SLIP, 1 / 60, 15)).toBeCloseTo(THROTTLE_RISE / 60, 9);
+    expect(rampThrottle(0, 1, -THROTTLE_JUMP_SLIP, 1 / 60, 15)).toBeCloseTo(THROTTLE_RISE / 60, 9);
+    const half = drive(rampThrottle(0, 1, THROTTLE_JUMP_SLIP / 2, 1 / 60, 15), 15);
+    expect(half).toBeCloseTo(THROTTLE_JUMP / 2, 5);
+  });
+
+  it('pulls harder at walking pace, but only once the kart stops rotating', () => {
+        expect(engineAccel(3) - (ENGINE_ACCEL * (1 - (3 / TOP_SPEED) ** 2))).toBeCloseTo(LOW_SPEED_PULL, 9);
+    expect(engineAccel(3, LOW_SPEED_TURN)).toBeCloseTo(ENGINE_ACCEL * (1 - (3 / TOP_SPEED) ** 2), 9); // swinging round a hairpin
+    expect(engineAccel(3, -LOW_SPEED_TURN)).toBeCloseTo(engineAccel(3, LOW_SPEED_TURN), 9);
+    expect(engineAccel(LOW_SPEED_FADE)).toBeCloseTo(ENGINE_ACCEL * (1 - (LOW_SPEED_FADE / TOP_SPEED) ** 2), 9);
   });
 
   it('falls back to the plain ramp when the speed is missing or not finite (never NaN, never a free pass)', () => {
