@@ -57,6 +57,7 @@ export class Hud {
 
   setVisible(visible) {
     this.visible = visible;
+    if (!visible) this.touch?.releaseAll(); // results, menus: nothing stays pressed underneath
     this.root.classList.toggle('is-hidden', !visible);
     if (visible) this.resize();
   }

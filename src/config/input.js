@@ -63,3 +63,7 @@ export const GAMEPAD = {
     level: 2, // X
   },
 };
+
+// On-screen touch buttons (ui/TouchControls.js): px around a button that still counts as on it, so a
+// thumb drifting off the edge of GAS or ◀ keeps holding it.
+export const TOUCH = { slop: 18 };
