@@ -66,8 +66,11 @@ export class Results {
     this.r.rows.replaceChildren(
       ...field.order.map((e, i) => {
         const tr = el('tr', e.isPlayer ? 'is-player' : '');
-        const out = e.dnf || (field.final && e.finishTime === null); // left, or still out when it ended
-        const time = out ? 'DNF' : e.finishTime === null ? 'RUNNING' : i === 0 ? formatTime(e.finishTime) : formatGap(e.finishTime - lead.finishTime);
+        // Left the race: DNF. Still lapping when the classification closed: classified laps down, as in real
+        // racing. Still lapping before that: running.
+        const down = Math.max(1, field.laps - (e.lapsDone ?? 0));
+        const running = field.final ? `+${down} LAP${down > 1 ? 'S' : ''}` : 'RUNNING';
+        const time = e.dnf ? 'DNF' : e.finishTime === null ? running : i === 0 ? formatTime(e.finishTime) : formatGap(e.finishTime - lead.finishTime);
         tr.innerHTML = `<td>${i + 1}</td><td><em></em></td><td>${time}</td><td>${formatTime(e.bestLap)}</td>`;
         const name = tr.children[1];
         name.firstChild.style.background = `#${e.color.toString(16).padStart(6, '0')}`;
