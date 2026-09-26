@@ -38,15 +38,18 @@ export function kartMaterials(livery = LIVERY, ghost = false) {
     new THREE.MeshStandardMaterial({ color, roughness, metalness });
   const gloss = (color, roughness = 0.3, extra = {}) =>
     new THREE.MeshPhysicalMaterial({ color, roughness, clearcoat: 1, clearcoatRoughness: 0.08, ...extra });
+  const phys = (params) => new THREE.MeshPhysicalMaterial(params);
   const mats = {
-    body: gloss(L.body, 0.32),
+    // Rental bodywork is moulded plastic, polished: a lighter, rougher clearcoat than car paint.
+    body: gloss(L.body, 0.38, { clearcoat: 0.7, clearcoatRoughness: 0.14 }),
     accent: std(L.accent, 0.62, 0.05),
-    frame: std(L.frame, 0.34, 0.8),
-    rim: std(L.rim, 0.26, 0.9),
-    tyre: std(L.tyre, 0.86),
-    suit: std(L.suit, 0.82),
+    frame: phys({ color: L.frame, roughness: 0.38, metalness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.3 }), // painted steel
+    rim: phys({ color: L.rim, roughness: 0.32, metalness: 1 }), // alloy (anisotropy needs tangents these rims lack)
+    tyre: phys({ color: L.tyre, roughness: 0.82, sheen: 0.4, sheenRoughness: 0.55, sheenColor: 0x5a5a5a }), // rubber
+    suit: phys({ color: L.suit, roughness: 0.9, sheen: 1, sheenRoughness: 0.4, sheenColor: new THREE.Color(L.suit).lerp(new THREE.Color(0xffffff), 0.35) }), // fabric
     helmet: gloss(L.helmet, 0.2),
-    visor: gloss(L.visor, 0.05, { metalness: 0.6 }),
+    // Mirrored "iridium" visor: a thin-film coating that shifts colour with the angle.
+    visor: gloss(L.visor, 0.04, { metalness: 0.75, iridescence: 1, iridescenceIOR: 1.8, iridescenceThicknessRange: [260, 820] }),
   };
   mats.alias = new Map();
   for (const [key, [base, colour]] of Object.entries(TINTS)) {

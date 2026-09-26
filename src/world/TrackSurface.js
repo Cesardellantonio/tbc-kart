@@ -2,7 +2,8 @@
 
 import * as THREE from 'three';
 import { stripGeometry, allIndices } from '../track/stripGeometry.js';
-import { asphaltTexture } from './textures/surfaces.js';
+import { asphaltTexture, asphaltDetail } from './textures/surfaces.js';
+import { QUALITY } from '../config/graphics.js';
 import { checkerTexture } from './textures/markings.js';
 import {
   ASPHALT_TILE, SURFACE_Y, PAINT_Y, EDGE_LINE_WIDTH, EDGE_LINE_INSET, START_LINE_DEPTH,
@@ -10,7 +11,7 @@ import {
 
 const paint = (extra = {}) =>
   new THREE.MeshStandardMaterial({
-    color: 0xf0f0f0,
+    color: 0xd4d4d4, // line paint
     roughness: 0.5,
     polygonOffset: true,
     polygonOffsetFactor: -2,
@@ -43,7 +44,11 @@ export function createTrackSurface(path, startIndex, gridIndex, anisotropy) {
   const map = asphaltTexture();
   map.anisotropy = anisotropy;
   const asphaltGeom = stripGeometry(path, all, -hw, hw, SURFACE_Y, { closed: true, uPerMetre: 1 / ASPHALT_TILE });
-  group.add(receive(new THREE.Mesh(asphaltGeom, new THREE.MeshStandardMaterial({ map, roughness: 0.86 }))));
+  const detail = QUALITY.detail ? asphaltDetail() : {};
+  for (const t of Object.values(detail)) t.anisotropy = anisotropy;
+  const asphalt = new THREE.MeshStandardMaterial({ map, roughness: detail.roughnessMap ? 1 : 0.86, ...detail });
+  if (detail.normalMap) asphalt.normalScale.set(0.9, 0.9);
+  group.add(receive(new THREE.Mesh(asphaltGeom, asphalt)));
 
   const white = paint();
   for (const side of [-1, 1]) {

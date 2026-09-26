@@ -19,14 +19,14 @@ export const CURB_MIN_LENGTH = 5;
 export const CURB_EXTEND = 2; // metres added before/after each corner
 export const CURB_STRIPE = 0.9; // metres per coloured stripe
 export const CURB_RED = '#d7263d';
-export const CURB_WHITE = '#f2f2f2';
+export const CURB_WHITE = '#dcdcdc'; // painted white: ~70 % reflectance, not a light source
 
 // Plastic barrier blocks
 export const BARRIER_GAP = 0.8; // asphalt edge → barrier face
 export const BARRIER_LENGTH = 1.5;
 export const BARRIER_HEIGHT = 0.75;
 export const BARRIER_THICKNESS = 0.5;
-export const BARRIER_COLORS = [0xd7263d, 0xf2f2f2];
+export const BARRIER_COLORS = [0xc41f33, 0xd9d9d9]; // moulded plastic, realistic albedo
 
 // Start / finish
 export const START_LINE_DEPTH = 1.2;

@@ -5,6 +5,8 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { barrierFaces, barrierCentres } from '../track/barrierLines.js';
 import { BARRIER_LENGTH, BARRIER_HEIGHT, BARRIER_THICKNESS, BARRIER_COLORS } from '../config/track.js';
 import { BARRIER_SHADOWS } from '../config/render.js';
+import { QUALITY } from '../config/graphics.js';
+import { barrierTexture, barrierDetail } from './textures/surfaces.js';
 
 // Evenly spaced block centres + directions along a polyline run.
 function placeBlocks(run, out) {
@@ -33,7 +35,8 @@ export function createBarriers(path) {
   const faces = barrierFaces(path);
 
   const geometry = new RoundedBoxGeometry(BARRIER_LENGTH * 0.97, BARRIER_HEIGHT, BARRIER_THICKNESS, 1, 0.06);
-  const material = new THREE.MeshStandardMaterial({ roughness: 0.38, metalness: 0 });
+  const scuffed = QUALITY.detail ? { map: barrierTexture(), ...barrierDetail() } : {};
+  const material = new THREE.MeshStandardMaterial({ roughness: scuffed.roughnessMap ? 1 : 0.45, metalness: 0, ...scuffed });
   const mesh = new THREE.InstancedMesh(geometry, material, blocks.length);
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();

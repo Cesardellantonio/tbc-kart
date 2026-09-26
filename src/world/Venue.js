@@ -1,7 +1,8 @@
 // The hall shell: ribbed-metal walls with an accent stripe, dark ceiling, neon strips along the walls.
 
 import * as THREE from 'three';
-import { wallTexture } from './textures/surfaces.js';
+import { wallTexture, wallDetail } from './textures/surfaces.js';
+import { QUALITY } from '../config/graphics.js';
 import { WALL_HEIGHT, WALL_PANEL_WIDTH, NEON } from '../config/venue.js';
 
 // [length, x, z, rotationY] for each wall, facing into the hall.
@@ -22,9 +23,11 @@ export function createVenue(b, anisotropy) {
     const map = base.clone();
     map.repeat.set(len / WALL_PANEL_WIDTH, 1);
     map.needsUpdate = true;
+    const normalMap = QUALITY.detail ? wallDetail().normalMap : null; // ribbed cladding in relief
+    normalMap?.repeat.copy(map.repeat);
     const wall = new THREE.Mesh(
       new THREE.PlaneGeometry(len, WALL_HEIGHT),
-      new THREE.MeshStandardMaterial({ map, roughness: 0.72, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map, normalMap, roughness: 0.62, metalness: 0.35 }),
     );
     wall.position.set(x, WALL_HEIGHT / 2, z);
     wall.rotation.y = rot;

@@ -60,6 +60,7 @@ export function handleActions(game) {
     if (input.action('left')) screens.cycleMode(-1);
     if (input.action('right')) screens.cycleMode(1);
     if (input.action('level')) game.setDifficulty(screens.cycleLevel());
+    if (input.action('graphics')) screens.graphics?.cycle();
     if (input.action('prevTrack')) game.selectTrack(-1);
     if (input.action('nextTrack')) game.selectTrack(1);
     if (input.action('start')) {

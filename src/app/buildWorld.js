@@ -15,6 +15,8 @@ import { racingLine } from '../race/racingLine.js';
 import { createBarriers } from '../world/Barriers.js';
 import { createVenue } from '../world/Venue.js';
 import { createRig } from '../world/Rig.js';
+import { createLightShafts } from '../world/LightShafts.js';
+import { QUALITY } from '../config/graphics.js';
 import { createBanners } from '../world/Banners.js';
 import { createLighting } from '../world/Lighting.js';
 import { StartGantry } from '../world/StartGantry.js';
@@ -82,6 +84,7 @@ export function buildWorld(track, anisotropy) {
     rig.group,
     createBanners(bounds),
     lighting.group,
+    ...(QUALITY.haze ? [createLightShafts(rig.lights)] : []),
     gantry.group,
   );
   rig.group.userData.ceiling = true;

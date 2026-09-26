@@ -1,7 +1,10 @@
-// WebGL renderer + scene: physically based colour pipeline, soft shadows, room reflections.
+// WebGL renderer + scene: physically based colour pipeline, soft shadows, and image-based lighting
+// captured from the hall itself (a generic room until the first track is built).
 
 import * as THREE from 'three';
 import { venueEnvironment } from './venueEnvironment.js';
+import { captureEnvironment } from './environmentCapture.js';
+import { QUALITY } from '../config/graphics.js';
 import {
   PIXEL_RATIO_CAP,
   EXPOSURE,
@@ -9,6 +12,7 @@ import {
   FOG_COLOR,
   FOG_DENSITY,
   ENV_INTENSITY,
+  TONE_MAPPING,
 } from '../config/render.js';
 
 export class Renderer {
@@ -17,7 +21,7 @@ export class Renderer {
     const gl = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
     gl.setPixelRatio(Math.min(window.devicePixelRatio, PIXEL_RATIO_CAP));
     gl.setSize(window.innerWidth, window.innerHeight);
-    gl.toneMapping = THREE.ACESFilmicToneMapping;
+    gl.toneMapping = TONE_MAPPING === 'agx' ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = EXPOSURE;
     gl.shadowMap.enabled = true;
     gl.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -30,6 +34,13 @@ export class Renderer {
 
     this.scene.environment = venueEnvironment(gl);
     this.scene.environmentIntensity = ENV_INTENSITY;
+  }
+
+  // Light and reflect the scene with a capture of the scene itself (see core/environmentCapture.js).
+  captureEnvironment(at, hide) {
+    const texture = captureEnvironment(this.three, this.scene, at, QUALITY.envSize, hide);
+    this.scene.environment?.dispose();
+    this.scene.environment = texture;
   }
 
   get maxAnisotropy() {

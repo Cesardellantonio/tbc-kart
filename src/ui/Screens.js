@@ -9,6 +9,7 @@ import { Lobby } from './Lobby.js';
 import { OnlinePause } from './OnlinePause.js';
 import { Toasts } from './Toasts.js';
 import { drawTrackMap } from './trackMap.js';
+import { GraphicsPicker } from './GraphicsPicker.js';
 import { RIVALS, DIFFICULTY } from '../config/race.js';
 import { NOTICE_TIME } from '../config/net.js';
 
@@ -107,6 +108,12 @@ export class Screens {
     setText(r.meta, track.id === 'tbc' ? 'VANCOUVER HOME TRACK' : `INSPIRED BY ${track.inspiredBy.toUpperCase()}`);
     for (const [id, , sub] of MODES) setText(this.title.querySelector(`[data-sub="${id}"]`), sub(track.laps));
     this.setBest(best);
+  }
+
+  // Graphics quality row, placed under the rival level row (ui/GraphicsPicker.js).
+  addGraphicsPicker() {
+    const level = this.title.querySelector('.title-level');
+    this.graphics = new GraphicsPicker(level.parentNode, level.nextSibling);
   }
 
   // Rival level buttons: onLevel(id) is called on a click; cycleLevel() steps through them (L key).

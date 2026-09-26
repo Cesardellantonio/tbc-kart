@@ -1,6 +1,7 @@
 // Composition root: builds every system once, owns the loop, and exposes game-level operations.
 // Track-dependent parts (world, race session, field timing, records) are rebuilt by loadTrack().
 
+import * as THREE from 'three';
 import { EventBus } from '../core/events.js';
 import { Renderer } from '../core/Renderer.js';
 import { PostFX } from '../core/PostFX.js';
@@ -63,6 +64,7 @@ export class Game {
     this.screens = new Screens((name) => this.input.trigger(name));
     this.difficulty = savedLevel();
     this.screens.bindLevels(this.difficulty, (level) => this.setDifficulty(level));
+    this.screens.addGraphicsPicker();
     this.debug = new DebugOverlay();
     this.autopilot = new Autopilot(null);
     this.impactCooldown = 0;
@@ -83,6 +85,9 @@ export class Game {
     this.track = track;
     this.world = buildWorld(track, this.renderer.maxAnisotropy);
     scene.add(this.world.group);
+    const { bounds } = this.world;
+    const karts = [this.kart, ...this.rivals.map((r) => r.kart)].map((k) => k.object3d);
+    this.renderer.captureEnvironment(new THREE.Vector3(bounds.cx, 1.2, bounds.cz), [...karts, this.ghost.object3d]);
     const { path, startIndex, anchors } = this.world;
     this.camera.anchors = anchors;
     setFieldTrack(this);

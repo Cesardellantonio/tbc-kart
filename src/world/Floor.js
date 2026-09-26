@@ -1,7 +1,8 @@
 // Polished concrete hall floor, hazard-striped walkway along the walls, painted infield logo.
 
 import * as THREE from 'three';
-import { concreteTexture } from './textures/surfaces.js';
+import { concreteTexture, concreteDetail } from './textures/surfaces.js';
+import { QUALITY } from '../config/graphics.js';
 import { hazardTexture } from './textures/markings.js';
 import { floorLogoTexture } from './textures/signage.js';
 import { FLOOR_TILE } from '../config/venue.js';
@@ -24,12 +25,21 @@ function flat(mesh, x, z, y = 0) {
   return mesh;
 }
 
+// Detail maps tile exactly like their colour map.
+const matched = (maps, like) => {
+  for (const t of Object.values(maps)) [t.repeat, t.anisotropy] = [like.repeat.clone(), like.anisotropy];
+  return maps;
+};
+
 export function createFloor(b, anisotropy) {
   const group = new THREE.Group();
   const map = concreteTexture();
   map.repeat.set(b.width / FLOOR_TILE, b.depth / FLOOR_TILE);
   map.anisotropy = anisotropy;
-  const material = new THREE.MeshStandardMaterial({ map, roughness: 0.5, metalness: 0.05 });
+  const detail = QUALITY.detail ? matched(concreteDetail(), map) : {};
+  const material = new THREE.MeshStandardMaterial({ map, roughness: 1, metalness: 0.02, ...detail });
+  if (!QUALITY.detail) material.roughness = 0.5;
+  if (detail.normalMap) material.normalScale.set(0.35, 0.35); // polished: the pattern, barely any relief
   group.add(flat(new THREE.Mesh(new THREE.PlaneGeometry(b.width, b.depth), material), b.cx, b.cz));
 
   // Walkway stripe 1.5 m in from every wall

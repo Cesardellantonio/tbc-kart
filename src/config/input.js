@@ -25,6 +25,7 @@ export const ACTIONS = {
   raceAgain: ['Enter'], // results card
   nextRace: ['KeyN'], // results card: on to the next track
   level: ['KeyL'], // menu: rival level
+  graphics: ['KeyG'], // menu: graphics quality (reloads)
   debug: ['Backquote', 'F3'],
 };
 

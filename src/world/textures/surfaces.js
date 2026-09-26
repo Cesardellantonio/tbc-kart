@@ -1,18 +1,68 @@
 // Procedural surface textures: polished concrete floor, track asphalt, corrugated wall panels.
 
 import { makeCanvas, blotches, speckle, grain, toTexture } from './canvas.js';
+import { normalFrom, roughnessFrom } from './detail.js';
 
 // None of these depend on the track, so each canvas is drawn once per page and wrapped in a fresh
 // texture per track load (a track change disposes its textures, and callers set repeat/anisotropy).
 const drawn = new Map();
-const cached = (key, draw) => {
+const canvasOf = (key, draw) => {
   if (!drawn.has(key)) drawn.set(key, draw());
-  return toTexture(drawn.get(key));
+  return drawn.get(key);
 };
+const cached = (key, draw) => toTexture(canvasOf(key, draw));
+// Linear (non-colour) detail maps derived from a colour canvas, also drawn once per page.
+const detail = (key, draw) => toTexture(canvasOf(key, draw), { colour: false });
 
 export const concreteTexture = () => cached('concrete', drawConcrete);
 export const asphaltTexture = () => cached('asphalt', drawAsphalt);
 export const wallTexture = (accent = '#d7263d') => cached(`wall${accent}`, () => drawWall(accent));
+
+// Normal + roughness maps for the same surfaces (high tiers): tile with the colour maps.
+export const concreteDetail = () => ({
+  normalMap: detail('concreteN', () => normalFrom(canvasOf('concrete', drawConcrete), 1.6, 2)),
+  roughnessMap: detail('concreteR', () => roughnessFrom(canvasOf('concrete', drawConcrete), 0.62, 0.22)), // polished where worn light
+});
+export const asphaltDetail = () => ({
+  normalMap: detail('asphaltN', () => normalFrom(canvasOf('asphalt', drawAsphalt), 3.2, 1)), // aggregate stones stand proud
+  roughnessMap: detail('asphaltR', () => roughnessFrom(canvasOf('asphalt', drawAsphalt), 0.97, 0.72)),
+});
+export const wallDetail = (accent = '#d7263d') => ({
+  normalMap: detail(`wallN${accent}`, () => normalFrom(canvasOf(`wall${accent}`, () => drawWall(accent)), 5, 2)),
+});
+export const barrierTexture = () => cached('barrier', drawBarrierScuffs);
+export const barrierDetail = () => ({
+  roughnessMap: detail('barrierR', () => roughnessFrom(canvasOf('barrier', drawBarrierScuffs), 0.75, 0.4)),
+});
+
+// Moulded barrier plastic, white (the instance colour tints it): tyre rubber smeared along the lower
+// half where karts lean on it, a few scratches.
+function drawBarrierScuffs() {
+  const W = 512;
+  const H = 256;
+  const { canvas, ctx } = makeCanvas(W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+  blotches(ctx, W, H, { count: 30, minR: 20, maxR: 90, alpha: 0.05, seed: 41 });
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  // Grime where karts rub: a darker band near the base, broken up into soft blotches.
+  const base = ctx.createLinearGradient(0, H * 0.5, 0, H);
+  base.addColorStop(0, 'rgba(30,30,32,0)');
+  base.addColorStop(1, 'rgba(30,30,32,0.16)');
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, W, H);
+  ctx.filter = 'blur(10px)';
+  for (let k = 0; k < 14; k++) {
+    ctx.fillStyle = `rgba(25,25,28,${0.04 + rnd() * 0.08})`;
+    ctx.beginPath();
+    ctx.ellipse(rnd() * W, H * (0.62 + rnd() * 0.3), 30 + rnd() * 90, 6 + rnd() * 12, (rnd() - 0.5) * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.filter = 'none';
+  grain(ctx, W, H, 8, 42);
+  return canvas;
+}
 
 function drawConcrete() {
   const S = 1024;
