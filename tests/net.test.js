@@ -8,7 +8,13 @@ import { ClockSync } from '../src/net/ClockSync.js';
 import { Interpolator } from '../src/net/Interpolator.js';
 import { stateOf, Ticker } from '../src/net/kartState.js';
 import { CODE_ALPHABET, CODE_LENGTH } from '../src/config/lobby.js';
-import { PROTOCOL_VERSION, MAX_MESSAGE, EXTRAPOLATE_MAX, INTERP_DELAY } from '../src/config/net.js';
+import {
+  PROTOCOL_VERSION,
+  MAX_MESSAGE,
+  EXTRAPOLATE_MAX,
+  INTERP_DELAY,
+  CLOCK_READY,
+} from '../src/config/net.js';
 import { seededRandom } from '../src/core/math.js';
 
 describe('room codes', () => {
@@ -228,10 +234,12 @@ describe('clock sync', () => {
     expect(clock.offset).toBeCloseTo(5, 6);
     expect(clock.rtt).toBeCloseTo(0.04, 6);
   });
-  it('is not ready until it has a sample', () => {
+  it('is not ready until it has CLOCK_READY samples', () => {
     const clock = new ClockSync();
-    expect(clock.ready).toBe(false);
-    clock.sample(1, 2, 1.1);
+    for (let n = 0; n < CLOCK_READY; n++) {
+      expect(clock.ready).toBe(false);
+      clock.sample(n, n + 2, n + 0.1);
+    }
     expect(clock.ready).toBe(true);
   });
 });

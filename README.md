@@ -16,7 +16,7 @@ A kart racing game set in indoor karting halls: the **TBC Indoor Racing** layout
 ```bash
 npm install
 npm run dev      # open the URL Vite prints (usually http://localhost:5173)
-npm test         # 276 unit tests: physics, tracks (rules + a six-kart AI race on every circuit), race logic, feel, flow, online (protocol, clock, rooms, races over an in-memory network, the game's online field and shared-clock start)
+npm test         # 284 unit tests: physics, tracks (rules + a six-kart AI race on every circuit), race logic, feel, flow, online (protocol, clock, rooms, races over an in-memory network, the game's online field and shared-clock start)
 node tools/track-report.mjs monza --svg monza.svg   # design check + AI race + map for one circuit
 npm run build    # production bundle in dist/
 ```
@@ -28,7 +28,7 @@ npm run build    # production bundle in dist/
 Pick a track (`↑` `↓` or the ◀ ▶ arrows), a mode (`←` `→`) and the rivals' level (`L`, or click **Amateur / Club / Pro**) on the title screen, then **Enter** — or click / tap a mode:
 
 - **Grand Prix** — a race of about two and a half minutes (each circuit sets its lap count) against five rivals, from 5th on the grid. Tuck in behind a kart to catch its slipstream (the speedo shows **SLIPSTREAM**), then pull out and pass. Rubbing is racing: karts bump and shove each other. The timing tower shows the running order and real time gaps; the results card fills in as the field takes the flag.
-- **Online** — race friends. Type a name, **CREATE ROOM** and share the 5-character code or the link (`…?room=K7QX2` opens the lobby and joins straight away); up to six humans, AI rivals fill the rest of the grid. The host picks the track and the rivals' level and starts; everyone's lights go out together. Each driver's kart runs on their own machine, so there is no input lag; the others are shown a tenth of a second or so in the past, smoothly. `Esc` shows a small card over the running race (nothing pauses; **LEAVE RACE** quits). The host's results are final for everyone: the host then picks **RACE AGAIN** or **NEXT TRACK** for the whole room, and **LEAVE** takes anyone back to the menu. If the host leaves, everyone returns to the menu.
+- **Online** — race friends. Type a name, **CREATE ROOM** and share the 5-character code or the link (`…?room=K7QX2` opens the lobby and joins straight away); up to six humans, AI rivals fill the rest of the grid. The host picks the track and the rivals' level and starts; everyone's lights go out together. Each driver's kart runs on their own machine, so there is no input lag; the others are shown a tenth of a second or so in the past, smoothly. `Esc` shows a small card over the running race (nothing pauses; **LEAVE RACE** quits). The host's results are final for everyone: the host then picks **RACE AGAIN** or **NEXT TRACK** for the whole room, and **LEAVE** takes anyone back to the menu. If the host leaves, everyone returns to the menu. A phone that switches apps for a few seconds (up to 15 s) stays in the room and the race; the others see its kart wait ("HOST AWAY" if it is the host's).
 - **Time Attack** — alone on track against the clock. Your best lap is saved in the browser (shown in purple) along with a translucent **ghost** of that lap to chase.
 
 On a phone or tablet, on-screen buttons appear: steer bottom-left, gas / brake / drift bottom-right, camera and pause at the top.
@@ -138,7 +138,7 @@ Each module has one job and stays at or under 80 lines, so when one grows past t
 7. **HUD**
 8. **render** (post-processing)
 
-Online, `game.online.step(dt)` is the one extra call in that pipeline (after the race session): the room's heartbeats every frame, and in a race the remote karts, the host's AI, contacts and slipstream with them, and the timing field. The race session follows the host's clock (`RaceSession.follow`), so GO and every flag land at the same host time on every peer.
+Online, `game.online.step(dt)` is the one extra call in that pipeline (after the race session): the room's heartbeats every frame, and in a race the remote karts, the host's AI, contacts and slipstream with them, and the timing field. The race session follows the host's clock (`RaceSession.follow`), so GO and every flag land at the same host time on every peer. START goes out only once every client's clock is synced (a few ping round trips after it joins), so a START pressed just as a friend joins waits a moment rather than start them on an unsynced clock.
 
 Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `finish`, `overtake`, `impact`, `pause`, `reset`, `camera`, `mute`.
 

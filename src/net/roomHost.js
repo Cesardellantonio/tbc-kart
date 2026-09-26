@@ -1,11 +1,18 @@
 // The host's side of a Room: admits or refuses each newcomer (full / other version / mid-race), names
 // them uniquely and hands out codes and liveries, answers pings (the host clock is the room's clock),
 // passes race messages on, notices who has gone (hung up, said bye, or silent SILENCE_TIMEOUT) and
-// tells everyone, and turns START into a roster everyone races with.
+// tells everyone, and turns START into a roster everyone races with — once every client's clock is
+// synced (CLOCK_READY pongs sent to each), so a START pressed as a friend joins waits a moment.
 
 import { msg } from './protocol.js';
 import { nextPlayerId, seat, buildRoster } from './roster.js';
-import { PROTOCOL_VERSION, SILENCE_TIMEOUT, CONNECT_TIMEOUT, START_LEAD } from '../config/net.js';
+import {
+  PROTOCOL_VERSION,
+  SILENCE_TIMEOUT,
+  CONNECT_TIMEOUT,
+  START_LEAD,
+  CLOCK_READY,
+} from '../config/net.js';
 
 const FROM_CLIENTS = ['kart', 'finish']; // race messages a client may send (about its own kart only)
 const lobbyOf = ({ state: { players, track, level } }) => ({ players, track, level });
@@ -28,7 +35,7 @@ export const HOST = {
     const id = room.peers.get(peer);
     if (m.type === 'hello') return id ? undefined : admit(room, peer, m);
     if (!id) return;
-    if (m.type === 'ping') room.transport.send(peer, msg.pong(m.t0, room.now()));
+    if (m.type === 'ping') pong(room, peer, m);
     else if (m.type === 'bye') remove(room, peer);
     else if (FROM_CLIENTS.includes(m.type) && m.id === id)
       room.bus.emit('race', { from: id, msg: m });
@@ -40,6 +47,7 @@ export const HOST = {
     for (const [peer, id] of room.peers) {
       if (now - room.heard.get(peer) > (id ? SILENCE_TIMEOUT : CONNECT_TIMEOUT)) remove(room, peer);
     }
+    if (room.waiting) HOST.start(room, room.waiting); // a client that never syncs is dropped above
   },
 
   setLobby(room, { track = room.state.track, level = room.state.level }) {
@@ -47,7 +55,11 @@ export const HOST = {
     publish(room);
   },
 
-  start(room, { laps, hold }) {
+  // → the start message, or null while a client's clock isn't synced yet (update() tries again).
+  start(room, options) {
+    room.waiting = synced(room) ? null : options;
+    if (room.waiting) return null;
+    const { laps, hold } = options;
     const { track, level, players } = room.state;
     const roster = buildRoster(players, room.rand);
     const countdownAt = room.now() + START_LEAD;
@@ -71,10 +83,19 @@ function admit(room, peer, hello) {
   publish(room);
 }
 
+function pong(room, peer, ping) {
+  room.transport.send(peer, msg.pong(ping.t0, room.now()));
+  room.pongs.set(peer, (room.pongs.get(peer) ?? 0) + 1);
+}
+
+const synced = (room) =>
+  [...room.peers].every(([peer, id]) => !id || (room.pongs.get(peer) ?? 0) >= CLOCK_READY);
+
 function remove(room, peer) {
   const id = room.peers.get(peer);
   if (!room.peers.delete(peer)) return;
   room.heard.delete(peer);
+  room.pongs.delete(peer);
   room.transport.drop(peer);
   if (!id) return;
   room.set({ players: room.state.players.filter((p) => p.id !== id) });

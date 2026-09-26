@@ -3,7 +3,8 @@
 // lobby card draws room.state as it is, and NetRace takes over the race messages at START.
 //   const room = new Room({ makeTransport, now, rand })   now: () => local seconds
 //   room.create(name, { track, level }) · room.join(code, name) · room.leave() · room.update() per frame
-//   host only: room.setLobby({ track?, level? }) · room.start({ laps, hold }) → start msg · room.endRace()
+//   host only: room.setLobby({ track?, level? }) · room.start({ laps, hold }) → start msg (or null
+//   while a client's clock is still syncing: it goes out by itself once it is) · room.endRace()
 //   room.state  { phase: 'choose'|'connecting'|'error'|'room', error, you, isHost, room, players,
 //                 track, level } — exactly what the Lobby card renders
 //   room.on(event, fn) → unsubscribe: 'change' (state) · 'start' (the start message, both sides) ·
@@ -21,12 +22,14 @@ import { parse, msg } from './protocol.js';
 import { makeCode } from './roomCode.js';
 import { HOST } from './roomHost.js';
 import { CLIENT } from './roomClient.js';
+import { OWN_STALL } from '../config/net.js';
 
 export class Room {
   constructor({ makeTransport, now = () => performance.now() / 1000, rand = Math.random }) {
     Object.assign(this, { makeTransport, now, rand, bus: new EventBus() });
     this.state = { phase: 'choose', players: [] };
     this.side = null; // HOST or CLIENT while in (or entering) a room
+    this.heard = new Map(); // last time (local s) each peer was heard from (fresh per room: begin())
   }
 
   on(type, handler) {
@@ -57,7 +60,10 @@ export class Room {
     on('message', ({ from, data }) => (data = parse(data)) && this.side.message(this, from, data));
     Object.assign(this, { side, racing: false, clock: new ClockSync(), since: this.now() });
     this.peers = new Map(); // host: transport peer id → player id (null until its hello)
-    this.heard = new Map(); // last time (local s) each peer was heard from
+    this.heard = new Map();
+    this.pongs = new Map(); // host: pongs sent to each peer (its clock samples)
+    this.waiting = null; // host: START options held until every client's clock is synced
+    this.held = null; // client: a START that arrived before our clock was synced
     this.set({ phase: 'connecting', error: null, players: [], ...fields });
     return t;
   }
@@ -82,7 +88,12 @@ export class Room {
   }
 
   update() {
-    this.side?.update(this, this.now());
+    const now = this.now();
+    const gap = now - (this.stepped ?? now);
+    this.stepped = now;
+    // We were suspended (a phone app switch): nobody's silence counts while we weren't listening.
+    if (gap > OWN_STALL) for (const [peer, t] of this.heard) this.heard.set(peer, t + gap);
+    this.side?.update(this, now);
   }
 
   hostNow() {
@@ -110,6 +121,8 @@ export class Room {
     if (this.isHost) HOST.setLobby(this, patch);
   }
 
+  // Host: → the start message, or null (already racing, or waiting for a client's clock: it goes
+  // out by itself from update() once they are all synced; 'start' fires then).
   start(options) {
     return this.isHost && !this.racing ? HOST.start(this, options) : null;
   }

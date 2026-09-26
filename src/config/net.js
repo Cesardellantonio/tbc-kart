@@ -22,7 +22,19 @@ export const PING_BURST = 5; // pings sent at join…
 export const PING_BURST_GAP = 0.1; // …this far apart (s)
 export const CLOCK_WINDOW = 16; // most recent ping samples kept (older ones age out as clocks drift)
 export const CLOCK_BEST = 3; // offset = median of the samples with the lowest round trip
-export const SILENCE_TIMEOUT = 5; // s without a word from a peer before it counts as gone
+// Samples a client's clock needs before a race may start on it. Before its first pong a client's
+// hostNow() is its own page clock (seconds or minutes off): its countdown would be over at once. So
+// the host holds START until each client has had this many pongs (the channel is ordered, so they
+// land before START does), and a client holds a START that still beats them.
+export const CLOCK_READY = 3; // samples (the join burst delivers them within ~0.3 s plus a round trip)
+// A phone that switches apps suspends the page outright (no timers, no frames) for as long as its
+// player is away, typically a few seconds to reply to a message: the others keep it that long.
+// It is also how long a crashed browser's kart (or a crashed host) lingers before counting as gone.
+export const SILENCE_TIMEOUT = 15; // s without a word from a peer before it counts as gone
+// A page that was itself suspended heard nothing because it wasn't running; a gap this long between
+// two of its own room steps (a background tab still steps about once a second) is not the others'
+// silence, so their silence counts from when it woke up.
+export const OWN_STALL = 2; // s
 // The room is also stepped on a timer, not only every frame: a tab in the background gets no frames
 // but still runs timers (browsers slow them to about once a second), so its pings keep it in the room
 // while a friend switches to a chat app, and a hidden host still answers, times out and relays.

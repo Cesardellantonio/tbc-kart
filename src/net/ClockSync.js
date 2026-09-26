@@ -8,9 +8,9 @@
 // paths are close to symmetric (a few ms apart); ?netlag delays both ways for the same reason. Check
 // the sync against a clock outside it (all browsers on one machine share the OS clock), never with
 // each peer's own hostNow(): that can only ever agree with itself.
-//   clock.sample(t0, th, t1) · clock.ready · clock.offset · clock.rtt · clock.hostNow(localNow)
+//   clock.sample(t0, th, t1) · clock.ready (CLOCK_READY samples in) · clock.offset · clock.rtt · clock.hostNow(localNow)
 
-import { CLOCK_WINDOW, CLOCK_BEST } from '../config/net.js';
+import { CLOCK_WINDOW, CLOCK_BEST, CLOCK_READY } from '../config/net.js';
 
 const median = (values) => {
   const v = [...values].sort((a, b) => a - b);
@@ -19,16 +19,17 @@ const median = (values) => {
 };
 
 export class ClockSync {
-  constructor({ window = CLOCK_WINDOW, best = CLOCK_BEST } = {}) {
+  constructor({ window = CLOCK_WINDOW, best = CLOCK_BEST, enough = CLOCK_READY } = {}) {
     this.window = window;
     this.best = best;
+    this.enough = enough; // samples before the estimate is trusted (ready)
     this.samples = []; // [{ rtt, offset }], oldest first
     this.offset = 0; // s to add to the local clock to read the host's
     this.rtt = 0; // s, the typical round trip among the best samples
   }
 
   get ready() {
-    return this.samples.length > 0;
+    return this.samples.length >= this.enough;
   }
 
   sample(t0, th, t1) {

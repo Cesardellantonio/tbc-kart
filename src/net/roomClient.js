@@ -1,6 +1,7 @@
 // A client's side of a Room: says hello once the channel to the host is up, takes the welcome (or the
 // refusal), keeps the lobby as the host describes it, pings the host (a quick burst at first, then
-// every PING_INTERVAL — the heartbeat and the clock samples in one), and passes race messages on.
+// every PING_INTERVAL — the heartbeat and the clock samples in one), and passes race messages on
+// (START only once the clock is good).
 // Only the host's bye means it closed the room ('closed'). A channel that ends without one, or a host
 // silent for SILENCE_TIMEOUT, is a lost connection ('lost'): the host may have dropped us (it heard
 // nothing from us for as long), the network failed, or its tab crashed. Saying "the host left" then
@@ -23,10 +24,16 @@ const ON = {
   refuse: (room, m) => room.fail(m.reason),
   lobby: (room, { players, track, level }) =>
     room.state.phase === 'room' && room.set({ players, track, level }),
-  pong: (room, m) => room.clock.sample(m.t0, m.th, room.now()),
+  pong(room, m) {
+    room.clock.sample(m.t0, m.th, room.now());
+    if (room.held && room.clock.ready) ON.start(room, room.held);
+  },
+  // Only on a synced clock: before it, hostNow() is this page's own clock and the countdown would be
+  // over in one frame. The host waits for our pongs first, so this is a backstop.
   start(room, m) {
     room.racing = true;
-    room.bus.emit('start', m);
+    room.held = room.clock.ready ? null : m;
+    if (!room.held) room.bus.emit('start', m);
   },
   snap: toRace,
   finish: toRace,

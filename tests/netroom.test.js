@@ -15,6 +15,7 @@ import {
   HUMAN_LIVERIES,
   SILENCE_TIMEOUT,
   START_LEAD,
+  CLOCK_READY,
   RESULTS_GRACE,
 } from '../src/config/net.js';
 import { MAX_PLAYERS } from '../src/config/lobby.js';
@@ -36,10 +37,10 @@ function world(shaping = {}) {
     rooms.push(r);
     return r;
   };
-  const run = (seconds, each = () => {}) => {
+  const run = (seconds, each = () => {}, stepped = rooms) => {
     for (let n = Math.round(seconds / FRAME); n > 0; n--) {
       net.advance(FRAME);
-      for (const r of rooms) r.update();
+      for (const r of stepped) r.update();
       each();
     }
   };
@@ -215,6 +216,76 @@ describe('online room', () => {
     }
     expect(ann.state.phase).toBe('room');
     expect(host.state.players.map((p) => p.name)).toEqual(['Cesar', 'Ann']);
+  });
+
+  it('keeps everyone when a page was suspended outright (a phone switching apps) for a while', () => {
+    const w = world();
+    const host = w.host();
+    const [ann, bob] = ['Ann', 'Bob'].map((n) => w.join(host, n));
+    // Suspended: no steps, and what arrives waits until the page runs again.
+    const suspend = (room, seconds, others) => {
+      const held = [];
+      const emit = room.transport.bus.emit;
+      room.transport.bus.emit = (...event) => held.push(event);
+      w.run(seconds, () => {}, others);
+      room.transport.bus.emit = emit;
+      room.update(); // the worst order on waking: a step before any of the queued messages
+      for (const event of held) emit.apply(room.transport.bus, event);
+    };
+    const idle = w.room(); // not in a room yet: a long gap between its steps is nothing to act on
+    idle.update();
+    w.net.advance(3);
+    expect(() => idle.update()).not.toThrow();
+    suspend(host, SILENCE_TIMEOUT - 1, [ann, bob]);
+    suspend(ann, SILENCE_TIMEOUT - 1, [host, bob]);
+    w.run(2);
+    expect(host.state.players.map((p) => p.name)).toEqual(['Cesar', 'Ann', 'Bob']);
+    for (const c of [ann, bob]) expect(c.state.phase).toBe('room');
+  });
+
+  it("holds a START pressed as a friend joins until the friend's clock is synced", () => {
+    const w = world({ lag: 0.15 });
+    const host = w.host();
+    const late = w.room(40); // a page opened 40 s before the host's: its own clock reads 40 s ahead
+    late.join(host.state.room, 'Late');
+    while (host.state.players.length < 2) w.run(FRAME);
+    const got = [];
+    for (const r of [host, late])
+      r.on('start', (s) => got.push({ s, synced: r.clock.ready || r === host, at: r.hostNow() }));
+    expect(host.start({ laps: 3, hold: 0.5 })).toBe(null); // nobody hears it yet
+    w.run(0.2);
+    expect(got).toHaveLength(0);
+    w.run(1);
+    expect(got).toHaveLength(2);
+    expect(got[1].s).toEqual(got[0].s);
+    expect(got[1].synced).toBe(true);
+    expect(Math.abs(late.hostNow() - host.hostNow())).toBeLessThan(0.01);
+    expect(got[1].at).toBeLessThan(got[1].s.countdownAt); // heard before the countdown began
+  });
+
+  it('a client holds a START that beats its clock sync (backstop)', () => {
+    const w = world();
+    const host = w.host();
+    w.join(host, 'Ann');
+    const start = host.start({ laps: 3, hold: 0.5 });
+    const fake = w.net.transport(); // a host that sends START straight after its welcome
+    fake.host('FAST2');
+    const lobby = { players: host.state.players, track: 'monza', level: 'club' };
+    fake.on('message', ({ from, data }) => {
+      if (data.type === 'ping') fake.send(from, msg.pong(data.t0, w.net.now()));
+      if (data.type !== 'hello') return;
+      fake.send(from, msg.welcome('p1', 'FAST2', lobby));
+      fake.send(from, start);
+    });
+    const c = w.room();
+    const heard = [];
+    c.on('start', () => heard.push(c.clock.samples.length));
+    c.join('FAST2', 'Ann');
+    w.run(0.1);
+    expect(c.racing).toBe(true);
+    expect(heard).toEqual([]);
+    w.run(1);
+    expect(heard).toEqual([CLOCK_READY]);
   });
 
   it("won't let a human take an AI rival's name (the rival may join the grid)", () => {
