@@ -21,11 +21,13 @@ export const FRONT_ROLL_SHARE = 0.45; // share of lateral load transfer carried 
 // Caster jacking: steering lifts the chassis on the inside front, loading the inside front and the
 // outside rear and unloading the other two. It is what lifts the inside rear so a kart with no
 // differential can turn at all. N of diagonal transfer per N of weight per rad of road-wheel angle.
-export const JACKING = 1.05;
+export const JACKING = 1.3;
 
-// Tyres (per contact patch): F = μ(Fz)·Fz·sin(C·atan(B·s)), s = combined normalised slip
-export const MU_LAT_FRONT = 1.3; // peak lateral friction at nominal load, front
-export const MU_LAT_REAR = 1.4; // peak lateral friction at nominal load, rear (wider tyres)
+// Tyres (per contact patch): F = μ(Fz)·Fz·sin(C·atan(B·s)), s = combined normalised slip. Sticky
+// rental-kart slicks (~1.5 g cornering); the rear's margin over the front keeps a flick at speed from
+// overshooting into a slide (equal μ swung the tail out on every full-lock turn-in above 40 km/h).
+export const MU_LAT_FRONT = 1.6; // peak lateral friction at nominal load, front
+export const MU_LAT_REAR = 1.85; // peak lateral friction at nominal load, rear (wider tyres)
 export const MU_LONG = 1.1; // longitudinal peak μ relative to lateral (friction ellipse aspect)
 export const LOAD_SENSITIVITY = 0.12; // μ falls this share per 100 % load above nominal (and rises below)
 export const PEAK_SLIP_ANGLE = 0.11; // rad (~6°), lateral peak
@@ -93,14 +95,16 @@ export const THROTTLE_JUMP_SLIP = 0.04; // rad, …unless the body slips this mu
 export const THROTTLE_RAMP_SLIP = 0.25; // rad of body slip past which it all acts at once (the throttle steers a slide)
 
 // Steering
-export const STEER_IN = 10; // 1/s, input smoothing toward full lock
+export const STEER_IN = 12; // 1/s, input smoothing toward full lock
 export const STEER_OUT = 11; // 1/s, input smoothing back to centre
 export const STEER_LOCK = 0.4; // rad, road-wheel angle at full lock
-export const STEER_LIMIT_ACCEL = 13; // m/s², full lock at speed aims at this lateral acceleration…
+export const STEER_LIMIT_ACCEL = 14; // m/s², full lock at speed aims at this lateral acceleration…
 export const STEER_LIMIT_SLIP = 0.12; // rad, …plus this front slip angle (speed-sensitive lock)
 export const STEER_ASSIST = 1; // 0..1, countersteer assist: front wheels follow the direction of travel
 export const ASSIST_SLIP_START = 0.04; // rad of body slip where the assist starts to blend in
 export const ASSIST_SLIP_FULL = 0.15; // rad of body slip where the assist is at full strength
+export const POWER_SLIDE = 0.16; // share of the assist that hard throttle at full lock takes away (power oversteer)…
+export const POWER_SLIDE_FROM = 0.6; // …phased in from this throttle to full
 export const ASSIST_STEER_SHARE = 0.4; // share of the driver's lock kept on top of it at full assist
 
 // Collisions

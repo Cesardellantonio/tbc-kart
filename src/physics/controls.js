@@ -3,8 +3,8 @@
 
 import {
   STEER_IN, STEER_OUT, STEER_LOCK, STEER_LIMIT_ACCEL, STEER_LIMIT_SLIP, WHEELBASE, STEER_ASSIST,
-  ASSIST_SLIP_START, ASSIST_SLIP_FULL, ASSIST_STEER_SHARE, MASS, BRAKE_TORQUE, REVERSE_ACCEL, REVERSE_MAX,
-  CREEP_SPEED,
+  ASSIST_SLIP_START, ASSIST_SLIP_FULL, ASSIST_STEER_SHARE, POWER_SLIDE, POWER_SLIDE_FROM, MASS, BRAKE_TORQUE,
+  REVERSE_ACCEL, REVERSE_MAX, CREEP_SPEED,
 } from '../config/physics.js';
 import { clamp, lerp, smoothstep } from '../core/math.js';
 
@@ -26,9 +26,12 @@ export function wheelAngle(steer, speed) {
 
 // Countersteer assist: as body slip grows, blend the front wheels toward the kart's direction of
 // travel (rad, + = left). Aligned with the CoG velocity, the front tyres then resist yaw (damping a
-// fishtail) and the driver's input steers relative to that with a reduced share.
-export function assisted(delta, bodySlip, travel, strength = STEER_ASSIST) {
-  const w = strength * smoothstep(ASSIST_SLIP_START, ASSIST_SLIP_FULL, Math.abs(bodySlip));
+// fishtail) and the driver's input steers relative to that with a reduced share. Hard throttle with the
+// lock held (steer and throttle 0..1) takes up to POWER_SLIDE of it away, so power-on at lock steps the
+// rear out and keeps it out; lift or unwind the lock and the assist is back to catch the slide.
+export function assisted(delta, bodySlip, travel, strength = STEER_ASSIST, steer = 0, throttle = 0) {
+  const greed = smoothstep(POWER_SLIDE_FROM, 1, throttle) * Math.abs(steer);
+  const w = strength * (1 - POWER_SLIDE * greed) * smoothstep(ASSIST_SLIP_START, ASSIST_SLIP_FULL, Math.abs(bodySlip));
   return lerp(delta, travel + delta * ASSIST_STEER_SHARE, w);
 }
 

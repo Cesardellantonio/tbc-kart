@@ -77,11 +77,12 @@ describe('engine, clutch and driveline', () => {
 });
 
 describe('rear-only brakes', () => {
-  it('stops from 50 km/h in ~2.2–2.9 s: rear brakes at the limit, with the load thrown forward', () => {
+  // ~0.8 g on the grippier tyres of the turning update (it was 2.2–2.9 s on the old ones).
+  it('stops from 50 km/h in ~1.6–2.3 s: rear brakes at the limit, with the load thrown forward', () => {
     let t = null;
     run(rolling(50 / 3.6), input({ brake: 1 }), 5, (s, at) => void (t ??= speed(s) < 0.1 ? at : null)); // then it rolls back
-    expect(t).toBeGreaterThan(2.1);
-    expect(t).toBeLessThan(2.9);
+    expect(t).toBeGreaterThan(1.6);
+    expect(t).toBeLessThan(2.3);
   });
 
   it('holds the rear just short of a lock with the brake assist (threshold braking)', () => {

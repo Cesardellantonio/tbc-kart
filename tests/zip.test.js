@@ -77,30 +77,35 @@ describe('zip — engine and throttle', () => {
 
 describe('zip — steering', () => {
   // Time from the steer key going down until the yaw rate reaches 90 % of where it settles.
-  function turnIn(v, share) {
+  // Time to `share` of the settled yaw rate, or to `rate` rad/s.
+  function turnIn(v, share, rate) {
     const s0 = drive(moving(v), holding(v, 0), 1);
     const log = [];
     drive(s0, holding(v, 1), 3, (s, t) => void log.push([t, s.yawRate]));
     const settled = log.slice(-30).reduce((a, [, r]) => a + r, 0) / 30;
-    return log.find(([, r]) => r >= share * settled)[0];
+    return log.find(([, r]) => r >= (rate ?? share * settled))[0];
   }
 
   // At 30 km/h full lock saturates the front; the last of the yaw then creeps in with the throttle that
   // holds the speed (a little power rotation), so the crispness there is its 63 % time.
-  it('turns in crisply: 90 % of the yaw rate within 0.22 s at 50 km/h, 63 % within 0.25 s at 30', () => {
-    expect(turnIn(kmh(50), 0.9)).toBeLessThan(0.22);
+  // At 50 km/h the kart settles on ~0.95 rad/s since the turning update (0.66 before), a longer climb to
+  // 90 % of it, so the crispness there is the yaw it delivers: past the old kart's settled rate in 0.22 s.
+  it('turns in crisply: 0.7 rad/s of yaw within 0.22 s at 50 km/h, 63 % of it within 0.25 s at 30', () => {
+    expect(turnIn(kmh(50), null, 0.7)).toBeLessThan(0.22);
     expect(turnIn(kmh(30), 0.63)).toBeLessThan(0.25);
   });
 
-  it('flicks from full left to full right lock in under 0.3 s at 45 km/h, without a slide', () => {
+  // The held yaw is ~1.05 rad/s since the turning update (0.73 before), so the flick is timed to a set
+  // rate: −0.6 rad/s the other way (the old kart's 90 % of its own).
+  it('flicks from full left to 0.6 rad/s of right-hand yaw in under 0.22 s at 45 km/h, without a slide', () => {
     const v = kmh(45);
     const s0 = drive(moving(v), holding(v, 1), 2);
     let [t90, slip] = [Infinity, 0];
     drive(s0, holding(v, -1), 1.5, (s, t) => {
       slip = Math.max(slip, Math.abs(s.slipAngle));
-      if (t90 === Infinity && s.yawRate <= -0.9 * s0.yawRate) t90 = t;
+      if (t90 === Infinity && s.yawRate <= -0.6) t90 = t;
     });
-    expect(t90).toBeLessThan(0.3);
+    expect(t90).toBeLessThan(0.22);
     expect(slip).toBeLessThan(0.1);
   });
 

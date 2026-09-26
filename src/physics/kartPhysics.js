@@ -41,7 +41,7 @@ export function stepKart(s, input, dt) {
 
   const base = wheelAngle(steer, speed);
   const travel = Math.atan2(vl0, Math.max(Math.abs(vf0), SLIP_SPEED_MIN));
-  const delta = vf0 > 0 ? assisted(base, bodySlipOf(vf0, vl0), travel, input.assist) : base;
+  const delta = vf0 > 0 ? assisted(base, bodySlipOf(vf0, vl0), travel, input.assist, steer, input.throttle || 0) : base;
   wheelLoads(s.ax ?? 0, s.ay ?? 0, delta, LOADS);
   patchVelocities(vf0, vl0, r0, delta, VEL);
 
