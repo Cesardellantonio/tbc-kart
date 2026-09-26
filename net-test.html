@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:," />
+    <title>TBC Kart — net test (dev only)</title>
+    <style>
+      body { margin: 1rem; background: #0b0d12; color: #d8dde6; font: 13px/1.5 ui-monospace, monospace; }
+    </style>
+  </head>
+  <body>
+    <!-- Dev only (vite build bundles index.html alone): the real PeerJS transport + Room + NetRace
+         without the game, driven from the console or puppeteer through window.__net. -->
+    <pre id="out">loading…</pre>
+    <script type="module" src="/src/debug/netTest.js"></script>
+  </body>
+</html>

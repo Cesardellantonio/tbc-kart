@@ -57,14 +57,17 @@ export function placeField(game, race) {
 }
 
 // Rivals drive; everyone on track bumps and drafts. go: false holds rivals on the grid.
-export function stepField(game, dt, go) {
+// Online, `rivals` is the AI this browser runs (all of it on the host, none on a client) and `others`
+// the karts driven elsewhere ({ state, index, speed }, read-only): traffic to the AI, and something to
+// bump and draft, but only the karts simulated here are moved by it.
+export function stepField(game, dt, go, rivals = game.rivals, others = []) {
   const { path } = game.world;
-  const all = [{ kart: game.kart, index: game.trackIndex }, ...game.rivals];
+  const all = [{ kart: game.kart, index: game.trackIndex }, ...rivals];
   const view = (o) => ({ state: o.kart.state, index: o.index, speed: o.kart.telemetry.speed });
   const lead = game.field.player.progress;
-  for (const r of game.rivals) {
+  for (const r of rivals) {
     const s = r.kart.state;
-    const traffic = trafficFor(path, r, all.filter((o) => o !== r).map(view));
+    const traffic = trafficFor(path, r, [...all.filter((o) => o !== r).map(view), ...others]);
     const gap = (lead - (game.field.entries.find((e) => e.profile === r.profile)?.progress ?? lead)) * path.spacing;
     const pace = catchUpPace(gap); // behind the player → a touch quicker
     const c = r.driver.controls(s, r.kart.telemetry.speed, traffic, pace, dt, go);
@@ -74,11 +77,16 @@ export function stepField(game, dt, go) {
     r.kerb.update(r.kart, path, game.world.curbs, r.index, dt);
     r.fx.update(r.kart, dt, game.camera.three, game.renderer.three.domElement.height);
   }
-  interact(all.map((o) => o.kart));
+  interact(
+    all.map((o) => o.kart),
+    others.map((o) => o.state),
+  );
 }
 
-function interact(karts) {
+// fixed: states of karts simulated elsewhere; they push back, but take copies (their owner moves them).
+function interact(karts, fixed) {
   const states = karts.map((k) => k.state);
+  for (const s of fixed) states.push({ ...s });
   const hits = resolveContacts(states, CONTACT.radius, CONTACT.restitution);
   const draft = drafts(states, DRAFT.range, DRAFT.lateral);
   karts.forEach((k, i) => {

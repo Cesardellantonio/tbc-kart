@@ -9,14 +9,14 @@ A kart racing game set in indoor karting halls: the **TBC Indoor Racing** layout
 - **v1.0** — look & feel overhaul: real-scale track with barriers, drift physics, detailed kart + driver, lap timing with live delta, start lights, title attract mode, venue lighting, particles, synthesized sound
 - **v2.0** — Grand Prix: 5-lap races against five AI rivals, kart-to-kart contact, slipstream, live timing tower, results screen, best-lap ghost in time attack, touch controls for phones
 - **v3.0** — Circuits: nine F1-inspired tracks with a track picker, a single-track tyre model (rear-only brakes, load transfer, holdable drifts), smarter rivals with three difficulty levels, kerbs you can feel, a clutch-engine sound, cockpit head motion and a rubbered-in racing line
-- **v4.0** — Real physics (current): four-contact-patch kart model (per-wheel load transfer, caster jacking, solid rear axle), Pacejka-style tyres with load sensitivity, combined slip and relaxation length, an engine torque curve with a centrifugal clutch, tyre temperature, and a track surface that rubbers in; a realistic kart and helmeted driver; rivals and levels recalibrated
+- **v4.0** — Online + real physics (current): race up to five friends live from the static site (peer-to-peer rooms through the free PeerJS broker, no server of our own) with AI rivals filling the empty slots; a four-contact-patch kart model (per-wheel load transfer, caster jacking, solid rear axle), Pacejka-style tyres with load sensitivity, combined slip and relaxation length, an engine torque curve with a centrifugal clutch, tyre temperature and a track surface that rubbers in; a realistic rental kart and helmeted driver
 
 ## Run
 
 ```bash
 npm install
 npm run dev      # open the URL Vite prints (usually http://localhost:5173)
-npm test         # 194 unit tests: physics (engine, brakes, load transfer, tyres, temperature, surface), zip feel, tracks (rules + a six-kart AI race on every circuit), AI pace, race logic, flow
+npm test         # unit tests: physics (engine, brakes, load transfer, tyres, temperature, surface), zip feel, tracks (rules + a six-kart AI race on every circuit), AI pace, race logic, flow, online (protocol, clock, rooms, races over an in-memory network)
 node tools/track-report.mjs monza --svg monza.svg   # design check + AI race + map for one circuit
 npm run build    # production bundle in dist/
 ```
@@ -28,6 +28,7 @@ npm run build    # production bundle in dist/
 Pick a track (`↑` `↓` or the ◀ ▶ arrows), a mode (`←` `→`) and the rivals' level (`L`, or click **Amateur / Club / Pro**) on the title screen, then **Enter** — or click / tap a mode:
 
 - **Grand Prix** — a race of about two and a half minutes (each circuit sets its lap count) against five rivals, from 5th on the grid. Tuck in behind a kart to catch its slipstream (the speedo shows **SLIPSTREAM**), then pull out and pass. Rubbing is racing: karts bump and shove each other. The timing tower shows the running order and real time gaps; the results card fills in as the field takes the flag.
+- **Online** — race friends. Type a name, **CREATE ROOM** and share the 5-character code or the link (`…?room=K7QX2` opens the lobby and joins straight away); up to six humans, AI rivals fill the rest of the grid. The host picks the track and the rivals' level and starts; everyone's lights go out together. Each driver's kart runs on their own machine, so there is no input lag; the others are shown a tenth of a second or so in the past, smoothly. `Esc` shows a small card over the running race (nothing pauses; **LEAVE RACE** quits). The host's results are final for everyone: the host then picks **RACE AGAIN** or **NEXT TRACK** for the whole room, and **LEAVE** takes anyone back to the menu. If the host leaves, everyone returns to the menu. A phone that switches apps for a few seconds (up to 15 s) stays in the room and the race; the others see its kart wait ("HOST AWAY" if it is the host's).
 - **Time Attack** — alone on track against the clock. Your best lap is saved in the browser (shown in purple) along with a translucent **ghost** of that lap to chase.
 
 On a phone or tablet, on-screen buttons appear: steer bottom-left, gas / brake / drift bottom-right, camera and pause at the top.
@@ -87,10 +88,15 @@ src/
     actions.js         one-shot inputs (start, pause, reset, camera, mute)
     wireEvents.js      event bus → sound, shake, saved record, screens
     anchors.js         trackside TV-camera positions for the title screen
-    field.js           rival karts: grid, AI stepping, contacts and slipstream
+    field.js           rival karts: grid, AI stepping, contacts and slipstream (online: against read-only remote karts too)
+    online.js          ONLINE mode glue: lobby card ↔ Room, ?room= links, START → OnlineRace, keys in / after an online race, LEAVE
+    onlineRace.js      one online race: host's track + grid, shared-clock countdown, NetRace in / out per frame, flags, results
+    onlineGrid.js      roster → timing field and grid slots (host runs the AI, clients none); host results / flags onto the field
+    RemoteKart.js      another driver's kart: posed from the network state, telemetry rebuilt so it rolls, smokes and revs
+    remotePool.js      those karts by roster id, models reused race to race while the look matches, disposed when not
   tracks/              one data module per circuit (waypoints in metres, start, laps, blurb) + index.js registry
   config/              every tunable value, grouped by topic (no magic numbers elsewhere)
-    track · physics · kart · camera · render · venue · audio · input · race
+    track · physics · kart · camera · render · venue · audio · input · race · lobby · net
   core/                engine-level pieces, no game rules
     Renderer · PostFX · GradeShader · venueEnvironment
     CameraRig → FollowCam (+ HeadMotion) · BroadcastCam · CameraShake · CameraVibe (+ pure cameraModes, FrameSines: per-frame sines that can't alias)
@@ -119,9 +125,16 @@ src/
                        Screens · Results · TouchControls
                        Lobby (online lobby card: LobbyChoose · LobbyRoom · pure lobbyView / lobbyText / lobbyErrors) · OnlinePause
                        DebugOverlay · format · dom · hud.css
+  net/                 online multiplayer, no THREE and no Game (unit-tested over LoopbackTransport)
+                       Transport (PeerJS: WebRTC data channels via the free PeerJS cloud broker, a star round the host) · LoopbackTransport (in-memory, tests) · linkShaper (?netlag / ?netloss)
+                       protocol + messages + schema (strict validation: malformed or oversized → dropped) · roomCode
+                       Room (+ roomHost · roomClient · roster): lobby, names / codes / liveries, 6-player cap, heartbeats, START roster
+                       NetRace (+ RemoteKarts · Interpolator · kartState · raceResults): 20 Hz kart / snapshot exchange, interpolation, finishes → results
+                       ClockSync: the host clock from ping / pong (median of the lowest-round-trip samples)
   debug/topdown.js     overhead view of the whole hall (dev)
+  debug/netTest.js     net-test.html (dev only, not built): the real network stack without the game, for two-browser tests
 tools/                 simulate.js (headless six-kart race) · track-report.mjs (rules + race + SVG map) · ai-pace.mjs (TRACK_PACE)
-tests/                 physics · track · tracks · race · grandprix · feel · flow · ai · difficulty
+tests/                 physics · track · tracks · race · grandprix · feel · flow · ai · difficulty · lobby · net · netroom · nettransport · online
 ```
 
 Each module has one job and stays at or under 80 lines, so when one grows past that it gets split. Data flows one way through `app/frame.js`:
@@ -134,6 +147,8 @@ Each module has one job and stays at or under 80 lines, so when one grows past t
 6. **audio**
 7. **HUD**
 8. **render** (post-processing)
+
+Online, `game.online.step(dt)` is the one extra call in that pipeline (after the race session): the room's heartbeats every frame, and in a race the remote karts, the host's AI, contacts and slipstream with them, and the timing field. The race session follows the host's clock (`RaceSession.follow`), so GO and every flag land at the same host time on every peer. START goes out only once every client's clock is synced (a few ping round trips after it joins), so a START pressed just as a friend joins waits a moment rather than start them on an unsynced clock.
 
 Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `finish`, `overtake`, `impact`, `pause`, `reset`, `camera`, `mute`.
 
@@ -160,6 +175,8 @@ Cross-cutting events go through the bus: `countdown`, `light`, `go`, `lap`, `fin
 | Rival levels (Amateur / Club / Pro) | `config/race.js` → `DIFFICULTY` (corner + braking pace only), `DEFAULT_DIFFICULTY` |
 | AI base pace | `config/race.js` → `AI.paceMargin` (then `node tools/ai-pace.mjs` → `TRACK_PACE`), `RIVALS` skills |
 | AI line, passing, pack pull, slipstream, contact | `config/race.js` → `AI`, `DRAFT`, `CONTACT` |
+| Online send rates, timeouts, interpolation delay, other players' liveries | `config/net.js` (room-code alphabet / length and the player cap: `config/lobby.js`) |
+| How far ahead remote karts are dead-reckoned for contacts / slipstream, how they look | `config/net.js` → `CONTACT_EXTRAPOLATE`, `REMOTE_SLIDE_ANGLE`, `REMOTE_ACCEL_RATE` |
 
 ## Where to add X
 
@@ -185,4 +202,4 @@ __debug.teleport(x, z);    // move the kart
 
 ## Not yet
 
-No online multiplayer, no championship across several races, no elevation (Eau Rouge is flat indoors), and no track editor. Each would be a good next session.
+No global leaderboards, no championship across several races, no elevation (Eau Rouge is flat indoors), and no track editor. Each would be a good next session.

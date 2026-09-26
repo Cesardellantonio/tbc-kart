@@ -1,0 +1,48 @@
+// A client's estimate of the host's clock, from ping / pong round trips (NTP's idea, simplified).
+// A ping leaves at local t0, the host stamps th, the pong lands at local t1: if the trip was symmetric
+// the host read th at local (t0 + t1) / 2, so offset = th − (t0 + t1) / 2. Queues and jitter only
+// ever make a trip longer, and a longer trip is likelier to be lopsided, so only the samples with the
+// shortest round trips count: offset = median of the best CLOCK_BEST of the last CLOCK_WINDOW.
+// The one thing no ping can measure is a lopsided route: if the way to the host takes d longer than
+// the way back, every estimate is off by d / 2 (so the lights go out d / 2 early or late here). Real
+// paths are close to symmetric (a few ms apart); ?netlag delays both ways for the same reason. Check
+// the sync against a clock outside it (all browsers on one machine share the OS clock), never with
+// each peer's own hostNow(): that can only ever agree with itself.
+//   clock.sample(t0, th, t1) · clock.ready (CLOCK_READY samples in) · clock.offset · clock.rtt · clock.hostNow(localNow)
+
+import { CLOCK_WINDOW, CLOCK_BEST, CLOCK_READY } from '../config/net.js';
+
+const median = (values) => {
+  const v = [...values].sort((a, b) => a - b);
+  const mid = v.length >> 1;
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+};
+
+export class ClockSync {
+  constructor({ window = CLOCK_WINDOW, best = CLOCK_BEST, enough = CLOCK_READY } = {}) {
+    this.window = window;
+    this.best = best;
+    this.enough = enough; // samples before the estimate is trusted (ready)
+    this.samples = []; // [{ rtt, offset }], oldest first
+    this.offset = 0; // s to add to the local clock to read the host's
+    this.rtt = 0; // s, the typical round trip among the best samples
+  }
+
+  get ready() {
+    return this.samples.length >= this.enough;
+  }
+
+  sample(t0, th, t1) {
+    const rtt = t1 - t0;
+    if (!(rtt >= 0)) return; // a pong for a ping from before a clock reset
+    this.samples.push({ rtt, offset: th - (t0 + t1) / 2 });
+    if (this.samples.length > this.window) this.samples.shift();
+    const best = [...this.samples].sort((a, b) => a.rtt - b.rtt).slice(0, this.best);
+    this.offset = median(best.map((s) => s.offset));
+    this.rtt = median(best.map((s) => s.rtt));
+  }
+
+  hostNow(localNow) {
+    return localNow + this.offset;
+  }
+}

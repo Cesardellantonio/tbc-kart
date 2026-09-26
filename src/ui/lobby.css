@@ -389,3 +389,14 @@
     padding: 6px 0;
   }
 }
+
+/* ---- online notices ("MARTA LEFT", "HOST LEFT"): above every card, clear of the race toasts ---- */
+.notice-layer .hud-toasts {
+  top: 12%;
+}
+
+/* Opening the lobby hides the title card at once: left to fade out under the lobby's own fade-in, its
+   words showed through the choose panel for half a second. (Closing the lobby still fades it in.) */
+body:has(.screen-lobby.is-visible) .screen-title {
+  transition: none;
+}

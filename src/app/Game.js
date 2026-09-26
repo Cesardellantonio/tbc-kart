@@ -31,6 +31,7 @@ import { createRivals, setFieldTrack, placeField } from './field.js';
 import { stepGame, controlsFor, runLoop } from './frame.js';
 import { TRACKS } from '../tracks/index.js';
 import { chooseTrack, recordSignature } from './trackChoice.js';
+import { Online } from './online.js';
 import { RIVALS, PLAYER, DIFFICULTY, DEFAULT_DIFFICULTY } from '../config/race.js';
 import { LIVERY } from '../config/kart.js';
 
@@ -68,6 +69,7 @@ export class Game {
     [this.lastPosition, this.heldPosition, this.positionAge] = [0, 0, 0]; // overtake announcements
     wireEvents(this);
     this.loadTrack(initialTrack());
+    this.online = new Online(this); // after the first track: a ?room= link may join straight away
     window.addEventListener('resize', () => this.resize());
   }
 
@@ -88,7 +90,8 @@ export class Game {
     this.recordKey = recordKey(track.id);
     this.record = loadRecord(this.signature, this.recordKey);
     this.session = new RaceSession(path.count, startIndex, this.bus, this.record, track.laps);
-    this.field = new RaceField(path.count, startIndex, track.laps, [
+    // (an online race swaps in its own field for the room's roster, and puts this one back after)
+    this.field = this.soloField = new RaceField(path.count, startIndex, track.laps, [
       { ...PLAYER, color: LIVERY.body, isPlayer: true },
       ...RIVALS.map((p) => ({ code: p.code, name: p.name, color: p.body, profile: p, isPlayer: false })),
     ]);

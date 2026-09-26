@@ -40,6 +40,7 @@ export class Results {
 
   // role: null (single player, the default) | 'host' | 'client'.
   setOnline(role) {
+    this.role = role;
     this.r.solo.hidden = !!role;
     this.r.online.hidden = !role;
     this.el.firstElementChild.classList.toggle('is-host', role === 'host');
@@ -53,9 +54,11 @@ export class Results {
   update(field) {
     const me = field.player;
     const place = field.position(me);
-    const key = field.order.map((e) => `${e.code}${e.finishTime}`).join();
+    const key = field.order.map((e) => `${e.code}${e.finishTime}${e.dnf}`).join() + field.final;
     if (key === this._key) return;
     this._key = key;
+    // Online the host's choice waits for the final classification (field.final), so nobody is cut off
+    for (const b of this.r.online.querySelectorAll('.host-only')) b.disabled = !field.final;
     setText(this.r.place, ordinal(place));
     this.r.place.className = place <= 3 ? `is-p${place}` : '';
     setText(this.r.verdict, VERDICT[place] ?? '');
@@ -63,7 +66,8 @@ export class Results {
     this.r.rows.replaceChildren(
       ...field.order.map((e, i) => {
         const tr = el('tr', e.isPlayer ? 'is-player' : '');
-        const time = e.finishTime === null ? 'RUNNING' : i === 0 ? formatTime(e.finishTime) : formatGap(e.finishTime - lead.finishTime);
+        const out = e.dnf || (field.final && e.finishTime === null); // left, or still out when it ended
+        const time = out ? 'DNF' : e.finishTime === null ? 'RUNNING' : i === 0 ? formatTime(e.finishTime) : formatGap(e.finishTime - lead.finishTime);
         tr.innerHTML = `<td>${i + 1}</td><td><em></em></td><td>${time}</td><td>${formatTime(e.bestLap)}</td>`;
         const name = tr.children[1];
         name.firstChild.style.background = `#${e.color.toString(16).padStart(6, '0')}`;

@@ -591,12 +591,19 @@ kbd {
 
 /* ---- results ---- */
 .screen-results {
-  justify-content: center;
+  justify-content: flex-start; /* centred by the card's auto margins, which (unlike centring) never
+                                  push its top out of reach when it's taller than the screen */
   align-items: center;
   background: radial-gradient(ellipse at center, rgba(5, 6, 10, 0.78), rgba(5, 6, 10, 0.92));
 }
+/* Its buttons are the only way on (a phone has no keys): if the card is still too tall, it scrolls. */
+.screen-results.is-visible {
+  overflow-y: auto;
+  pointer-events: auto;
+}
 .res-card {
   width: min(560px, 100%);
+  margin-block: auto;
   text-align: center;
 }
 .res-card h2 {
@@ -890,7 +897,36 @@ kbd {
   }
 }
 
+/* Short landscape (phones): the whole results card, buttons included, fits one screen. */
+@media (max-height: 520px) {
+  .res-card h2 {
+    margin: 0;
+    font-size: clamp(40px, 13vh, 64px);
+  }
+  .res-verdict {
+    margin: 2px 0 8px;
+    font-size: 13px;
+  }
+  .res-card table {
+    font-size: 13px;
+  }
+  .res-card th {
+    padding: 3px 8px;
+  }
+  .res-card td {
+    padding: 3px 8px;
+  }
+  .res-actions {
+    margin: 10px 0 0;
+  }
+}
+
 /* ---- touch layout fixes ---- */
+/* A finger needs ~40 px: the rival level picks (title card and lobby) are 28 px tall otherwise. */
+.is-touch .title-level button {
+  min-height: 40px;
+  padding: 5px 14px;
+}
 /* The start lights clear the CAM / pause buttons (on a short landscape screen 11% is under them). */
 .is-touch .hud-lights {
   top: max(11%, calc(66px + env(safe-area-inset-top, 0px)));

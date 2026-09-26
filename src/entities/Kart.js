@@ -32,6 +32,17 @@ export class Kart {
     });
   }
 
+  // Another livery / number (online, the room hands you yours): a new model where the old one was.
+  // Returns the old model's root for the caller to dispose.
+  setLook(look = {}) {
+    const old = this.model.root;
+    this.model = new KartModel(look);
+    old.parent?.add(this.model.root);
+    old.parent?.remove(old);
+    this.model.update(this.state, this.telemetry, 0, true);
+    return old;
+  }
+
   place(x, z, yaw) {
     this.state = { x, z, yaw, vx: 0, vz: 0, steer: 0, yawRate: 0 }; // engine idling, tyres at hall temperature
     this.draft = 0;

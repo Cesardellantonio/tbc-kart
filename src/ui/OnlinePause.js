@@ -19,13 +19,14 @@ export class OnlinePause {
        </div>`
     );
     document.body.appendChild(this.el);
-    showScreen(this.el, false);
+    this.show(false);
     for (const b of this.el.querySelectorAll('[data-act]')) {
       b.addEventListener('click', () => onAction(b.dataset.act));
     }
   }
 
   show(visible) {
+    this.visible = visible;
     showScreen(this.el, visible);
   }
 }
