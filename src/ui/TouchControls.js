@@ -1,12 +1,14 @@
 // On-screen controls for touch screens: steer pads bottom-left, pedals + drift bottom-right,
 // pause / camera up top.
-// Every finger is tracked on the whole window and mapped to the button under it on each move, so a thumb
-// can slide from ◀ to ▶ (or GAS to BRAKE) and the controls follow it; lifting it anywhere — even over an
-// overlay that appeared under it — releases what it held, and everything lets go when the page is
-// hidden (app switch, notification, lock screen). Holding a button with pointer capture used to keep it
-// pressed until that exact finger's "up" reached it, which a slide, an overlay or iOS often swallowed.
+// What is held is recomputed on every touch event from the browser's full list of fingers on the screen
+// (TouchEvent.touches) and where each one is now (ui/touchHits.js). Nothing is remembered per finger, so
+// a finger sliding between buttons moves the press with it, and a lost "finger up" (an edge swipe, palm
+// rejection, a system gesture, an overlay under the finger — phones drop these) cannot leave a button
+// stuck: the next touch anywhere carries the true list. Everything also lets go when the page is hidden.
+// Browsers without touch events (a mouse, while testing) use pointer events the same way.
 
 import { el } from './dom.js';
+import { heldFrom } from './touchHits.js';
 import { TOUCH } from '../config/input.js';
 
 const HELD = [
@@ -27,15 +29,18 @@ export const isTouchDevice = () =>
 export class TouchControls {
   constructor(parent, input) {
     this.held = Object.fromEntries(HELD.map(([name]) => [name, false]));
-    this.fingers = new Map(); // pointerId → name of the held button under it (or null: off every button)
+    this.points = []; // fingers on the screen: [[x, y]]
     this.el = el('div', 'touch');
     parent.appendChild(this.el);
     this.buttons = HELD.map(([name, cls, label]) => ({ name, node: this._button(cls, label) }));
     for (const [name, cls, label] of TAPS) this._button(cls, label).addEventListener('pointerdown', (e) => (e.preventDefault(), input.trigger(name)));
 
-    this.el.addEventListener('pointerdown', (e) => this._down(e));
-    window.addEventListener('pointermove', (e) => this._move(e), { passive: true });
-    for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, (e) => this._up(e));
+    if ('ontouchstart' in window) {
+      const fromTouches = (e) => this._set(Array.from(e.touches, (t) => [t.clientX, t.clientY]));
+      for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) window.addEventListener(type, fromTouches, { passive: true });
+    } else {
+      this._pointers(); // mouse / pen
+    }
     const letGo = () => this.releaseAll();
     window.addEventListener('blur', letGo);
     window.addEventListener('pagehide', letGo);
@@ -46,8 +51,7 @@ export class TouchControls {
 
   // Every button lets go (the HUD hides, the page is backgrounded).
   releaseAll() {
-    this.fingers.clear();
-    this._sync();
+    this._set([]);
   }
 
   _button(cls, label) {
@@ -57,42 +61,22 @@ export class TouchControls {
     return node;
   }
 
-  // The held button at a screen point: inside one (grown by TOUCH.slop px), the nearest centre wins.
-  _hit(x, y) {
-    let best = null;
-    let bestD = Infinity;
-    for (const { name, node } of this.buttons) {
+  // Pointer-event fallback: the same "where are the pointers now" model, keyed by pointer id.
+  _pointers() {
+    const at = new Map();
+    const set = () => this._set([...at.values()]);
+    this.el.addEventListener('pointerdown', (e) => (at.set(e.pointerId, [e.clientX, e.clientY]), set()));
+    window.addEventListener('pointermove', (e) => at.has(e.pointerId) && (at.set(e.pointerId, [e.clientX, e.clientY]), set()));
+    for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, (e) => at.delete(e.pointerId) && set());
+  }
+
+  _set(points) {
+    this.points = points;
+    const rects = this.buttons.map(({ name, node }) => {
       const r = node.getBoundingClientRect();
-      const s = TOUCH.slop;
-      if (!r.width || x < r.left - s || x > r.right + s || y < r.top - s || y > r.bottom + s) continue;
-      const d = (x - (r.left + r.right) / 2) ** 2 + (y - (r.top + r.bottom) / 2) ** 2;
-      if (d < bestD) [best, bestD] = [name, d];
-    }
-    return best;
-  }
-
-  _down(e) {
-    const name = this._hit(e.clientX, e.clientY);
-    if (!name) return; // a tap button, or between buttons
-    e.preventDefault();
-    this.fingers.set(e.pointerId, name);
-    this._sync();
-  }
-
-  _move(e) {
-    if (!this.fingers.has(e.pointerId)) return;
-    const name = this._hit(e.clientX, e.clientY);
-    if (name === this.fingers.get(e.pointerId)) return;
-    this.fingers.set(e.pointerId, name);
-    this._sync();
-  }
-
-  _up(e) {
-    if (this.fingers.delete(e.pointerId)) this._sync();
-  }
-
-  _sync() {
-    const down = new Set(this.fingers.values());
+      return { name, left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    });
+    const down = heldFrom(points, rects, TOUCH.slop);
     for (const { name, node } of this.buttons) {
       this.held[name] = down.has(name);
       node.classList.toggle('is-down', this.held[name]);
