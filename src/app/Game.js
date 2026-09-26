@@ -91,6 +91,7 @@ export class Game {
     const { path, startIndex, anchors } = this.world;
     this.camera.anchors = anchors;
     setFieldTrack(this);
+    this.renderer.three.compile(this.renderer.scene, this.camera.three); // every shader now, not mid-race
     this.signature = recordSignature(track, path, startIndex); // invalidates records if the layout changes
     this.recordKey = recordKey(track.id);
     this.record = loadRecord(this.signature, this.recordKey);

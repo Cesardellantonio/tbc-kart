@@ -98,7 +98,7 @@ src/
   config/              every tunable value, grouped by topic (no magic numbers elsewhere)
     track · physics · kart · camera · render · venue · audio · input · race · lobby · net
   core/                engine-level pieces, no game rules
-    Renderer · PostFX · GradeShader · venueEnvironment
+    Renderer · PostFX (→ BloomTexturePass · FinalPass: bloom + grade + tone mapping in one pass) · environmentCapture · venueEnvironment
     CameraRig → FollowCam (+ HeadMotion) · BroadcastCam · CameraShake · CameraVibe (+ pure cameraModes, FrameSines: per-frame sines that can't alias)
     Input · events (EventBus) · math
   track/               centreline geometry shared by everything

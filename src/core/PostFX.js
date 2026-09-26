@@ -1,15 +1,14 @@
-// Post-processing: MSAA scene pass → ground-truth ambient occlusion (high tiers) → depth of field (TV
-// cameras, high tiers) → bloom on light sources → colour grade + film grain → tone mapping + sRGB output.
+// Post-processing: MSAA scene pass → ground-truth ambient occlusion (ultra) → depth of field (TV cameras,
+// high tiers) → bloom on light sources (kept as a texture) → one final pass: bloom added, colour grade,
+// film grain, tone mapping, sRGB output (core/FinalPass.js — three full-screen passes folded into one).
 
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { GradeShader } from './GradeShader.js';
+import { BloomTexturePass } from './BloomTexturePass.js';
+import { FinalPass } from './FinalPass.js';
 import { MSAA_SAMPLES, BLOOM, GRADE, AO, DOF } from '../config/render.js';
 import { QUALITY } from '../config/graphics.js';
 
@@ -41,18 +40,10 @@ export class PostFX {
       this.composer.addPass(this.dof);
     }
 
-    this.bloom = new UnrealBloomPass(size.clone(), BLOOM.strength, BLOOM.radius, BLOOM.threshold);
+    this.bloom = new BloomTexturePass(size.clone(), BLOOM.strength, BLOOM.radius, BLOOM.threshold);
     this.composer.addPass(this.bloom);
-
-    this.grade = new ShaderPass(GradeShader);
-    this.grade.uniforms.uSaturation.value = GRADE.saturation;
-    this.grade.uniforms.uContrast.value = GRADE.contrast;
-    this.grade.uniforms.uVignette.value = GRADE.vignette;
-    this.grade.uniforms.uGrain.value = GRADE.grain;
-    this.grade.uniforms.uFringe.value = GRADE.fringe;
-    this.composer.addPass(this.grade);
-
-    this.composer.addPass(new OutputPass());
+    this.final = new FinalPass(this.bloom, GRADE);
+    this.composer.addPass(this.final);
   }
 
   // Depth of field on the subject `distance` metres away (a long TV lens), or off with null.
@@ -67,7 +58,7 @@ export class PostFX {
   }
 
   render(dt) {
-    this.grade.uniforms.uTime.value += dt;
+    this.final.uniforms.uTime.value += dt;
     this.composer.render(dt);
   }
 }
