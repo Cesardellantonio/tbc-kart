@@ -12,7 +12,7 @@ import { onlineField, placeGrid, applyResults, applyFlag } from './onlineGrid.js
 import { dressOwnKart } from './RemoteKart.js';
 import { kartSnapshot, physicsView } from './onlineStates.js';
 import { trackById } from '../tracks/index.js';
-import { DIFFICULTY } from '../config/race.js';
+import { DIFFICULTY, DEFAULT_DIFFICULTY } from '../config/race.js';
 import { CONTACT_EXTRAPOLATE, NOTICE_TIME } from '../config/net.js';
 
 export class OnlineRace {
@@ -25,7 +25,7 @@ export class OnlineRace {
     this.awayNotice = null; // s until the "HOST AWAY" notice is shown again, while the host is away
     const track = trackById(start.track);
     if (track !== game.track) game.loadTrack(track);
-    for (const r of game.rivals) r.driver.difficulty = DIFFICULTY[start.level]?.pace ?? 1; // host's pick
+    for (const r of game.rivals) r.driver.level = DIFFICULTY[start.level] ?? DIFFICULTY[DEFAULT_DIFFICULTY]; // host's pick
     game.field = onlineField(game.world, start.roster, this.you, start.laps);
     game.session.laps = start.laps;
     game.session.follow(() => room.hostNow() - start.countdownAt);

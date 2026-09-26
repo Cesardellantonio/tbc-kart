@@ -27,7 +27,8 @@ import { wrapAngle } from '../src/core/math.js';
 // to YOU) or a fixed rival skill multiplier (e.g. 1 + AI.catchUp, the worst case), random (grid
 // shuffle, reactions, form), tweak (controls, kartIndex) → controls (e.g. a flat-out driver),
 // you (profile overrides for the YOU stand-in, e.g. { skill, line }), trackPace (override the circuit's
-// TRACK_PACE, e.g. 1 to calibrate it), difficulty (rival skill multiplier, config/race.js DIFFICULTY) }.
+// TRACK_PACE, e.g. 1 to calibrate it), difficulty (the rivals' level: a config/race.js DIFFICULTY entry, or a bare corner-pace multiplier
+// for a driver with no scatter or mistakes) }.
 // Returns a report per kart and overall.
 export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = null, field = 'full', pace = 'game', random = Math.random, tweak = null, you = {}, trackPace: trackPaceOverride = null, difficulty = 1 } = {}) {
   const path = pathOf(track);
@@ -43,7 +44,7 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
     const g = gridSpot(path, startIndex, field === 'solo' ? 0 : slots[k]);
     const driver = new AiDriver(path, line, profile, trackPaceOverride ?? trackPace(track.id));
     driver.reset(random);
-    if (k > 0) driver.difficulty = difficulty;
+    if (k > 0) driver.level = typeof difficulty === 'number' ? { pace: difficulty, sigma: 0, mistakes: 0 } : difficulty;
     return {
       profile,
       driver,
@@ -107,6 +108,8 @@ export function simulateRace(track, { laps = track.laps, dt = 1 / 60, maxTime = 
       resets: k.resets,
       wallHits: k.wallHits,
       spins: k.spins,
+      mistakes: k.driver.log.mistakes,
+      defences: k.driver.log.defences,
       topSpeedKmh: Math.round(k.topSpeed * 3.6),
       position: race.position(e),
     };

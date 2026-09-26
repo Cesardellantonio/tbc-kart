@@ -38,15 +38,16 @@ export const AUTOPILOT = {
 export const GRID = { rowGap: 3.4, lateral: 1.45, playerSlot: 4 };
 export const FINISH_COOLDOWN = { maxSpeed: 9 }; // m/s the autopilot drives your kart after the flag
 
-// Rival drivers. skill scales the planned corner and braking speeds and the top-speed target;
-// line = preferred offset from the racing line on the straights (m, + = right);
-// react = start reaction (s).
+// Rival drivers. skill scales the planned corner and braking speeds (the straights are flat out for
+// everyone: same karts); line = preferred offset from the racing line on the straights (m, + = right);
+// react = start reaction (s); aggression 0..1 = odds of covering the inside when attacked, and how much
+// later than usual they brake when alongside a kart.
 export const RIVALS = [
-  { code: 'ROS', name: 'M. Rossi', number: '11', body: 0xe63946, suit: 0x2b2d42, stripe: 0xffffff, skill: 1.02, line: -0.3, react: 0.18 },
-  { code: 'OKA', name: 'T. Okafor', number: '23', body: 0x2bd97c, suit: 0x1b4332, stripe: 0x111111, skill: 1.0, line: 0.4, react: 0.24 },
-  { code: 'LIN', name: 'E. Lindqvist', number: '5', body: 0x3a86ff, suit: 0x0b2545, stripe: 0xffd60a, skill: 0.98, line: 0.1, react: 0.2 },
-  { code: 'TAN', name: 'K. Tanaka', number: '88', body: 0xff7b00, suit: 0x222222, stripe: 0x3a86ff, skill: 0.96, line: -0.5, react: 0.3 },
-  { code: 'MOR', name: 'L. Moreau', number: '31', body: 0xb388ff, suit: 0x3c096c, stripe: 0xffffff, skill: 0.94, line: 0.6, react: 0.34 },
+  { code: 'ROS', name: 'M. Rossi', number: '11', body: 0xe63946, suit: 0x2b2d42, stripe: 0xffffff, skill: 1.015, line: -0.3, react: 0.18, aggression: 0.85 },
+  { code: 'OKA', name: 'T. Okafor', number: '23', body: 0x2bd97c, suit: 0x1b4332, stripe: 0x111111, skill: 1.005, line: 0.4, react: 0.22, aggression: 0.55 },
+  { code: 'LIN', name: 'E. Lindqvist', number: '5', body: 0x3a86ff, suit: 0x0b2545, stripe: 0xffd60a, skill: 0.995, line: 0.1, react: 0.2, aggression: 0.65 },
+  { code: 'TAN', name: 'K. Tanaka', number: '88', body: 0xff7b00, suit: 0x222222, stripe: 0x3a86ff, skill: 0.985, line: -0.5, react: 0.26, aggression: 0.4 },
+  { code: 'MOR', name: 'L. Moreau', number: '31', body: 0xb388ff, suit: 0x3c096c, stripe: 0xffffff, skill: 0.975, line: 0.6, react: 0.28, aggression: 0.75 },
 ];
 export const PLAYER = { code: 'YOU', name: 'You', number: '07' };
 
@@ -66,14 +67,35 @@ export const AI = {
   passGiveUp: 8, // s pulled out without drawing alongside (within passAlongside m) before giving up…
   passAlongside: 1.5,
   passRetry: 1, // …and s back on the racing line before trying again
-  attack: 0.03, // extra skill while pulled out alongside a kart (braking later to make the move stick)
+  attack: 0.03, // extra skill while pulled out alongside a kart (braking later to make the move stick),
+  //                × (0.5 + the driver's aggression)
   blockAhead: 2.6, // a kart this close ahead…
   blockLateral: 1.3, // …and this close sideways blocks my lane: hold its speed
   offsetRate: 2.2, // how fast the target line moves sideways (1/s)
   stuckTime: 1.6, // seconds nearly stationary before an AI kart is reset
-  catchUp: 0.035, // skill added/removed at a catchUpGap gap to the player (race/pack.js)
-  catchUpGap: 60, // m
-  formSpread: 0.05, // random ± share of skill each race (with the shuffled grid, so the order changes)
+  catchUp: 0.025, // skill added to a rival catchUpGap behind the player (race/pack.js); ones ahead
+  catchUpGap: 60, // m    race their own race (they never wait for you)
+  formSpread: 0.03, // random ± share of skill each race (with the shuffled grid, so the order changes)
+  // Corners (race/driverCraft.js): each slow point of the speed plan under cornerBelow × the top speed,
+  // the slowest within ± cornerWindow m, is a corner, re-rolled (scatter, mistakes) on the way in.
+  cornerBelow: 0.9,
+  cornerWindow: 12, // m
+  mistakeMin: 0.05, // a mistake changes the corner's planned speed by this share…
+  mistakeMax: 0.11, // …up to this
+  mistakeHot: 0.6, // share of mistakes that are in too hot (the rest brake too early)
+  pressureMistakes: 2, // mistakes are this much likelier with a kart close behind
+  // Defending: a kart within defendBehind m behind, within defendLateral m sideways and not dropping
+  // back makes me cover the inside of the next corner (odds: defendOdds × my aggression, once per
+  // corner): aim
+  // defendInside m inside the centre for defendHold s, at defendPace of my corner speed (the tighter
+  // line), then defendCool s before another move.
+  defendOdds: 0.5,
+  defendBehind: 5,
+  defendLateral: 3,
+  defendInside: 0.9,
+  defendHold: 2.2,
+  defendCool: 2.5,
+  defendPace: 0.96,
   paceMargin: 0.075, // a skill-1 driver's lap is this share slower than the circuit's reference lap
 };
 
@@ -94,16 +116,18 @@ export const TRACK_PACE = {
   singapore: 0.992,
 };
 
-// Rival level, picked on the title card: scales every rival's corner and braking pace (their straights
-// stay flat out). Calibrated against a scripted skilled keyboard driver (100 ms reaction, 60 ms key holds,
-// digital steering, best clean lap of a corner-speed sweep, straights capped at 16 m/s) over all ten
-// circuits, rival field averaged over three race seeds: it laps ~10% quicker than the fastest rival on
-// Amateur, level on Club and ~5% slower on Pro (turning update: -9.6 / ≈0 / +4.8%). Re-derive after changing
-// the physics or TRACK_PACE.
+// Rival level, picked on the title card. pace scales every rival's corner and braking speeds (their
+// straights are flat out whatever the level); sigma = the scatter from one corner to the next (sd of
+// its planned speed); mistakes = the chance per corner of a real error (race/driverCraft.js). Set by
+// lap time against the circuit's reference lap (the computer driver's best, tools/ai-pace.mjs): the
+// fastest rival is ~14 / 9 / 4 / 1.5 % off it on average over the ten circuits (the field spans ~3 %
+// more). Before the racecraft update the levels were 41 / 27 / 21 % off — a crawl through every
+// corner. Re-derive after changing the physics, TRACK_PACE or the drivers.
 export const DIFFICULTY = {
-  amateur: { label: 'AMATEUR', pace: 0.65 },
-  club: { label: 'CLUB', pace: 0.74 },
-  pro: { label: 'PRO', pace: 0.795 },
+  amateur: { label: 'AMATEUR', pace: 0.88, sigma: 0.03, mistakes: 0.08 },
+  club: { label: 'CLUB', pace: 0.97, sigma: 0.02, mistakes: 0.05 },
+  pro: { label: 'PRO', pace: 1.05, sigma: 0.012, mistakes: 0.03 },
+  elite: { label: 'ELITE', pace: 1.12, sigma: 0.006, mistakes: 0.015 },
 };
 export const DEFAULT_DIFFICULTY = 'club';
 

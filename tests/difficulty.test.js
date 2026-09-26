@@ -13,24 +13,28 @@ const seeded = (a) => () => {
 };
 
 describe('rival levels', () => {
-  it('are ordered easiest → hardest, all at or below full pace, with a valid default', () => {
-    const paces = Object.values(DIFFICULTY).map((d) => d.pace);
-    expect(paces).toEqual([...paces].sort((a, b) => a - b));
-    for (const p of paces) expect(p > 0 && p <= 1).toBe(true);
+  it('are ordered easiest → hardest — quicker, steadier, fewer mistakes — with a valid default', () => {
+    const levels = Object.values(DIFFICULTY);
+    const up = (xs) => expect(xs).toEqual([...xs].sort((a, b) => a - b));
+    up(levels.map((d) => d.pace));
+    up(levels.map((d) => -d.sigma));
+    up(levels.map((d) => -d.mistakes));
+    for (const d of levels) expect(d.pace > 0.5 && d.pace < 1.3 && d.mistakes < 0.2).toBe(true);
     expect(DIFFICULTY[DEFAULT_DIFFICULTY]).toBeTruthy();
   });
 
   it('make the rivals slower on easier levels, and they still race without incident', () => {
     const track = trackById('silverstone');
     const best = (level) => {
-      const sim = simulateRace(track, { laps: 2, difficulty: DIFFICULTY[level].pace, random: seeded(11) });
+      const sim = simulateRace(track, { laps: 2, difficulty: DIFFICULTY[level], random: seeded(11) });
       expect(sim.allFinished).toBe(true);
       expect(sim.resets).toBe(0);
       expect(sim.spins).toBe(0);
       return Math.min(...sim.results.filter((r) => r.code !== 'YOU').map((r) => r.bestLap));
     };
-    const [amateur, club, pro] = ['amateur', 'club', 'pro'].map(best);
+    const [amateur, club, pro, elite] = ['amateur', 'club', 'pro', 'elite'].map(best);
     expect(amateur).toBeGreaterThan(club * 1.02);
     expect(club).toBeGreaterThan(pro * 1.02);
-  }, 60000);
+    expect(pro).toBeGreaterThan(elite * 1.01);
+  }, 90000);
 });

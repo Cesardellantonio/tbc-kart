@@ -114,7 +114,7 @@ export class Game {
   // Rival level (config/race.js DIFFICULTY) for every race from now on; remembered in the browser.
   setDifficulty(level) {
     this.difficulty = level;
-    for (const r of this.rivals) r.driver.difficulty = DIFFICULTY[level].pace;
+    for (const r of this.rivals) r.driver.level = DIFFICULTY[level];
     store(LEVEL_KEY, level);
   }
 

@@ -31,7 +31,7 @@ export function setFieldTrack(game) {
     r.kart.collider = collider;
     r.kart.surface = surface;
     r.driver.setTrack(path, line, trackPace(track.id));
-    r.driver.difficulty = DIFFICULTY[game.difficulty].pace;
+    r.driver.level = DIFFICULTY[game.difficulty];
   }
   game.autopilot.setPath(path);
 }

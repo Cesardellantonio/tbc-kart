@@ -84,10 +84,11 @@ describe('overtaking', () => {
 });
 
 describe('pack and grid', () => {
-  it('pulls rivals behind the player along and holds back the ones ahead, within ±catchUp', () => {
+  it('pulls rivals behind the player along (up to catchUp) and never holds back the ones ahead', () => {
     expect(catchUpPace(0)).toBe(1);
     expect(catchUpPace(AI.catchUpGap)).toBeCloseTo(1 + AI.catchUp, 9);
-    expect(catchUpPace(-1e4)).toBeCloseTo(1 - AI.catchUp, 9);
+    expect(catchUpPace(1e4)).toBeCloseTo(1 + AI.catchUp, 9);
+    expect(catchUpPace(-1e4)).toBe(1);
   });
 
   it('shuffles the rivals over every slot except the player’s', () => {

@@ -3,8 +3,9 @@
 import { AI, TRACK_PACE } from '../config/race.js';
 import { clamp } from '../core/math.js';
 
-// Pack pull: a rival `gap` metres behind the player (negative = ahead) gets this skill multiplier.
-export const catchUpPace = (gap) => 1 + clamp(gap / AI.catchUpGap, -1, 1) * AI.catchUp;
+// Pack pull: a rival `gap` metres behind the player gets this skill multiplier (a touch more push to
+// close in); one ahead (negative gap) races at its own pace.
+export const catchUpPace = (gap) => 1 + clamp(gap / AI.catchUpGap, 0, 1) * AI.catchUp;
 
 // Grid slots for the rivals, shuffled every race (Fisher–Yates with `random`), skipping the player's.
 // A fixed order put the fastest rival on pole, and the pole-sitter nearly always won.
