@@ -91,6 +91,7 @@ export function stepGame(game, dt) {
   game.ghost.update(view.lapTime, session.mode === 'timeattack' && state === 'racing' && view.lap >= 1, paused ? 0 : dt);
   world.gantry.setLights(session.lights, session.lightsMode);
   world.lighting.follow(kart.state.x, kart.state.z);
+  world.update?.(dt); // NOVA: the sky's stars, aurora and nebula drift
   camera.update(kart, paused ? 0 : dt, game.kerb);
   game.post.setFocus(camera.mode === 'broadcast' ? camera.three.position.distanceTo(kart.object3d.position) : null);
   kart.model.setFirstPerson(camera.mode === 'follow' && camera.view === 'cockpit');

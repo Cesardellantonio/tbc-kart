@@ -328,6 +328,24 @@ kbd {
   letter-spacing: 0.22em;
   color: var(--hud-dim);
 }
+.title-edition {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(22px, env(safe-area-inset-right));
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--hud-text);
+  text-decoration: none;
+  border: 1px solid var(--hud-edge);
+  background: var(--hud-bg);
+  pointer-events: auto;
+}
+.title-edition:hover {
+  border-color: var(--hud-accent);
+  color: var(--hud-accent);
+}
 .title-press {
   font-size: 24px;
   font-weight: 600;

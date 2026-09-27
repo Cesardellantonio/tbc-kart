@@ -1,7 +1,8 @@
 // One kart engine: the rpm model (audio/engineRpm) drives a synthesised voice (audio/engineVoice)
 // — idle burble, clutch bite, revs rising with road speed, wheelspin flare — plus overrun pops.
 
-import { ENGINE } from '../config/audio.js';
+import { ENGINE, TURBINE } from '../config/audio.js';
+import { NOVA } from '../config/edition.js';
 import { clamp, lerp } from '../core/math.js';
 import { EngineRpm } from './engineRpm.js';
 import { buildEngineVoice } from './engineVoice.js';
@@ -41,7 +42,7 @@ export class EngineSound {
     const rev = model.rev;
     const load = model.load;
     const idle = 1 - clamp(rev * 3, 0, 1); // 1 at idle, gone by a third of the range
-    const hz = (model.rpm / 60) * ENGINE.hzPerRev * this.pitch;
+    const hz = (model.rpm / 60) * ENGINE.hzPerRev * this.pitch * (NOVA ? TURBINE.pitch : 1);
     const glide = jump ? 0.002 : 0.03;
     main.frequency.setTargetAtTime(hz, t, glide);
     sub.frequency.setTargetAtTime(hz * 0.5, t, glide);
@@ -49,12 +50,12 @@ export class EngineSound {
     noiseBand.frequency.setTargetAtTime(hz * 5.5, t, 0.05);
     this._wander = (this._wander + dt * (0.7 + Math.random())) % 1; // irregular idle beat
     wobble.frequency.setTargetAtTime(3 + 2.5 * this._wander, t, 0.2);
-    wobbleDepth.gain.setTargetAtTime(ENGINE.idleWobble * idle, t, 0.1);
+    wobbleDepth.gain.setTargetAtTime(ENGINE.idleWobble * idle * (NOVA ? TURBINE.wobble : 1), t, 0.1);
     const openness = 0.35 * rev + 0.65 * load;
-    filter.frequency.setTargetAtTime(lerp(ENGINE.cutoffIdle, ENGINE.cutoffTop, clamp(openness, 0, 1)), t, 0.05);
+    filter.frequency.setTargetAtTime(lerp(ENGINE.cutoffIdle, ENGINE.cutoffTop, clamp(openness, 0, 1)) * (NOVA ? TURBINE.cutoff : 1), t, 0.05);
     drive.gain.setTargetAtTime(0.7 + 1.8 * load * (0.4 + 0.6 * rev), t, 0.05);
     const level = active ? (ENGINE.idleGain + ENGINE.loadGain * openness) * volume : 0;
     amp.gain.setTargetAtTime(level, t, 0.08);
-    pulseDepth.gain.setTargetAtTime(level * ENGINE.rumbleDepth * (1 + 0.8 * idle), t, 0.08);
+    pulseDepth.gain.setTargetAtTime(level * (NOVA ? TURBINE.rumble : ENGINE.rumbleDepth) * (1 + 0.8 * idle), t, 0.08);
   }
 }

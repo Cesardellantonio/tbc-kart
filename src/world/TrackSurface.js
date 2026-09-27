@@ -37,7 +37,9 @@ function flatPlane(w, d, material, x = 0, z = 0) {
   return m;
 }
 
-export function createTrackSurface(path, startIndex, gridIndex, anisotropy) {
+// look (NOVA): { surface: colour the asphalt map is tinted, line: glowing edge-line colour, glow: the
+// deck's own faint light (night worlds) }.
+export function createTrackSurface(path, startIndex, gridIndex, anisotropy, look = null) {
   const group = new THREE.Group();
   const hw = path.halfWidth;
   const all = allIndices(path);
@@ -48,9 +50,10 @@ export function createTrackSurface(path, startIndex, gridIndex, anisotropy) {
   for (const t of Object.values(detail)) t.anisotropy = anisotropy;
   const asphalt = new THREE.MeshStandardMaterial({ map, roughness: detail.roughnessMap ? 1 : 0.86, ...detail });
   if (detail.normalMap) asphalt.normalScale.set(0.9, 0.9);
+  if (look) Object.assign(asphalt, { color: new THREE.Color(look.surface), metalness: 0.2, emissive: new THREE.Color(look.glow ?? 0) }); // an alloy deck
   group.add(receive(new THREE.Mesh(asphaltGeom, asphalt)));
 
-  const white = paint();
+  const white = look ? paint({ color: 0x000000, emissive: look.line, emissiveIntensity: 1.3 }) : paint();
   for (const side of [-1, 1]) {
     const a = side * (hw - EDGE_LINE_INSET);
     const b = side * (hw - EDGE_LINE_INSET - EDGE_LINE_WIDTH);

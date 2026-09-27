@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { LIVERY } from '../../config/kart.js';
+import { GLOW } from '../../nova/hoverKart.js';
 
 // tint key → [base key it is drawn with, LIVERY colour key]
 const TINTS = {
@@ -30,7 +31,7 @@ export function kartMaterials(livery = LIVERY, ghost = false) {
     const glass = new THREE.MeshStandardMaterial({
       color: 0xb388ff, emissive: 0x3c2470, roughness: 0.45, transparent: true, opacity: 0.4, depthWrite: false,
     });
-    const all = Object.fromEntries([...BASES, ...Object.keys(TINTS)].map((k) => [k, glass]));
+    const all = Object.fromEntries([...BASES, 'glow', ...Object.keys(TINTS)].map((k) => [k, glass]));
     return { ...all, alias: new Map() };
   }
   const L = { ...LIVERY, ...livery };
@@ -50,6 +51,7 @@ export function kartMaterials(livery = LIVERY, ghost = false) {
     helmet: gloss(L.helmet, 0.2),
     // Mirrored "iridium" visor: a thin-film coating that shifts colour with the angle.
     visor: gloss(L.visor, 0.04, { metalness: 0.75, iridescence: 1, iridescenceIOR: 1.8, iridescenceThicknessRange: [260, 820] }),
+    glow: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: GLOW, emissiveIntensity: 2 }), // NOVA pods, thrusters
   };
   mats.alias = new Map();
   for (const [key, [base, colour]] of Object.entries(TINTS)) {

@@ -9,7 +9,7 @@ import { QUALITY } from '../config/graphics.js';
 import { barrierTexture, barrierDetail } from './textures/surfaces.js';
 
 // Evenly spaced block centres + directions along a polyline run.
-function placeBlocks(run, out) {
+export function placeBlocks(run, out) {
   const pts = run.closed ? [...run, run[0]] : run;
   const cum = [0];
   for (let k = 1; k < pts.length; k++) {

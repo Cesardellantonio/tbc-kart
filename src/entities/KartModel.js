@@ -4,6 +4,9 @@ import * as THREE from 'three';
 import { kartMaterials } from './model/materials.js';
 import { buildChassis } from './model/chassis.js';
 import { buildWheels } from './model/wheels.js';
+import { buildHoverPods, GLOW } from '../nova/hoverKart.js';
+import { NOVA } from '../config/edition.js';
+import { NOVA_WORLD } from '../config/planets.js';
 import { buildDriver } from './model/driver.js';
 import { ghostShell } from './model/ghostShell.js';
 import { blobTexture } from '../world/textures/markings.js';
@@ -25,8 +28,11 @@ export class KartModel {
     this.steeringWheel = chassis.steeringWheel;
     this.driver = buildDriver(mats);
     this.body.add(chassis.group, this.driver.group);
-    const { group, wheels } = buildWheels(mats);
+    const { group, wheels } = NOVA ? buildHoverPods(mats) : buildWheels(mats);
     this.wheels = wheels;
+    this.mats = mats;
+    this.hover = NOVA ? NOVA_WORLD.hover : 0; // NOVA karts float; the physics still runs at the ground
+    this._bob = Math.random() * 10;
     this.root.add(group);
     this.root.traverse((o) => {
       if (!o.isMesh) return;
@@ -43,9 +49,20 @@ export class KartModel {
       new THREE.PlaneGeometry(1.9, 2.6).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false, toneMapped: false }),
     );
-    shadow.position.y = 0.03;
+    shadow.position.y = 0.03 - this.hover;
     shadow.renderOrder = 2;
     this.root.add(shadow);
+    if (NOVA) {
+      // The anti-grav field lights the ground under the kart
+      const pool = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.8, 2.3).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ map: blobTexture('rgba(255,255,255,1)'), color: GLOW, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }),
+      );
+      pool.position.y = 0.04 - this.hover;
+      pool.renderOrder = 3;
+      this.pool = pool;
+      this.root.add(pool);
+    }
   }
 
   // In the cockpit view the camera sits inside the helmet — hide the head.
@@ -55,10 +72,17 @@ export class KartModel {
 
   // telemetry: forwardSpeed, latAccel, longAccel. snap = skip smoothing (after a reset).
   update(state, tel, dt, snap = false) {
-    this.root.position.set(state.x, 0, state.z);
+    this._bob += dt;
+    const float = this.hover ? this.hover + Math.sin(this._bob * 2.6) * 0.018 + Math.sin(this._bob * 4.1) * 0.007 : 0;
+    this.root.position.set(state.x, float, state.z);
     this.root.rotation.y = state.yaw;
     this._steer = snap ? state.steer : damp(this._steer, state.steer, STEER_VISUAL_RATE, dt) || 0;
+    if (this.hover) this.mats.glow.emissiveIntensity = 1.6 + 3.2 * clamp(tel.throttle || 0, 0, 1); // thrusters flare
     for (const w of this.wheels) {
+      if (w.hover) {
+        if (w.front) w.steer.rotation.y = this._steer * MAX_STEER_ANGLE * 0.6;
+        continue;
+      }
       // Rear wheels turn with the physics' axle (they visibly spin up and lock); fronts just roll.
       const rate = !w.front && Number.isFinite(tel.wheelSpeed) ? tel.wheelSpeed : tel.forwardSpeed / w.radius;
       w.spin.rotation.x -= rate * dt;

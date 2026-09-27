@@ -6,10 +6,11 @@
 import * as THREE from 'three';
 
 // renderer: WebGLRenderer; scene; at: THREE.Vector3; size: cube face px; hide: objects left out
-// (karts, particles). Returns the PMREM texture (the caller disposes the previous one).
-export function captureEnvironment(renderer, scene, at, size, hide = []) {
+// (karts, particles); far: m the cube camera sees (NOVA's sky is further than a hall's walls). Returns
+// the PMREM texture (the caller disposes the previous one).
+export function captureEnvironment(renderer, scene, at, size, hide = [], far = 500) {
   const target = new THREE.WebGLCubeRenderTarget(size, { type: THREE.HalfFloatType });
-  const cube = new THREE.CubeCamera(0.2, 500, target);
+  const cube = new THREE.CubeCamera(0.2, far, target);
   cube.position.copy(at);
   const shown = hide.map((o) => o.visible);
   hide.forEach((o) => (o.visible = false));

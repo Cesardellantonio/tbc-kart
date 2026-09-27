@@ -1,7 +1,9 @@
 // Camera rig: view modes, speed-driven FOV, damping and impact shake.
 
+import { NOVA } from './edition.js';
+
 export const NEAR = 0.2;
-export const FAR = 420;
+export const FAR = NOVA ? 1000 : 420; // NOVA's sky dome and mountains are far out
 export const FOV_BASE = 60;
 export const SPEED_FULL = 17; // m/s treated as "full speed" by the camera effects (the kart's top, ~61 km/h)
 export const FOV_SPEED_BOOST = 17; // extra degrees at full speed (~1° per m/s, so the quicker top speed shows)

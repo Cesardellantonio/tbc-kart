@@ -21,6 +21,10 @@ export const ENGINE = {
   rumbleDepth: 0.3, // firing-pulse amplitude modulation
   idleWobble: 22, // cents of lumpy-idle pitch wander
 };
+// NOVA: the same rpm model voices a turbine — pitched ~2.4× up, a hollow odd-harmonic whine, a
+// smooth idle (no firing pulses) and a brighter filter.
+export const TURBINE = { pitch: 2.4, rumble: 0.04, wobble: 0.15, cutoff: 1.6 };
+
 // Rival engines: the nearest karts get a voice each (pitch multipliers keep them apart), fading out
 // by `hear` m; a voiced kart keeps its voice unless another is `hold` m closer (no swapping back and forth);
 // a kart that moves more than `teleport` m in one frame was placed, so its revs restart from idle

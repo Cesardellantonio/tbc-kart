@@ -2,9 +2,11 @@
 // liveries. Times are seconds unless marked otherwise. The room-code alphabet / length and the
 // player cap live in config/lobby.js (the lobby card and the net layer must agree on them).
 
+import { NOVA } from './edition.js';
+
 // Bump when a message changes shape: a host refuses a client that speaks another version.
 export const PROTOCOL_VERSION = 1;
-export const PEER_PREFIX = 'tbckart-'; // PeerJS id of a room's host = prefix + room code
+export const PEER_PREFIX = NOVA ? 'tbcnova-' : 'tbckart-'; // PeerJS id of a room's host = prefix + room code
 export const CONNECT_TIMEOUT = 8; // s to reach the broker / the host (and hear its welcome)
 export const MAX_MESSAGE = 8192; // bytes of JSON; anything longer is dropped unread
 

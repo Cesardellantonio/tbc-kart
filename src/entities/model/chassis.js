@@ -10,6 +10,8 @@ import { buildFrame } from './frame.js';
 import { buildBodywork, PANEL, BOARD } from './bodywork.js';
 import { buildCockpit } from './cockpit.js';
 import { buildEngine } from './engine.js';
+import { buildThruster } from '../../nova/hoverKart.js';
+import { NOVA } from '../../config/edition.js';
 
 // Number roundel of radius r at `at`, facing along `normal`.
 function plate(mat, r, at, normal) {
@@ -22,7 +24,7 @@ function plate(mat, r, at, normal) {
 
 export function buildChassis(mats, number = KART_NUMBER, ghost = false) {
   const g = new THREE.Group();
-  g.add(...buildFrame(mats), ...buildBodywork(mats), ...buildEngine(mats));
+  g.add(...buildFrame(mats), ...buildBodywork(mats), ...(NOVA ? buildThruster(mats) : buildEngine(mats)));
   const cockpit = buildCockpit(mats);
   g.add(...cockpit.parts, cockpit.steering);
 

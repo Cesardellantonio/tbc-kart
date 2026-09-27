@@ -25,6 +25,8 @@ import { GRID_BACK, BARRIER_THICKNESS } from '../config/track.js';
 import { VENUE_MARGIN } from '../config/venue.js';
 import { COLLISION_CELL } from '../config/physics.js';
 import { AI } from '../config/race.js';
+import { NOVA } from '../config/edition.js';
+import { buildPlanet } from '../nova/buildPlanet.js';
 
 const LOGO_WIDTH = 34;
 
@@ -59,6 +61,7 @@ function clearSpot(path, b, w, h) {
 }
 
 export function buildWorld(track, anisotropy) {
+  if (NOVA) return buildPlanet(track, anisotropy); // the same circuit on an alien world
   const path = pathOf(track);
   const startIndex = path.nearest(...track.waypoints[track.startIndex]);
   const gridIndex = path.wrap(startIndex - Math.round(GRID_BACK / path.spacing));

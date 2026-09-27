@@ -2,6 +2,7 @@
 // pause card and the results card, plus the online lobby and the online race's Esc card. Buttons
 // fire the same actions as the keys, so touch works too.
 
+import { NOVA } from '../config/edition.js';
 import { el, refs, setText, showScreen } from './dom.js';
 import { formatTime } from './format.js';
 import { Results } from './Results.js';
@@ -38,9 +39,10 @@ export class Screens {
       'div',
       'screen screen-title is-visible',
       `<div>
-         <div class="title-kicker">INDOOR KART RACING</div>
-         <h1 class="title-logo">TBC<span>KART</span></h1>
+         <div class="title-kicker">${NOVA ? 'ANTI-GRAVITY RACING · TEN WORLDS' : 'INDOOR KART RACING'}</div>
+         <h1 class="title-logo">TBC<span>${NOVA ? 'NOVA' : 'KART'}</span></h1>
          <div class="title-meta" data-ref="meta"></div>
+         <a class="title-edition" href="${NOVA ? '../' : 'nova/'}">${NOVA ? 'CLASSIC · THE INDOOR HALL ›' : 'NEW · TBC NOVA: RACE ON ALIEN WORLDS ›'}</a>
        </div>
        <div>
          <div class="title-track">
@@ -101,11 +103,12 @@ export class Screens {
     const g = r.map.getContext('2d');
     g.scale(dpr, dpr);
     drawTrackMap(g, path, startIndex, MAP[0], MAP[1], 12, { band: 0.22, line: 0.9, minBand: 5 });
-    setText(r.count, `TRACK ${position + 1} / ${count}`);
+    setText(r.count, `${NOVA ? 'WORLD' : 'TRACK'} ${position + 1} / ${count}`);
     setText(r.name, track.name.toUpperCase());
     setText(r.facts, `${track.location.toUpperCase()} · ${Math.round(path.length)} M · ${track.laps} LAPS`);
     setText(r.blurb, track.blurb);
-    setText(r.meta, track.id === 'tbc' ? 'VANCOUVER HOME TRACK' : `INSPIRED BY ${track.inspiredBy.toUpperCase()}`);
+    const home = NOVA ? 'HOME WORLD · THE TBC LAYOUT' : 'VANCOUVER HOME TRACK';
+    setText(r.meta, track.id === 'tbc' ? home : `${NOVA ? 'LAYOUT' : 'INSPIRED BY'} ${track.inspiredBy.toUpperCase()}`);
     for (const [id, , sub] of MODES) setText(this.title.querySelector(`[data-sub="${id}"]`), sub(track.laps));
     this.setBest(best);
   }

@@ -9,7 +9,8 @@ import { PAINT_Y, CURB_STRIPE, CURB_RED, CURB_WHITE } from '../config/track.js';
 
 export { cornerRuns }; // kept here too for existing importers
 
-export function createCurbs(path) {
+// look (NOVA): { a, b } stripe colours (css), lit from within.
+export function createCurbs(path, look = null) {
   const inner = curbInner(path);
   const outer = (i) => curbOuter(path, i);
   const opts = { uPerMetre: 1 / (2 * CURB_STRIPE) };
@@ -19,8 +20,11 @@ export function createCurbs(path) {
       ? stripGeometry(path, indices, inner, outer, y, opts)
       : stripGeometry(path, indices, (i) => -outer(i), -inner, y, opts),
   );
+  const map = look ? curbTexture(look.a, look.b) : curbTexture(CURB_RED, CURB_WHITE);
+  const glow = look ? { emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.9, metalness: 0.4 } : {};
   const material = new THREE.MeshStandardMaterial({
-    map: curbTexture(CURB_RED, CURB_WHITE),
+    map,
+    ...glow,
     roughness: 0.5,
     polygonOffset: true,
     polygonOffsetFactor: -3,

@@ -6,8 +6,7 @@ import * as THREE from 'three';
 import { HEMI, SUN, FILLS, SHADOW_MAP_SIZE, SHADOW_BIAS, SHADOW_NORMAL_BIAS, SHADOW_FIT } from '../config/render.js';
 
 // Keeps the sun's shadow box centred on a point, snapped to the shadow map's texel grid.
-function shadowFollower(sun, half) {
-  const offset = new THREE.Vector3(...SUN.offset);
+export function shadowFollower(sun, half, offset = new THREE.Vector3(...SUN.offset)) {
   const back = offset.clone().normalize(); // light-space axes (as the shadow camera's lookAt builds them)
   const right = new THREE.Vector3(0, 1, 0).cross(back).normalize();
   const up = back.clone().cross(right);

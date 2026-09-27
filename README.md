@@ -1,6 +1,7 @@
 # TBC Kart — indoor kart racing in Three.js
 
 **▶ Play online: https://cesardellantonio.github.io/tbc-kart-play/**
+**▶ TBC Kart NOVA (anti-gravity karts on alien worlds): https://cesardellantonio.github.io/tbc-kart-play/nova/**
 
 A kart racing game set in indoor karting halls: the **TBC Indoor Racing** layout from Vancouver plus nine kart-scale circuits inspired by Formula 1 tracks. Vanilla JavaScript + Three.js, no framework, built one session at a time as a learning project.
 
@@ -9,6 +10,7 @@ A kart racing game set in indoor karting halls: the **TBC Indoor Racing** layout
 - **v1.0** — look & feel overhaul: real-scale track with barriers, drift physics, detailed kart + driver, lap timing with live delta, start lights, title attract mode, venue lighting, particles, synthesized sound
 - **v2.0** — Grand Prix: 5-lap races against five AI rivals, kart-to-kart contact, slipstream, live timing tower, results screen, best-lap ghost in time attack, touch controls for phones
 - **v3.0** — Circuits: nine F1-inspired tracks with a track picker, a single-track tyre model (rear-only brakes, load transfer, holdable drifts), smarter rivals with three difficulty levels, kerbs you can feel, a clutch-engine sound, cockpit head motion and a rubbered-in racing line
+- **NOVA** — a second edition of the game (`nova/index.html`): the same ten layouts, physics, rivals and online play, raced in hover karts across ten procedurally generated alien worlds in the spirit of No Man's Sky — see *NOVA* below
 - **v4.0** — Online + real physics (current): race up to five friends live from the static site (peer-to-peer rooms through the free PeerJS broker, no server of our own) with AI rivals filling the empty slots; a four-contact-patch kart model (per-wheel load transfer, caster jacking, solid rear axle), Pacejka-style tyres with load sensitivity, combined slip and relaxation length, an engine torque curve with a centrifugal clutch, tyre temperature and a track surface that rubbers in; a realistic rental kart and helmeted driver
 
 ## Run
@@ -65,6 +67,18 @@ A standard gamepad works too: left stick steers, RT throttle, LT brake, A handbr
 - **Kerbs you can feel**: ride a kerb and the kart hops and tilts over the ribs, the camera judders and the rumble plays at the rib rate. A per-sample kerb table (`track/curbTable.js`) keeps the check O(1) per frame.
 - **Cockpit head**: in the cockpit view the driver's head sways and tilts against lateral g, surges and nods under braking, and looks into the corner with the steering. Chase views get a fine speed-dependent engine buzz.
 - **Rubbered-in line**: a soft, streaky darker band follows the AI racing line (darker where it's loaded hardest), with faint rear-tyre marks where the rivals actually brake (darker where they brake harder).
+
+## NOVA
+
+TBC Kart NOVA is the same game on alien worlds. `nova/index.html` marks its page `<html data-edition="nova">`; `config/edition.js` reads that (Node and the tests are always classic), and a handful of places switch on it — everything else, physics and AI included, is shared, so lap times, rival levels and tuning carry over.
+
+- **Worlds** (`config/planets.js`, `nova/`): one planet per layout — Kairos Prime, Vespera Coast, Okkar Drift, Helix Verdant, Boreal Kess, Emberfall, Lumen Reach, Solani Dunes, Azure Talos, Neon Void — each a palette (sky, haze, sun, ground, flora, crystal, accent) plus what grows and floats there, generated with the track id as the seed (`nova/noise.js`), so a world is the same every visit.
+- **Sky** (`nova/Sky.js`): a shader dome — saturated zenith-to-horizon gradient, sun disc and glow, stars, a nebula and aurora curtains where the planet has them — with a banded giant planet (and ring) and a small moon hanging over the horizon. The cube-camera capture then lights and reflects the karts with that sky.
+- **Ground** (`nova/Terrain.js`, `nova/trackDistance.js`): a 700 m+ height field, flat around the circuit (a chamfer distance transform from the centreline), rolling hills further out and ridged mountains on the horizon, coloured by height and patches with a darker apron along the track.
+- **Life and rock** (`nova/Flora.js`): instanced bulb-trees (bent stalks under glowing caps with hanging bulbs) in groves and clearings, glowing crystal clusters, boulders, floating rock islands and glowing bulbs lining the circuit — counts scale with the graphics tier.
+- **Circuit**: energy barriers (alloy blocks with a light bar and seam in the planet's accent, on the classic collider lines), an alloy deck with glowing edge lines and lit kerbs.
+- **Karts** (`nova/hoverKart.js`): hover pods where the wheels were (the fronts turn), a reactor and twin thrusters where the engine sat; the kart floats and bobs over a glowing field, and its thrusters flare with the throttle. Slides throw ion motes instead of tyre smoke, the thrusters leave trails, and there are no tyre marks. The engine voice becomes a turbine whine (`config/audio.js` → `TURBINE`).
+- **Look and feel**: a cyan glass HUD and a gradient logo (`ui/nova.css`), planet names and blurbs in the menus, its own lap records (`tbc-nova.v1`) and its own online rooms (peer prefix `tbcnova-`). Each title card links to the other edition.
 
 ## Physics notes
 

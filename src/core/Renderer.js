@@ -37,10 +37,18 @@ export class Renderer {
   }
 
   // Light and reflect the scene with a capture of the scene itself (see core/environmentCapture.js).
-  captureEnvironment(at, hide) {
-    const texture = captureEnvironment(this.three, this.scene, at, QUALITY.envSize, hide);
+  captureEnvironment(at, hide, far) {
+    const texture = captureEnvironment(this.three, this.scene, at, QUALITY.envSize, hide, far);
     this.scene.environment?.dispose();
     this.scene.environment = texture;
+  }
+
+  // NOVA: the planet's air (config/planets.js) — background, fog colour and density, exposure.
+  setAtmosphere({ background, fog, density, exposure }) {
+    this.scene.background = background;
+    this.scene.fog.color.copy(fog);
+    this.scene.fog.density = density;
+    this.three.toneMappingExposure = exposure;
   }
 
   get maxAnisotropy() {

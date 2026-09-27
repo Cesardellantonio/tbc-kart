@@ -1,12 +1,14 @@
 // Race flow: start-light timing, messages and persistence.
 
+import { NOVA } from './edition.js';
+
 export const LIGHT_INTERVAL = 0.85; // seconds between each red light
 export const LIGHTS_HOLD = [0.5, 1.3]; // random hold after all five are lit
 export const GO_SHOW = 1.4; // seconds the gantry shows green
 export const LIGHT_COUNT = 5;
 
 export const TOAST_TIME = 2.4;
-export const STORAGE_KEY = 'tbc-kart.v1';
+export const STORAGE_KEY = NOVA ? 'tbc-nova.v1' : 'tbc-kart.v1'; // NOVA keeps its own records
 
 // Computer drivers (attract mode, your kart after the flag, and the rivals' base pace).
 export const AUTOPILOT = {

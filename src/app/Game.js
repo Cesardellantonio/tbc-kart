@@ -85,9 +85,10 @@ export class Game {
     this.track = track;
     this.world = buildWorld(track, this.renderer.maxAnisotropy);
     scene.add(this.world.group);
-    const { bounds } = this.world;
+    const { bounds, atmosphere } = this.world;
+    if (atmosphere) this.renderer.setAtmosphere(atmosphere); // NOVA: this planet's sky and haze
     const karts = [this.kart, ...this.rivals.map((r) => r.kart)].map((k) => k.object3d);
-    this.renderer.captureEnvironment(new THREE.Vector3(bounds.cx, 1.2, bounds.cz), [...karts, this.ghost.object3d]);
+    this.renderer.captureEnvironment(new THREE.Vector3(bounds.cx, 1.2, bounds.cz), [...karts, this.ghost.object3d], atmosphere ? 2000 : 500);
     const { path, startIndex, anchors } = this.world;
     this.camera.anchors = anchors;
     setFieldTrack(this);

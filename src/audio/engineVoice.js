@@ -1,8 +1,12 @@
 // WebAudio graph for one kart engine: a harmonic-rich exhaust tone + half-order sub, a chuffing
 // noise layer, a soft-clip drive stage, a resonant low-pass, firing-pulse AM and a lumpy-idle wobble.
 
+import { NOVA } from '../config/edition.js';
+
 // Exhaust pulse spectrum (harmonic 1..16): strong low orders with a small bump around 3–5.
-const HARMONICS = [1, 0.75, 0.9, 0.62, 0.55, 0.36, 0.3, 0.2, 0.18, 0.12, 0.1, 0.08, 0.06, 0.05, 0.04, 0.03];
+const HARMONICS = NOVA
+  ? [1, 0.08, 0.5, 0.05, 0.32, 0.04, 0.24, 0.03, 0.2, 0.02, 0.14, 0.02, 0.1, 0.01, 0.08, 0.01] // NOVA turbine: hollow, odd orders
+  : [1, 0.75, 0.9, 0.62, 0.55, 0.36, 0.3, 0.2, 0.18, 0.12, 0.1, 0.08, 0.06, 0.05, 0.04, 0.03];
 
 function softClip(n = 1024) {
   const curve = new Float32Array(n);

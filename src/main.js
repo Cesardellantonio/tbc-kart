@@ -6,6 +6,7 @@ import '@fontsource/chakra-petch/latin-700.css';
 import '@fontsource/chakra-petch/latin-700-italic.css';
 import './ui/hud.css';
 import './ui/lobby.css';
+import './ui/nova.css';
 import { Game } from './app/Game.js';
 
 const game = new Game();
