@@ -9,6 +9,7 @@ import { Minimap } from './Minimap.js';
 import { StartLights } from './StartLights.js';
 import { Toasts } from './Toasts.js';
 import { Standings } from './Standings.js';
+import { Telemetry } from './Telemetry.js';
 import { TouchControls, isTouchDevice } from './TouchControls.js';
 import { formatTime, formatDelta, ordinal } from './format.js';
 
@@ -25,8 +26,9 @@ export class Hud {
     this.minimap = null; // built by setTrack
     this.lights = new StartLights(this.root);
     this.toasts = new Toasts(this.root);
+    this.telemetry = new Telemetry(this.root);
     this.root.appendChild(
-      el('div', 'hud-hint', '<kbd>SPACE</kbd> drift &nbsp; <kbd>C</kbd> camera &nbsp; <kbd>R</kbd> reset &nbsp; <kbd>ESC</kbd> pause'),
+      el('div', 'hud-hint', '<kbd>SPACE</kbd> drift &nbsp; <kbd>C</kbd> camera &nbsp; <kbd>T</kbd> telemetry &nbsp; <kbd>R</kbd> reset &nbsp; <kbd>ESC</kbd> pause'),
     );
     if (isTouchDevice()) this.touch = new TouchControls(this.root, input);
     this.mode = 'race';
@@ -36,6 +38,8 @@ export class Hud {
     this._minimapShown = true; // false where the CSS hides the minimap (phones): skip drawing it
 
     bus.on('go', () => this.toasts.show('GO!', { kind: 'go', time: 1.1 }));
+    bus.on('sector-flag', (s) => this.lap.setSector(s));
+    bus.on('countdown', () => this.lap.clearSectors());
     bus.on('session', (limit) =>
       this.toasts.show('QUALIFYING', { sub: `${Math.round(limit / 60 * 10) / 10} MIN · YOUR BEST LAP SETS YOUR GRID SLOT`, kind: 'go', time: 2.6 }),
     );
@@ -95,6 +99,7 @@ export class Hud {
     this.lap.update(view);
     this.speedo.update(kart.telemetry.speed, kart.draft);
     this.tyres.update(kart.telemetry.tyreTemp);
+    this.telemetry.update(kart.telemetry);
     if (race) this.standings.update(game.field, game.session.clock);
     const others = this.mode === 'online' ? game.online.others : race ? game.rivals : [];
     if (this._minimapShown) this.minimap.update(kart.state, this._rivalDots(others));

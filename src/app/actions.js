@@ -19,6 +19,8 @@ export function startRace(game, mode = game.session.mode, hold) {
   game.recorder.reset();
   game.ghost.set(game.record.ghost);
   game.camera.follow(game.kart);
+  if (mode === 'online') game.replay.karts = null; // (online races are not recorded)
+  else game.replay.begin(mode === 'timeattack');
   if (mode === 'quali') game.session.startSession(mode, sessionLength(game.world.path.length));
   else game.session.startCountdown(mode, hold);
   game.screens.showTitle(false);
@@ -65,6 +67,7 @@ export function resultsChoice(input) {
 
 export function handleActions(game) {
   const { input, camera, bus, screens } = game;
+  if (game.replay.active) return game.replay.handle(input); // the replay owns the keys while it runs
   const session = game.session;
   const state = session.state;
   if (state === 'title') {
@@ -72,6 +75,7 @@ export function handleActions(game) {
     if (input.action('left')) screens.cycleMode(-1);
     if (input.action('right')) screens.cycleMode(1);
     if (input.action('level')) game.setDifficulty(screens.cycleLevel());
+    if (input.action('aids')) game.setAids(screens.cycleAids());
     if (input.action('graphics')) screens.graphics?.cycle();
     if (input.action('prevTrack')) game.selectTrack(-1);
     if (input.action('nextTrack')) game.selectTrack(1);
@@ -88,6 +92,8 @@ export function handleActions(game) {
     else if (choice === 'menu') goTitle(game);
   } else if (session.mode === 'online') {
     game.online.handle(input, state); // nothing pauses; the host picks what's next (app/online.js)
+  } else if (state === 'finished' && input.action('replay')) {
+    game.replay.open();
   } else if (state === 'finished' && session.mode === 'quali') {
     const choice = resultsChoice(input);
     if (choice === 'again') startChampRace(game); // to the race, from this grid
@@ -110,6 +116,7 @@ export function handleActions(game) {
     }
   }
   if (state !== 'title' && input.action('camera')) bus.emit('camera', camera.cycleView());
+  if (state !== 'title' && input.action('telemetry')) game.hud.telemetry.setVisible(!game.hud.telemetry.visible);
   if (input.action('mute')) bus.emit('mute', game.audio.toggleMute());
   if (input.action('debug')) game.debug.toggle();
 }

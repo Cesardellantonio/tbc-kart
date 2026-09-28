@@ -1155,3 +1155,143 @@ kbd {
     display: none;
   }
 }
+
+/* Sector boxes under the lap time: purple = fastest of anyone, green = your best, yellow = slower. */
+.hud-sectors {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 6px 0 8px;
+}
+.hud-sectors i {
+  height: 18px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+.hud-sectors i.is-purple {
+  background: #8e44ff;
+}
+.hud-sectors i.is-green {
+  background: #1fae5b;
+}
+.hud-sectors i.is-yellow {
+  color: #1a1a1a;
+  background: #f2c21a;
+}
+
+.title-level .title-aids {
+  margin-left: 18px;
+}
+
+/* ---- telemetry overlay (T) ---- */
+.hud-telemetry {
+  left: 22px;
+  bottom: 48px;
+  padding: 8px 12px;
+  clip-path: none;
+}
+.hud-telemetry[hidden] {
+  display: none;
+}
+@media (max-height: 520px) {
+  .hud-telemetry {
+    left: 50%;
+    bottom: auto;
+    top: 8px;
+    transform: translateX(-50%) scale(0.7);
+    transform-origin: top center;
+  }
+}
+
+/* ---- replay bar ---- */
+.replay-bar {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(1000px, calc(100% - 32px));
+  padding: 10px 14px 12px;
+  font-family: var(--hud-font);
+  color: var(--hud-text);
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-edge);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  user-select: none;
+  z-index: 20;
+}
+.replay-bar[hidden] {
+  display: none;
+}
+.rp-top {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+.rp-tag {
+  color: #ff3b4e;
+  font-style: italic;
+}
+.rp-top em {
+  font-size: 10px;
+  font-style: normal;
+  color: var(--hud-accent);
+}
+.rp-time {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--hud-dim);
+}
+.rp-track {
+  position: relative;
+  height: 8px;
+  margin: 8px 0 10px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+.rp-track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--hud-accent);
+}
+.rp-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.rp-buttons button {
+  padding: 5px 10px;
+  font: 700 12px var(--hud-font);
+  letter-spacing: 0.1em;
+  color: var(--hud-text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--hud-edge);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.rp-buttons button:hover {
+  border-color: var(--hud-accent);
+}
+.rp-buttons kbd {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.rp-speed {
+  min-width: 42px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.rp-exit {
+  margin-left: auto;
+}

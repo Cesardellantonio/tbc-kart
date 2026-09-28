@@ -3,7 +3,7 @@
 import { handleActions, fieldMode } from './actions.js';
 import { stepField } from './field.js';
 import { updateSound } from './sound.js';
-import { FINISH_COOLDOWN, QUALI } from '../config/race.js';
+import { FINISH_COOLDOWN, QUALI, AIDS } from '../config/race.js';
 import { rampThrottle } from '../physics/controls.js';
 
 const HOLD = { throttle: 0, brake: 0, steer: 0, handbrake: false };
@@ -22,11 +22,15 @@ export function controlsFor(game, state) {
 
 // An on/off (key or touch) throttle opens at a rate (physics/controls.js rampThrottle); an analog pad
 // trigger is the driver's own ramp and passes straight through, as do the computer drivers' pedals.
+// The driver aids picked on the title card (config/race.js AIDS) ride along with the controls.
 function shapePlayer(game, c, state, dt) {
-  if (state !== 'racing' || !c.throttleDigital) return (game.playerThrottle = c.throttle), c;
+  const aid = AIDS[game.aids] ?? AIDS.full;
+  const racing = state === 'racing' || state === 'countdown';
+  const aids = racing ? { assist: aid.steer, brakeAssist: aid.brake } : {}; // the autopilot keeps full aids
+  if (!racing || !c.throttleDigital || !aid.throttle) return (game.playerThrottle = c.throttle), { ...c, ...aids };
   const { kart } = game;
   game.playerThrottle = rampThrottle(game.playerThrottle ?? 0, c.throttle, kart.state.slipAngle, dt, kart.telemetry.speed);
-  return { ...c, throttle: game.playerThrottle };
+  return { ...c, throttle: game.playerThrottle, ...aids };
 }
 
 // requestAnimationFrame loop with a clamped timestep.
@@ -59,6 +63,11 @@ export function announceOvertakes(game, dt) {
 export function stepGame(game, dt) {
   game.input.poll();
   handleActions(game); // may load another track (new world, session, field): read them only after
+  if (game.replay.active) {
+    game.replay.frame(dt);
+    game.input.endFrame();
+    return;
+  }
   const { input, session, kart, world, camera } = game;
   const state = session.state;
   const paused = state === 'paused';
@@ -72,6 +81,7 @@ export function stepGame(game, dt) {
     game.kerb.update(kart, world.path, world.curbs, game.trackIndex, dt);
     session.update(dt, game.trackIndex);
     if (state === 'racing') game.recorder.update(session.timer.lap, session.timer.lapTime(session.clock), kart.state);
+    if (state !== 'title' && session.mode !== 'online') game.replay.record(dt); // lights, race, cool-down
     if (fieldMode(session.mode) && (state === 'racing' || state === 'finished')) {
       const done = game.field.update([game.trackIndex, ...game.rivals.map((r) => r.index)], session.clock);
       if (state === 'racing' && done.some((e) => e.isPlayer)) session.finish();

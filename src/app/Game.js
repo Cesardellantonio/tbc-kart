@@ -33,12 +33,15 @@ import { stepGame, controlsFor, runLoop } from './frame.js';
 import { TRACKS } from '../tracks/index.js';
 import { chooseTrack, recordSignature } from './trackChoice.js';
 import { Online } from './online.js';
+import { Haptics } from './haptics.js';
+import { Replay } from './replay.js';
 import { loadSeason, summary } from '../race/championship.js';
-import { RIVALS, PLAYER, DIFFICULTY, DEFAULT_DIFFICULTY } from '../config/race.js';
+import { RIVALS, PLAYER, DIFFICULTY, DEFAULT_DIFFICULTY, AIDS, DEFAULT_AIDS } from '../config/race.js';
 import { LIVERY } from '../config/kart.js';
 
 const LAST_TRACK_KEY = 'tbc-kart.track';
 const LEVEL_KEY = 'tbc-kart.level';
+const AIDS_KEY = 'tbc-kart.aids';
 
 export class Game {
   constructor() {
@@ -59,6 +62,8 @@ export class Game {
     this.sfx = new Sfx(this.audio);
     this.tyres = new TyreSound(this.audio);
     this.rumble = new KerbRumble(this.audio);
+    this.haptics = new Haptics(); // gamepad rumble, phone vibration
+    this.replay = new Replay(this); // every race recorded, to watch back from the results card
     this.recorder = new GhostRecorder();
     this.input = new Input();
     this.hud = new Hud(this.bus, this.input);
@@ -67,6 +72,8 @@ export class Game {
     this.season = loadSeason(); // championship (app/championship.js), carried between visits
     this.qualiGrid = null;
     this.screens.bindLevels(this.difficulty, (level) => this.setDifficulty(level));
+    this.aids = saved(AIDS_KEY, AIDS, DEFAULT_AIDS); // your kart's driver aids (config/race.js AIDS)
+    this.screens.bindAids(this.aids, (aid) => this.setAids(aid));
     this.screens.addGraphicsPicker();
     this.screens.setSeason(summary(this.season));
     this.debug = new DebugOverlay();
@@ -124,6 +131,11 @@ export class Game {
     this.difficulty = level;
     for (const r of this.rivals) r.driver.level = DIFFICULTY[level];
     store(LEVEL_KEY, level);
+  }
+
+  setAids(aid) {
+    this.aids = aid;
+    store(AIDS_KEY, aid);
   }
 
   selectTrack(offset) {
@@ -195,4 +207,15 @@ function savedLevel() {
     // storage unavailable
   }
   return DIFFICULTY[level] ? level : DEFAULT_DIFFICULTY;
+}
+
+// A saved choice from `table` (a config object keyed by id), or the default.
+function saved(key, table, fallback) {
+  let v = null;
+  try {
+    v = localStorage.getItem(key);
+  } catch {
+    // storage unavailable
+  }
+  return table[v] ? v : fallback;
 }

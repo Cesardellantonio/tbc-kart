@@ -11,7 +11,7 @@ import { OnlinePause } from './OnlinePause.js';
 import { Toasts } from './Toasts.js';
 import { drawTrackMap } from './trackMap.js';
 import { GraphicsPicker } from './GraphicsPicker.js';
-import { RIVALS, DIFFICULTY } from '../config/race.js';
+import { RIVALS, DIFFICULTY, AIDS } from '../config/race.js';
 import { TRACKS } from '../tracks/index.js';
 import { SeasonCard } from './SeasonCard.js';
 import { NOTICE_TIME } from '../config/net.js';
@@ -65,7 +65,7 @@ export class Screens {
            <button class="tt-arrow" data-act="nextTrack" aria-label="Next track">▶</button>
          </div>
          <div class="title-modes">${MODES.map(([id, name]) => `<button class="mode" data-mode="${id}"><b>${name}</b><small data-sub="${id}"></small></button>`).join('')}</div>
-         <div class="title-level"><span>RIVALS</span>${Object.entries(DIFFICULTY).map(([id, d]) => `<button data-level="${id}">${d.label}</button>`).join('')}<kbd>L</kbd></div>
+         <div class="title-level"><span>RIVALS</span>${Object.entries(DIFFICULTY).map(([id, d]) => `<button data-level="${id}">${d.label}</button>`).join('')}<kbd>L</kbd><span class="title-aids">AIDS</span>${Object.entries(AIDS).map(([id, a]) => `<button data-aid="${id}">${a.label}</button>`).join('')}<kbd>I</kbd></div>
          <div class="title-press"><span class="key-hint">PRESS <kbd>ENTER</kbd> TO RACE · <kbd>↑</kbd><kbd>↓</kbd> TRACK · <kbd>←</kbd><kbd>→</kbd> MODE</span><span class="tap-hint">PICK A TRACK · TAP A MODE TO RACE</span></div>
          <div class="title-best" data-ref="best"></div>
          <div class="title-controls">${CONTROLS.map(([k, a]) => `<span>${k} ${a}</span>`).join('')}</div>
@@ -132,6 +132,24 @@ export class Screens {
   }
 
   // Rival level buttons: onLevel(id) is called on a click; cycleLevel() steps through them (L key).
+  // Driver aid buttons (config/race.js AIDS): onAid(id) on a click; cycleAids() steps (I key).
+  bindAids(aid, onAid) {
+    this.aidButtons = [...this.title.querySelectorAll('[data-aid]')];
+    for (const b of this.aidButtons) b.addEventListener('click', () => onAid(this.setAids(b.dataset.aid)));
+    this.setAids(aid);
+  }
+
+  setAids(aid) {
+    this.aids = aid;
+    for (const b of this.aidButtons) b.classList.toggle('is-selected', b.dataset.aid === aid);
+    return aid;
+  }
+
+  cycleAids() {
+    const ids = Object.keys(AIDS);
+    return this.setAids(ids[(ids.indexOf(this.aids) + 1) % ids.length]);
+  }
+
   bindLevels(level, onLevel) {
     this.levelButtons = [...this.title.querySelectorAll('[data-level]')];
     for (const b of this.levelButtons) b.addEventListener('click', () => onLevel(this.setLevel(b.dataset.level)));

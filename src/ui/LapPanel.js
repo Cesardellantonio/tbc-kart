@@ -11,6 +11,7 @@ export class LapPanel {
       `<div class="hud-label">LAP<b data-ref="lap">–</b></div>
        <div class="hud-time" data-ref="time">0:00.000</div>
        <div class="hud-delta" data-ref="delta"></div>
+       <div class="hud-sectors" data-ref="sectors"><i></i><i></i><i></i></div>
        <div class="hud-rows">
          <span>LAST</span><b data-ref="last">-:--.---</b>
          <span>BEST</span><b data-ref="best" class="is-best">-:--.---</b>
@@ -18,6 +19,18 @@ export class LapPanel {
     );
     parent.appendChild(this.el);
     this.r = refs(this.el);
+  }
+
+  // A sector closed: colour its box ('purple' | 'green' | 'yellow') with the time or delta.
+  setSector({ sector, colour, time, delta }) {
+    const boxes = this.r.sectors.children;
+    if (sector === 0) for (const b of boxes) (b.className = ''), (b.textContent = '');
+    boxes[sector].className = `is-${colour}`;
+    boxes[sector].textContent = delta == null ? time.toFixed(2) : `${delta <= 0 ? '−' : '+'}${Math.abs(delta).toFixed(2)}`;
+  }
+
+  clearSectors() {
+    for (const b of this.r.sectors.children) (b.className = ''), (b.textContent = '');
   }
 
   update(view) {

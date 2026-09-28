@@ -4,6 +4,14 @@ import { saveRecord } from '../race/storage.js';
 
 export function wireEvents(game) {
   const { bus, sfx, camera, screens } = game; // session / field / record change with the track
+  // Sector colours as in timing screens: purple = fastest of anyone this session, green = your best,
+  // yellow = slower than your best.
+  bus.on('sector', (s) => {
+    const others = game.session.mode === 'timeattack' ? [] : game.field.entries.filter((e) => !e.isPlayer);
+    const rival = Math.min(...others.map((e) => e.timer.bestSectors[s.sector] ?? Infinity));
+    const colour = s.time <= rival && s.isBest ? 'purple' : s.isBest ? 'green' : 'yellow';
+    bus.emit('sector-flag', { ...s, colour });
+  });
   bus.on('light', () => sfx.beep('red'));
   bus.on('go', () => sfx.beep('go'));
   bus.on('lap', (e) => {

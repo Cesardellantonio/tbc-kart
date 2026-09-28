@@ -11,4 +11,5 @@ export function updateSound(game, dt, { paused, state, grandPrix, wallHit }) {
   game.pack.update(kart.state, pack.map((r) => r.kart), dt, active);
   game.tyres.update(t, paused ? 0 : dt, active, paused ? 0 : wallHit);
   game.rumble.update(game.kerb, active);
+  game.haptics.update(game, dt, active && (state === 'racing' || state === 'countdown'));
 }

@@ -159,3 +159,17 @@ export const DRAFT = { range: 9, lateral: 1.3 };
 export const CONTACT = { radius: 0.78, restitution: 0.35 };
 // Best-lap ghost (time attack): seconds between recorded samples.
 export const GHOST_STEP = 1 / 20;
+
+// Driver aids for your kart, picked on the title card (the rivals drive the same physics with full aids).
+// steer: countersteer assist strength (physics/controls.js assisted); throttle: shape a key's on/off
+// throttle (physics/throttle.js); brake: hold the rear at the edge of locking (physics/rearAxle.js).
+export const AIDS = {
+  full: { label: 'FULL', steer: 1, throttle: true, brake: true },
+  reduced: { label: 'REDUCED', steer: 0.5, throttle: true, brake: true },
+  off: { label: 'OFF', steer: 0, throttle: false, brake: false },
+};
+export const DEFAULT_AIDS = 'full';
+
+// Replays (race/replay.js, app/replay.js): sample rate (Hz), longest recording (s), playback speeds, seek step
+// (s); the director cuts to the closest fight within `battle` m, holding each shot directorHold s.
+export const REPLAY = { rate: 30, maxSeconds: 900, speeds: [0.25, 0.5, 1, 2, 4], seek: 5, battle: 12, directorHold: [5, 9] };

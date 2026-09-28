@@ -22,15 +22,18 @@ export class Results {
            <tbody data-ref="rows"></tbody></table>
          <div class="res-actions" data-ref="quali" hidden>
            <button class="btn btn-primary" data-act="raceAgain">START THE RACE <kbd>ENTER</kbd></button>
+           <button class="btn" data-act="replay">REPLAY <kbd>V</kbd></button>
            <button class="btn" data-act="quit">MENU <kbd>ESC</kbd></button>
          </div>
          <div class="res-actions" data-ref="champ" hidden>
            <button class="btn btn-primary" data-act="raceAgain">STANDINGS <kbd>ENTER</kbd></button>
+           <button class="btn" data-act="replay">REPLAY <kbd>V</kbd></button>
            <button class="btn" data-act="quit">MENU <kbd>ESC</kbd></button>
          </div>
          <div class="res-actions" data-ref="solo">
            <button class="btn btn-primary" data-act="raceAgain">RACE AGAIN <kbd>ENTER</kbd></button>
            <button class="btn" data-act="nextRace">NEXT TRACK <kbd>N</kbd></button>
+           <button class="btn" data-act="replay">REPLAY <kbd>V</kbd></button>
            <button class="btn" data-act="quit">MENU <kbd>ESC</kbd></button>
          </div>
          <div class="res-actions res-online" data-ref="online" hidden>

@@ -26,7 +26,8 @@ const NO_GRIP = [1, 1, 1, 1];
 
 // state: { x, z, yaw, vx, vz, steer, yawRate (+ left), omega (rear axle rad/s), rpm, tans (4 lagged slip-
 // angle tangents), ax / ay (lagged accelerations for load transfer), tempF / tempR (°C), handbrakeTime }.
-// input: { throttle 0..1, brake 0..1, steer -1..1 (+ left), handbrake, draft 0..1, assist 0..1,
+// input: { throttle 0..1, brake 0..1, steer -1..1 (+ left), handbrake, draft 0..1, assist 0..1 (countersteer
+// aid), brakeAssist (false: no threshold-braking aid),
 // grip (4 surface multipliers from track/surfaceGrip) }. Returns the next state + telemetry.
 export function stepKart(s, input, dt) {
   if (!(dt > 0)) return idle(s);
@@ -65,7 +66,7 @@ export function stepKart(s, input, dt) {
   const rear = [2, 3].map((i) => ({ v: VEL[i].long, fz: LOADS[i], tan: tans[i], mu: mu[i] }));
   // Braking, the clutch slips before it drags the flywheel down with the axle (it only holds ~45 N·m).
   const inertia = AXLE_INERTIA + (drive.coupled && !pedal.brake ? ENGINE_INERTIA * GEAR_RATIO ** 2 : 0);
-  const omega = rolling ? vf0 / REAR_RADIUS : spinAxle(omega0, rear, drive.torque, pedal.brake, inertia, dt, !locked);
+  const omega = rolling ? vf0 / REAR_RADIUS : spinAxle(omega0, rear, drive.torque, pedal.brake, inertia, dt, !locked && input.brakeAssist !== false);
 
   // Tyre forces into body-frame force and yaw moment; slip power heats each axle.
   let [fx, fy, mz, heatF, heatR, rearS, spin] = [0, 0, 0, 0, 0, 0, 0];

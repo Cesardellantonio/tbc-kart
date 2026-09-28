@@ -106,6 +106,7 @@ export class RaceSession {
       this.clock += dt;
       if (this.lightsMode === 'go' && this._t - this._goAt > GO_SHOW) this.lightsMode = 'off';
       const event = this.timer.update(trackIndex, this.clock);
+      for (const s of this.timer.sectorEvents) this.bus.emit('sector', s);
       if (event) this.bus.emit('lap', event);
       if (this.limit !== null && !this.flagged && this.clock >= this.limit) {
         this.flagged = true;
