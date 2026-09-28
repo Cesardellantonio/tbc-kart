@@ -22,7 +22,7 @@ describe.each(TRACKS.map((t) => [t.id, t]))('%s', (id, track) => {
     expect(validateTrack(track).problems).toEqual([]);
   });
 
-  it('can be raced: six AI karts finish two laps without getting stuck, and a GP lasts ~2–2.5 min', () => {
+  it('can be raced: a full grid of AI karts finishes two laps without getting stuck, and a GP lasts ~2–2.5 min', () => {
     const sim = simulateRace(track, { laps: 2, random: seededRandom(1) });
     expect(sim.allFinished).toBe(true);
     expect(sim.resets).toBe(0);

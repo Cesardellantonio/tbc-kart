@@ -33,6 +33,7 @@ import { stepGame, controlsFor, runLoop } from './frame.js';
 import { TRACKS } from '../tracks/index.js';
 import { chooseTrack, recordSignature } from './trackChoice.js';
 import { Online } from './online.js';
+import { loadSeason, summary } from '../race/championship.js';
 import { RIVALS, PLAYER, DIFFICULTY, DEFAULT_DIFFICULTY } from '../config/race.js';
 import { LIVERY } from '../config/kart.js';
 
@@ -63,8 +64,11 @@ export class Game {
     this.hud = new Hud(this.bus, this.input);
     this.screens = new Screens((name) => this.input.trigger(name));
     this.difficulty = savedLevel();
+    this.season = loadSeason(); // championship (app/championship.js), carried between visits
+    this.qualiGrid = null;
     this.screens.bindLevels(this.difficulty, (level) => this.setDifficulty(level));
     this.screens.addGraphicsPicker();
+    this.screens.setSeason(summary(this.season));
     this.debug = new DebugOverlay();
     this.autopilot = new Autopilot(null);
     this.impactCooldown = 0;
@@ -97,11 +101,14 @@ export class Game {
     this.recordKey = recordKey(track.id);
     this.record = loadRecord(this.signature, this.recordKey);
     this.session = new RaceSession(path.count, startIndex, this.bus, this.record, track.laps);
-    // (an online race swaps in its own field for the room's roster, and puts this one back after)
-    this.field = this.soloField = new RaceField(path.count, startIndex, track.laps, [
+    // (an online race swaps in its own field for the room's roster, and puts this one back after;
+    // qualifying runs on its own timed field, ordered by best lap)
+    const drivers = [
       { ...PLAYER, color: LIVERY.body, isPlayer: true },
       ...RIVALS.map((p) => ({ code: p.code, name: p.name, color: p.body, profile: p, isPlayer: false })),
-    ]);
+    ];
+    this.field = this.soloField = new RaceField(path.count, startIndex, track.laps, drivers);
+    this.qualiField = new RaceField(path.count, startIndex, track.laps, drivers, { timed: true });
     this.hud.setTrack(path, startIndex, track.laps);
     const position = TRACKS.indexOf(track);
     this.screens.setTrack(track, path, startIndex, position, TRACKS.length, this.record.best);

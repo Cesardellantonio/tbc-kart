@@ -533,7 +533,8 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 250px;
+  flex: 1 1 200px; /* four modes share one row on a desktop */
+  min-width: 200px;
   padding: 14px 20px;
   text-align: left;
   color: var(--hud-text);
@@ -1133,5 +1134,24 @@ kbd {
 @media (max-width: 760px), (max-height: 520px) {
   .hud-tyres {
     display: none; /* phones: no room beside the speedo */
+  }
+}
+
+/* Short landscape (phones): the four modes share one row, names only. */
+@media (max-height: 520px) {
+  .title-modes {
+    gap: 8px;
+  }
+  .mode {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 12px;
+  }
+  .mode b {
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+  .mode small {
+    display: none;
   }
 }

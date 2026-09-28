@@ -5,7 +5,7 @@
 import { num, int, bool, oneOf, nullable, optional, str, tuple, list, shape } from './schema.js';
 import { isCode } from './roomCode.js';
 import { NAME_MAX, MAX_PLAYERS } from '../config/lobby.js';
-import { DIFFICULTY } from '../config/race.js';
+import { DIFFICULTY, GRID, RIVALS } from '../config/race.js';
 import { STATE_LEN, CONTROLS_LEN, WORLD_LIMIT, SPEED_LIMIT } from '../config/net.js';
 
 export const REFUSALS = ['full', 'version', 'racing'];
@@ -13,7 +13,7 @@ export const REFUSALS = ['full', 'version', 'racing'];
 const TIME = num(-1e9, 1e9);
 const RACE_TIME = num(0, 1e5);
 const playerId = str(2, /^p[0-5]$/);
-const kartId = str(2, /^(p[0-5]|a[0-4])$/);
+const kartId = str(3, /^(p[0-5]|a1?[0-9])$/); // humans p0–p5, AI rivals a0–a19
 const name = str(NAME_MAX, /^[^\u0000-\u001f\u007f-\u009f<>]+$/u); // what lobbyText.sanitizeName leaves
 const driverCode = str(3, /^[A-Z0-9]{3}$/);
 const number = str(3, /^[0-9]{1,3}$/);
@@ -44,8 +44,8 @@ const rosterEntry = shape({
   code: driverCode,
   livery,
   number,
-  slot: int(0, MAX_PLAYERS - 1),
-  rival: optional(int(0, MAX_PLAYERS - 2)), // AI only: index into RIVALS
+  slot: int(0, GRID.size - 1),
+  rival: optional(int(0, RIVALS.length - 1)), // AI only: index into RIVALS
 });
 const result = shape({
   id: kartId,
@@ -67,14 +67,14 @@ export const SHAPES = {
     track,
     level,
     laps: int(1, 99),
-    roster: list(rosterEntry, MAX_PLAYERS, 1),
+    roster: list(rosterEntry, GRID.size, 1),
     countdownAt: TIME,
     hold: num(0, 5),
   }),
   kart: withType(kart),
-  snap: withType({ th: TIME, karts: list(shape(kart), MAX_PLAYERS) }),
+  snap: withType({ th: TIME, karts: list(shape(kart), GRID.size) }),
   finish: withType({ id: kartId, time: RACE_TIME, best: nullable(RACE_TIME) }),
-  results: withType({ entries: list(result, MAX_PLAYERS) }),
+  results: withType({ entries: list(result, GRID.size) }),
   left: withType({ id: playerId }),
   bye: withType({ reason: optional(str(16, /^[a-z-]+$/)) }),
 };

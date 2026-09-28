@@ -6,5 +6,5 @@ export const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const CODE_LENGTH = 5; // characters in a room code
 export const NAME_MAX = 12; // characters in a driver name (the timing tower shows the 3-letter code)
 export const NAME_KEY = 'tbc-kart.name'; // localStorage key for the remembered name
-export const MAX_PLAYERS = 6; // grid size: humans + AI rivals
+export const MAX_PLAYERS = 6; // humans in a room (AI rivals fill the grid to config/race.js GRID.size)
 export const COPIED_TIME = 1.8; // s the COPY button says COPIED before it resets

@@ -9,7 +9,9 @@ import { RaceSession, randomHold } from '../src/race/RaceSession.js';
 import { buildRoster } from '../src/net/roster.js';
 import { EventBus } from '../src/core/events.js';
 import { seededRandom } from '../src/core/math.js';
-import { RIVALS, LIGHT_COUNT, LIGHT_INTERVAL, LIGHTS_HOLD } from '../src/config/race.js';
+import { RIVALS, GRID, LIGHT_COUNT, LIGHT_INTERVAL, LIGHTS_HOLD } from '../src/config/race.js';
+
+const aiIds = (n, from = 0) => Array.from({ length: n }, (_, k) => `a${from + k}`);
 
 const PLAYERS = [
   { id: 'p0', name: 'Cesar', code: 'CES', livery: 0xffc21a, number: '07', host: true },
@@ -21,7 +23,7 @@ const field = (you) => new RaceField(100, 0, 3, onlineDrivers(roster, you));
 describe('online timing field', () => {
   it('lists every roster kart with its code and colour, you as the player, AI with its profile', () => {
     const drivers = onlineDrivers(roster, 'p1');
-    expect(drivers.map((d) => d.id)).toEqual(['p0', 'p1', 'a0', 'a1', 'a2', 'a3']);
+    expect(drivers.map((d) => d.id)).toEqual(['p0', 'p1', ...aiIds(GRID.size - 2)]);
     expect(drivers.filter((d) => d.isPlayer).map((d) => d.id)).toEqual(['p1']);
     expect(drivers[1]).toMatchObject({ code: 'MAR', name: 'Marta', color: 0xf4f6fb });
     expect(drivers[2].profile).toBe(RIVALS[0]);
@@ -33,9 +35,7 @@ describe('online timing field', () => {
     const entries = [
       { id: 'a1', time: 60.2, best: 11.1, dnf: false },
       { id: 'p0', time: 61, best: 11.4, dnf: false },
-      { id: 'a0', time: null, best: null, dnf: false },
-      { id: 'a2', time: null, best: null, dnf: false },
-      { id: 'a3', time: null, best: null, dnf: false },
+      ...['a0', ...aiIds(GRID.size - 4, 2)].map((id) => ({ id, time: null, best: null, dnf: false })),
       { id: 'p1', time: null, best: null, dnf: true },
     ];
     applyResults(f, entries);

@@ -1,9 +1,9 @@
 // One simulation frame: input → karts (player + field) → race flow → FX & audio → camera → HUD.
 
-import { handleActions } from './actions.js';
+import { handleActions, fieldMode } from './actions.js';
 import { stepField } from './field.js';
 import { updateSound } from './sound.js';
-import { FINISH_COOLDOWN } from '../config/race.js';
+import { FINISH_COOLDOWN, QUALI } from '../config/race.js';
 import { rampThrottle } from '../physics/controls.js';
 
 const HOLD = { throttle: 0, brake: 0, steer: 0, handbrake: false };
@@ -62,7 +62,7 @@ export function stepGame(game, dt) {
   const { input, session, kart, world, camera } = game;
   const state = session.state;
   const paused = state === 'paused';
-  const grandPrix = session.mode === 'race' || state === 'title';
+  const grandPrix = fieldMode(session.mode) || state === 'title';
   let wallHit = 0;
   if (!paused) {
     kart.update(shapePlayer(game, game.controlsFor(state), state, dt), dt);
@@ -72,10 +72,14 @@ export function stepGame(game, dt) {
     game.kerb.update(kart, world.path, world.curbs, game.trackIndex, dt);
     session.update(dt, game.trackIndex);
     if (state === 'racing') game.recorder.update(session.timer.lap, session.timer.lapTime(session.clock), kart.state);
-    if (session.mode === 'race' && (state === 'racing' || state === 'finished')) {
+    if (fieldMode(session.mode) && (state === 'racing' || state === 'finished')) {
       const done = game.field.update([game.trackIndex, ...game.rivals.map((r) => r.index)], session.clock);
       if (state === 'racing' && done.some((e) => e.isPlayer)) session.finish();
-      announceOvertakes(game, dt);
+      if (session.mode === 'quali') {
+        if (session.flagged) game.field.flag(session.limit);
+        // Parked or lost after the flag: the session closes on you anyway
+        if (state === 'racing' && session.clock > session.limit + QUALI.overrun) session.finish();
+      } else announceOvertakes(game, dt);
     }
     // Online (app/online.js): the room's heartbeats every frame; in a race, the karts driven elsewhere,
     // the host's AI, contacts and slipstream with them, timing and flags.

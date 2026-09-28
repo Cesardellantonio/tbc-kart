@@ -1,4 +1,4 @@
-// Headless race simulator (Node or Vitest, no DOM/THREE rendering): six AI karts race a track
+// Headless race simulator (Node or Vitest, no DOM/THREE rendering): a full field of AI karts (config/race.js GRID.size) races a track
 // with the game's real physics, barriers, contacts, slipstream and race logic (shuffled grid, pack
 // pull). Used by the track tests and tools/track-report.mjs to prove a layout is drivable. 'YOU' is
 // an AI stand-in at skill 1, so positions and gaps are indicative, not a real race.

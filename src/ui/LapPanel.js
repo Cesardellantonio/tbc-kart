@@ -22,8 +22,15 @@ export class LapPanel {
 
   update(view) {
     const r = this.r;
-    const total = view.mode === 'race' ? `/${view.totalLaps}` : '';
-    setText(r.lap, `${view.lap >= 1 ? Math.min(view.lap, view.totalLaps ?? Infinity) : '–'}${total}`);
+    if (view.mode === 'quali') {
+      // Qualifying: the session clock instead of a race distance (the flag once it is out)
+      const left = view.timeLeft ?? 0;
+      const clock = `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
+      setText(r.lap, `${view.lap >= 1 ? view.lap : 'OUT'} · ${view.flagged ? 'FLAG ⚑' : clock}`);
+    } else {
+      const total = view.mode === 'race' || view.mode === 'champ' ? `/${view.totalLaps}` : '';
+      setText(r.lap, `${view.lap >= 1 ? Math.min(view.lap, view.totalLaps ?? Infinity) : '–'}${total}`);
+    }
     setText(r.time, formatTime(view.lapTime));
     setText(r.last, formatTime(view.last));
     setText(r.best, formatTime(view.best));

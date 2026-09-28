@@ -36,8 +36,12 @@ export class Hud {
     this._minimapShown = true; // false where the CSS hides the minimap (phones): skip drawing it
 
     bus.on('go', () => this.toasts.show('GO!', { kind: 'go', time: 1.1 }));
+    bus.on('session', (limit) =>
+      this.toasts.show('QUALIFYING', { sub: `${Math.round(limit / 60 * 10) / 10} MIN · YOUR BEST LAP SETS YOUR GRID SLOT`, kind: 'go', time: 2.6 }),
+    );
+    bus.on('flag', () => this.toasts.show('CHEQUERED FLAG', { sub: 'FINISH YOUR LAP', kind: 'go', time: 2 }));
     bus.on('lap', (e) => {
-      const race = this.mode !== 'timeattack'; // Grand Prix or online
+      const race = this.mode !== 'timeattack' && this.mode !== 'quali'; // a race: Grand Prix, championship, online
       if (race && e.lap >= this.laps) return; // the results card takes over
       const sub = e.isBest
         ? e.delta == null ? 'FIRST LAP ON THE BOARD' : `NEW BEST  ${formatDelta(e.delta)}`
@@ -48,7 +52,7 @@ export class Hud {
         kind: final ? 'go' : e.isBest ? 'best' : '',
       });
     });
-    bus.on('finish', () => this.toasts.show('CHEQUERED FLAG', { kind: 'go', time: 1.6 }));
+    bus.on('finish', () => this.mode !== 'quali' && this.toasts.show('CHEQUERED FLAG', { kind: 'go', time: 1.6 }));
     bus.on('overtake', (p) => this.toasts.show(`P${p}`, { sub: `UP TO ${ordinal(p)}`, kind: 'info', time: 1 }));
     bus.on('reset', () => this.toasts.show('KART RESET', { kind: 'info', time: 1.2 }));
     bus.on('camera', (view) => this.toasts.show(`CAMERA · ${view.toUpperCase()}`, { kind: 'info', time: 1.2 }));

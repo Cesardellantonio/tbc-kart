@@ -5,7 +5,7 @@
 import { sanitizeName } from '../ui/lobbyText.js';
 import { NAME_MAX, MAX_PLAYERS } from '../config/lobby.js';
 import { HOST_LIVERY, HUMAN_LIVERIES } from '../config/net.js';
-import { RIVALS } from '../config/race.js';
+import { RIVALS, GRID } from '../config/race.js';
 
 // The AI rivals may join the grid at START: no human may take a rival's name or code.
 const RESERVED_NAMES = RIVALS.map((r) => r.name);
@@ -69,9 +69,9 @@ export function seat(id, rawName, players) {
 export const liveryByBody = (body) =>
   [HOST_LIVERY, ...HUMAN_LIVERIES, ...RIVALS].find((l) => l.body === body) ?? HOST_LIVERY;
 
-// humans + AI rivals (RIVALS[0…]) to MAX_PLAYERS karts, in a random grid order.
+// humans + AI rivals (RIVALS[0…]) to GRID.size karts, in a random grid order.
 export function buildRoster(players, rand = Math.random) {
-  const slots = [...Array(MAX_PLAYERS).keys()];
+  const slots = [...Array(GRID.size).keys()];
   for (let i = slots.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [slots[i], slots[j]] = [slots[j], slots[i]];
@@ -85,7 +85,7 @@ export function buildRoster(players, rand = Math.random) {
     livery,
     number,
   }));
-  for (let r = 0; roster.length < MAX_PLAYERS; r++) {
+  for (let r = 0; roster.length < GRID.size; r++) {
     const { name, code, body, number } = RIVALS[r];
     roster.push({ id: `a${r}`, kind: 'ai', name, code, livery: body, number, rival: r });
   }

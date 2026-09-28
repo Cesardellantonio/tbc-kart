@@ -16,6 +16,7 @@ import {
   CLOCK_READY,
 } from '../src/config/net.js';
 import { seededRandom } from '../src/core/math.js';
+import { GRID } from '../src/config/race.js';
 
 describe('room codes', () => {
   it('uses the lobby card alphabet and length', () => {
@@ -122,7 +123,7 @@ describe('protocol', () => {
     'an unknown level': msg.lobby({ ...LOBBY, level: 'god' }),
     'a bad room code': msg.welcome('p1', 'K7QX1', LOBBY),
     'an unknown refusal': msg.refuse('banned'),
-    'seven karts in a snap': msg.snap(1, Array(7).fill(KART)),
+    'more karts in a snap than the grid holds': msg.snap(1, Array(GRID.size + 1).fill(KART)),
     'an AI in the lobby': msg.lobby({ ...LOBBY, players: [{ ...LOBBY.players[0], id: 'a0' }] }),
     'an empty roster': msg.start({
       track: 'spa',

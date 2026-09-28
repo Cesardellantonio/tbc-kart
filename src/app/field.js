@@ -6,6 +6,7 @@ import { KartFx } from '../fx/KartFx.js';
 import { AiDriver } from '../race/AiDriver.js';
 import { resolveContacts, drafts } from '../physics/kartContacts.js';
 import { gridSpot } from '../race/grid.js';
+import { spreadIndices } from '../race/qualifying.js';
 import { trafficFor } from '../race/traffic.js';
 import { KerbFeel } from '../fx/KerbFeel.js';
 import { catchUpPace, rivalSlots, trackPace } from '../race/pack.js';
@@ -36,19 +37,40 @@ export function setFieldTrack(game) {
   game.autopilot.setPath(path);
 }
 
-// race = true lines up the whole field; false (time attack) puts the player alone on the grid box.
-export function placeField(game, race) {
-  const { path, startIndex, gridIndex } = game.world;
-  const spot = race ? gridSpot(path, startIndex, GRID.playerSlot) : { x: path.x[gridIndex], z: path.z[gridIndex], yaw: path.heading(gridIndex), i: gridIndex };
+// layout: 'grid' (Grand Prix: the player 8th, the rivals shuffled), 'solo' (time attack: the player
+// alone on the grid box), 'quali' (everyone spread round the lap, race/qualifying.js) or 'qualified'
+// (the grid from qualifying: grid = driver codes, pole first). true / false are 'grid' / 'solo'.
+export function placeField(game, layout, grid = null) {
+  if (layout === true || layout === false) layout = layout ? 'grid' : 'solo';
+  const { path, startIndex, gridIndex, line } = game.world;
+  const count = game.rivals.length + 1;
+  let spots;
+  if (layout === 'quali') {
+    const order = rivalSlots(game.rivals.length, -1); // every place round the lap, shuffled (you included)
+    const at = spreadIndices(path, startIndex, count);
+    spots = order.map((k) => {
+      const i = at[k];
+      const p = path.offset(i, line[i]);
+      return { x: p.x, z: p.z, yaw: path.heading(i), i };
+    });
+  } else {
+    const codes = layout === 'qualified' && grid ? grid : null;
+    const playerSlot = codes ? Math.max(0, codes.indexOf('YOU')) : GRID.playerSlot;
+    const shuffled = rivalSlots(game.rivals.length, playerSlot);
+    const slotOf = (r, k) => (codes && codes.includes(r.profile.code) ? codes.indexOf(r.profile.code) : shuffled[k]);
+    spots = [gridSpot(path, startIndex, playerSlot), ...game.rivals.map((r, k) => gridSpot(path, startIndex, slotOf(r, k)))];
+  }
+  const solo = layout === 'solo';
+  const spot = solo ? { x: path.x[gridIndex], z: path.z[gridIndex], yaw: path.heading(gridIndex), i: gridIndex } : spots[0];
   game.kart.place(spot.x, spot.z, spot.yaw);
   game.trackIndex = spot.i;
-  const slots = rivalSlots(game.rivals.length, GRID.playerSlot);
   game.rivals.forEach((r, k) => {
-    const g = gridSpot(path, startIndex, slots[k]);
+    const g = spots[k + 1];
     r.kart.place(g.x, g.z, g.yaw);
-    r.kart.object3d.visible = race;
+    r.kart.object3d.visible = !solo;
     r.index = g.i;
     r.driver.reset();
+    r.driver.qualifying = layout === 'quali'; // no defending in qualifying
     r.fx.reset();
     r.kerb.reset();
   });
@@ -69,7 +91,9 @@ export function stepField(game, dt, go, rivals = game.rivals, others = []) {
     const s = r.kart.state;
     const traffic = trafficFor(path, r, [...all.filter((o) => o !== r).map(view), ...others]);
     const gap = (lead - (game.field.entries.find((e) => e.profile === r.profile)?.progress ?? lead)) * path.spacing;
-    const pace = catchUpPace(gap); // behind the player → a touch quicker
+    const entry = game.field.entries.find((e) => e.profile === r.profile);
+    // Qualifying: everyone at their own pace, easing off once their session is over
+    const pace = game.field.timed ? (entry?.finishTime != null ? 0.85 : 1) : catchUpPace(gap); // behind the player → a touch quicker
     const c = r.driver.controls(s, r.kart.telemetry.speed, traffic, pace, dt, go);
     if (c.reset) respawnRival(game, r);
     else r.kart.update(c, dt);

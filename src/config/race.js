@@ -36,22 +36,42 @@ export const AUTOPILOT = {
 };
 
 // Grand Prix: grid layout and the rival field (race distance is each track's `laps`).
-// slot 0 = pole; the player starts 5th, the rivals fill the rest in a new order each race
-export const GRID = { rowGap: 3.4, lateral: 1.45, playerSlot: 4 };
+// slot 0 = pole; the player starts 8th (a Grand Prix without qualifying), the rivals fill the rest in
+// a new order each race. size: karts on the grid (you + RIVALS; online, humans + AI).
+export const GRID = { rowGap: 3.4, lateral: 1.45, playerSlot: 7, size: 12 };
 export const FINISH_COOLDOWN = { maxSpeed: 9 }; // m/s the autopilot drives your kart after the flag
 
 // Rival drivers. skill scales the planned corner and braking speeds (the straights are flat out for
-// everyone: same karts); line = preferred offset from the racing line on the straights (m, + = right);
+// everyone: same karts); line = preferred offset from the racing line on the straights (m, + = right;
+// small, so it costs less than one 0.005 step of the skill ladder);
 // react = start reaction (s); aggression 0..1 = odds of covering the inside when attacked, and how much
 // later than usual they brake when alongside a kart.
 export const RIVALS = [
-  { code: 'ROS', name: 'M. Rossi', number: '11', body: 0xe63946, suit: 0x2b2d42, stripe: 0xffffff, skill: 1.015, line: -0.3, react: 0.18, aggression: 0.85 },
-  { code: 'OKA', name: 'T. Okafor', number: '23', body: 0x2bd97c, suit: 0x1b4332, stripe: 0x111111, skill: 1.005, line: 0.4, react: 0.22, aggression: 0.55 },
-  { code: 'LIN', name: 'E. Lindqvist', number: '5', body: 0x3a86ff, suit: 0x0b2545, stripe: 0xffd60a, skill: 0.995, line: 0.1, react: 0.2, aggression: 0.65 },
-  { code: 'TAN', name: 'K. Tanaka', number: '88', body: 0xff7b00, suit: 0x222222, stripe: 0x3a86ff, skill: 0.985, line: -0.5, react: 0.26, aggression: 0.4 },
-  { code: 'MOR', name: 'L. Moreau', number: '31', body: 0xb388ff, suit: 0x3c096c, stripe: 0xffffff, skill: 0.975, line: 0.6, react: 0.28, aggression: 0.75 },
+  { code: 'VAL', name: 'S. Valente', number: '16', body: 0xd62ad0, suit: 0x240046, stripe: 0xffffff, skill: 1.02, line: 0.10, react: 0.19, aggression: 0.7 },
+  { code: 'ROS', name: 'M. Rossi', number: '11', body: 0xe63946, suit: 0x2b2d42, stripe: 0xffffff, skill: 1.015, line: -0.10, react: 0.18, aggression: 0.85 },
+  { code: 'BRA', name: 'A. Braga', number: '9', body: 0x8d1b3d, suit: 0xf4f4f4, stripe: 0xffc21a, skill: 1.01, line: -0.10, react: 0.21, aggression: 0.8 },
+  { code: 'OKA', name: 'T. Okafor', number: '23', body: 0x2bd97c, suit: 0x1b4332, stripe: 0x111111, skill: 1.005, line: 0.15, react: 0.22, aggression: 0.55 },
+  { code: 'SAN', name: 'D. Santos', number: '27', body: 0x0f9d8a, suit: 0x0b2545, stripe: 0xffffff, skill: 1.0, line: 0.10, react: 0.23, aggression: 0.6 },
+  { code: 'LIN', name: 'E. Lindqvist', number: '5', body: 0x3a86ff, suit: 0x0b2545, stripe: 0xffd60a, skill: 0.995, line: 0.05, react: 0.2, aggression: 0.65 },
+  { code: 'KOW', name: 'J. Kowalski', number: '14', body: 0x9aa3ad, suit: 0x1b1c20, stripe: 0xe63946, skill: 0.99, line: -0.15, react: 0.24, aggression: 0.5 },
+  { code: 'TAN', name: 'K. Tanaka', number: '88', body: 0xff7b00, suit: 0x222222, stripe: 0x3a86ff, skill: 0.985, line: -0.20, react: 0.26, aggression: 0.4 },
+  { code: 'MEI', name: 'L. Mei', number: '81', body: 0xc98b2b, suit: 0x2b2d42, stripe: 0x111111, skill: 0.98, line: 0.20, react: 0.25, aggression: 0.55 },
+  { code: 'MOR', name: 'L. Moreau', number: '31', body: 0xb388ff, suit: 0x3c096c, stripe: 0xffffff, skill: 0.975, line: 0.25, react: 0.28, aggression: 0.75 },
+  { code: 'OBR', name: "C. O'Brien", number: '55', body: 0x2a2b33, suit: 0xffc21a, stripe: 0x22d3ee, skill: 0.97, line: -0.05, react: 0.27, aggression: 0.45 },
 ];
 export const PLAYER = { code: 'YOU', name: 'You', number: '07' };
+
+// Championship: a round on every circuit in menu order — qualifying, then the race. Points to the top
+// ten as in F1, plus one for the fastest lap (if its driver finishes in the points).
+export const CHAMPIONSHIP = {
+  points: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],
+  fastestLap: 1,
+  key: NOVA ? 'tbc-nova.season' : 'tbc-kart.season',
+};
+// Qualifying: a session of about `laps` laps at `pace` m/s, within min–max s; the karts start spread round
+// the lap from `lead` m past the line; after the flag each finishes the lap it is on (you get up to
+// `overrun` s to take the flag before the session closes on you).
+export const QUALI = { laps: 3.4, pace: 11.5, min: 90, max: 180, lead: 12, overrun: 60 };
 
 // Rival AI: racing-line shape, traffic awareness, recovery and a gentle pack-keeping pull.
 export const AI = {

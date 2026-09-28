@@ -6,6 +6,7 @@ export class LapTimer {
     this.start = startIndex;
     this.best = null; // seconds
     this.bestSplits = null; // best-lap elapsed time at each sample of progress
+    this.outLap = false; // qualifying: starting anywhere round the lap, the next line crossing starts lap 1
     this.reset();
   }
 
@@ -28,6 +29,7 @@ export class LapTimer {
     if (this.lastIndex === null) {
       this.lastIndex = index;
       this.progress = this._wrap(index - this.start);
+      if (this.outLap && this.progress >= 0) this.progress -= this.n; // past the line: a full out-lap to it
       this._prevTime = time;
       return null;
     }

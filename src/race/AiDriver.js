@@ -40,6 +40,7 @@ export class AiDriver {
     this.wait = this.profile.react + random() * 0.12; // reaction time after the lights
     this.form = 1 + (random() - 0.5) * AI.formSpread; // good days and bad days
     this.random = random;
+    this.qualifying ??= false; // set by the field (app/field.js): nobody defends in qualifying
     this.corner = -2; // the corner being approached (race/driverCraft.js cornerMap) …
     this.take = { factor: 1, mistake: null }; // … and how it is going to be taken
     this.defence = { corner: -1, side: 0, hold: 0, cool: 0 };
@@ -72,7 +73,7 @@ export class AiDriver {
     this.pass = damp(this.pass, pass, AI.offsetRate, dt);
     // Defending: cover the inside of the next corner from a kart close behind (0..1 blend, eased).
     const aggression = this.profile.aggression ?? 0.5;
-    const side = pass ? 0 : defending(this.defence, attacker, inside, corner, aggression, dt, this.random);
+    const side = pass || this.qualifying ? 0 : defending(this.defence, attacker, inside, corner, aggression, dt, this.random);
     if (side && side !== this.covering) this.log.defences++;
     this.covering = side;
     if (side) this.coverSide = side;

@@ -12,6 +12,8 @@ import { Toasts } from './Toasts.js';
 import { drawTrackMap } from './trackMap.js';
 import { GraphicsPicker } from './GraphicsPicker.js';
 import { RIVALS, DIFFICULTY } from '../config/race.js';
+import { TRACKS } from '../tracks/index.js';
+import { SeasonCard } from './SeasonCard.js';
 import { NOTICE_TIME } from '../config/net.js';
 
 const CONTROLS = [
@@ -26,10 +28,18 @@ const CONTROLS = [
 ];
 const MODES = [
   ['race', 'GRAND PRIX', (laps) => `${laps} LAPS · ${RIVALS.length} RIVALS · SLIPSTREAM & CONTACT`],
+  ['champ', 'CHAMPIONSHIP', (laps, s) => seasonLine(s)],
   ['timeattack', 'TIME ATTACK', () => 'SOLO HOT LAPS · RACE YOUR BEST-LAP GHOST'],
   ['online', 'ONLINE', () => 'RACE FRIENDS · ROOM CODE · UP TO 6 PLAYERS'],
 ];
 const MAP = [168, 112]; // track picker thumbnail, CSS px
+
+// The championship card's line: the season so far (race/championship.js summary), or what one is.
+function seasonLine(s) {
+  if (!s) return `${TRACKS.length} ROUNDS · QUALIFYING + RACE · POINTS`;
+  if (s.done) return `SEASON OVER · ${s.position === 1 ? 'CHAMPION' : `P${s.position}`} · ${s.points} PTS · GO AGAIN`;
+  return `ROUND ${s.round} / ${s.of} · YOU P${s.position} · ${s.points} PTS`;
+}
 
 export class Screens {
   // onAction(name): fire an input action (start, quit, pause, reset, prevTrack, nextTrack) from a button.
@@ -75,6 +85,8 @@ export class Screens {
     document.body.append(this.title, this.pause);
     showScreen(this.pause, false);
     this.results = new Results(onAction);
+    this.season = new SeasonCard(onAction);
+    this.seasonSummary = null;
     this.lobby = new Lobby(offlineLobby(this)); // the online layer replaces these with lobby.bind()
     this.onlinePause = new OnlinePause(onAction);
     const layer = el('div', 'hud notice-layer'); // over every card, so it reads on the title too
@@ -109,7 +121,7 @@ export class Screens {
     setText(r.blurb, track.blurb);
     const home = NOVA ? 'HOME WORLD · THE TBC LAYOUT' : 'VANCOUVER HOME TRACK';
     setText(r.meta, track.id === 'tbc' ? home : `${NOVA ? 'LAYOUT' : 'INSPIRED BY'} ${track.inspiredBy.toUpperCase()}`);
-    for (const [id, , sub] of MODES) setText(this.title.querySelector(`[data-sub="${id}"]`), sub(track.laps));
+    for (const [id, , sub] of MODES) setText(this.title.querySelector(`[data-sub="${id}"]`), sub(track.laps, this.seasonSummary));
     this.setBest(best);
   }
 
@@ -176,13 +188,23 @@ export class Screens {
     this.results.show(visible);
   }
 
+  // Championship: the standings card (ui/SeasonCard.js) and the title card's season line.
+  showSeason(visible, season, scored, names) {
+    if (visible || this.season.visible) this.season.show(visible, season, scored, names);
+  }
+
+  setSeason(summary) {
+    this.seasonSummary = summary;
+    setText(this.title.querySelector('[data-sub="champ"]'), seasonLine(summary));
+  }
+
   // A short online notice ("MARTA LEFT", "HOST LEFT") that shows over whatever is on screen.
   notify(text, sub = '') {
     this.notices.show(text, { sub, kind: 'info', time: NOTICE_TIME });
   }
 
   update(game) {
-    if (game.session.state === 'finished') this.results.update(game.field);
+    if (game.session.state === 'finished') this.results.update(game.field, game.session.mode);
   }
 
   setBest(best) {

@@ -5,7 +5,7 @@
 import { NOVA } from './edition.js';
 
 // Bump when a message changes shape: a host refuses a client that speaks another version.
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2; // 2: twelve-kart grids
 export const PEER_PREFIX = NOVA ? 'tbcnova-' : 'tbckart-'; // PeerJS id of a room's host = prefix + room code
 export const CONNECT_TIMEOUT = 8; // s to reach the broker / the host (and hear its welcome)
 export const MAX_MESSAGE = 8192; // bytes of JSON; anything longer is dropped unread

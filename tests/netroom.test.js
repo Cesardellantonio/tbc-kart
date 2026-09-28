@@ -19,7 +19,7 @@ import {
   RESULTS_GRACE,
 } from '../src/config/net.js';
 import { MAX_PLAYERS } from '../src/config/lobby.js';
-import { RIVALS } from '../src/config/race.js';
+import { RIVALS, GRID } from '../src/config/race.js';
 
 const FRAME = 1 / 60;
 
@@ -297,7 +297,7 @@ describe('online room', () => {
     expect(new Set(roster.map((e) => e.name)).size).toBe(roster.length);
   });
 
-  it('starts everyone on one roster: humans and AI rivals, six distinct grid slots', () => {
+  it('starts everyone on one roster: humans and AI rivals filling the grid, distinct grid slots', () => {
     const w = world();
     const host = w.host();
     const clients = ['Ann', 'Bob', 'Cat'].map((n) => w.join(host, n));
@@ -307,12 +307,13 @@ describe('online room', () => {
     w.run(0.2);
     expect(starts).toHaveLength(4);
     for (const s of starts) expect(s).toEqual(start);
-    expect(start.roster.map((e) => e.id)).toEqual(['p0', 'p1', 'p2', 'p3', 'a0', 'a1']);
+    const ai = GRID.size - 4;
+    expect(start.roster.map((e) => e.id)).toEqual(['p0', 'p1', 'p2', 'p3', ...Array.from({ length: ai }, (_, k) => `a${k}`)]);
     expect(start.roster.filter((e) => e.kind === 'ai').map((e) => e.code)).toEqual(
-      RIVALS.slice(0, 2).map((r) => r.code)
+      RIVALS.slice(0, ai).map((r) => r.code)
     );
-    expect(new Set(start.roster.map((e) => e.slot)).size).toBe(MAX_PLAYERS);
-    expect(new Set(start.roster.map((e) => e.code)).size).toBe(MAX_PLAYERS);
+    expect(new Set(start.roster.map((e) => e.slot)).size).toBe(GRID.size);
+    expect(new Set(start.roster.map((e) => e.code)).size).toBe(GRID.size);
     expect(start.countdownAt).toBeCloseTo(w.net.now() - 0.2 + START_LEAD, 6);
     expect(host.start({ laps: 5, hold: 0.7 })).toBe(null); // not twice
   });
@@ -403,14 +404,16 @@ describe('online race', () => {
     expect(r.races[0].results).toBe(null); // two AI karts are still out (within RESULTS_GRACE)
     r.races[0].aiFinish('a2', 63.4, 20.2);
     r.races[0].aiFinish('a0', 64, 20.6);
+    const rest = Array.from({ length: GRID.size - 6 }, (_, k) => `a${k + 3}`); // the back of the field
+    rest.forEach((id, k) => r.races[0].aiFinish(id, 65 + k, 21));
     r.drive(1);
     const [h, a, b] = r.races.map((race) => race.results);
-    expect(h.map((e) => e.id)).toEqual(['a1', 'p1', 'p0', 'p2', 'a2', 'a0']);
+    expect(h.map((e) => e.id)).toEqual(['a1', 'p1', 'p0', 'p2', 'a2', 'a0', ...rest]);
     expect(h[1]).toEqual({ id: 'p1', time: 60.1, best: 19.5, dnf: false });
     expect(a).toEqual(h);
     expect(b).toEqual(h);
     const events = r.races[1].poll();
-    expect(events.filter((e) => e.type === 'finish').map((e) => e.id)).toEqual(['a1', 'p0', 'p2', 'a2', 'a0']);
+    expect(events.filter((e) => e.type === 'finish').map((e) => e.id)).toEqual(['a1', 'p0', 'p2', 'a2', 'a0', ...rest]);
     expect(events.filter((e) => e.type === 'results')).toHaveLength(1);
   });
 
@@ -436,7 +439,7 @@ describe('online race', () => {
     expect(r.races[1].remoteStates().has('p2')).toBe(false);
     r.races[0].finish(70, 20);
     r.races[1].finish(71, 20);
-    for (const id of ['a0', 'a1', 'a2']) r.races[0].aiFinish(id, 72, 21);
+    for (let k = 0; k < GRID.size - 3; k++) r.races[0].aiFinish(`a${k}`, 72, 21);
     r.drive(0.5);
     const results = r.races[1].results;
     expect(results.at(-1)).toEqual({ id: 'p2', time: null, best: null, dnf: true });

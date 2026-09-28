@@ -35,8 +35,9 @@ describe.each(TRACKS.map((t) => [t.id, t]))('rival pace on %s', (id, track) => {
   }, 30000);
 
   it('a preferred line is not a hidden pace modifier: the rivals keep their skill order', () => {
-    const shift = Math.abs(lap(1, { line: 0.6 }) / lap(1, { line: -0.6 }) - 1);
-    expect(shift).toBeLessThan(lap(0.98) / lap(1) - 1); // less than one step of the skill ladder
+    const wide = Math.max(...RIVALS.map((r) => Math.abs(r.line)));
+    const shift = Math.abs(lap(1, { line: wide }) / lap(1, { line: -wide }) - 1);
+    expect(shift).toBeLessThan(lap(0.995) / lap(1) - 1); // less than one step of the skill ladder
     const order = RIVALS.map((r) => ({ code: r.code, t: lap(r.skill, { line: r.line }) })).sort((a, b) => a.t - b.t);
     expect(order.map((r) => r.code)).toEqual(RIVALS.map((r) => r.code));
   }, 30000);
